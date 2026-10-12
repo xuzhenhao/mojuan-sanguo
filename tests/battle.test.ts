@@ -36,7 +36,7 @@ describe('判定', () => {
     const top = card('B001', 'H', 5);
     g.draw.push(top);
     const r = await g.judge('测试');
-    expect(r).toBe(top);
+    expect(r).toMatchObject({ kind: 'judge', source: 'deck', cardId: 'B001', uid: top.uid, suit: 'H', rank: 5, color: 'red' });
     expect(g.discard).toContain(top);
   });
 });

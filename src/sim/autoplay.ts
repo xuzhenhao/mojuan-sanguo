@@ -9,6 +9,7 @@ import { BATTLES } from '../data/enemies';
 import { CONFIG } from '../data/config';
 import { heroAiTurn, heroDiscards, heroRespond } from './hero-ai';
 import type { CardInst, Enemy } from '../core/types';
+import { withContract, type ContractReport } from './io-contract';
 
 export type Layer = 'huzhu' | 'bagua' | 'shan' | 'armor' | 'tao';
 export const LAYERS: Layer[] = ['huzhu', 'bagua', 'shan', 'armor', 'tao'];
@@ -192,6 +193,8 @@ export interface RunOpts extends HeroOpts {
   seed: number;
   hp?: number;
   maxTurns?: number;
+  /** 传入则用 headless 表现层契约消费者校验所有 core → 表现层事件（见 io-contract.ts） */
+  contract?: ContractReport;
 }
 
 /** 单场战斗：从给定体力开始，AI 打到结束 */
@@ -199,12 +202,15 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   let win = false;
   const io = silentIO((w) => (win = w));
   const ai = o.ai ?? 'hero';
-  const g = new StatGame(seeded(o.seed), io, { autoShan: ai === 'greedy', main: o.main, sub: o.sub, preset: o.preset });
+  const ref: { g?: Game } = {};
+  const gameIO = o.contract ? withContract(io, () => ref.g, o.contract).io : io;
+  const g = new StatGame(seeded(o.seed), gameIO, { autoShan: ai === 'greedy', main: o.main, sub: o.sub, preset: o.preset });
   io.respond = async (text, legal, _pass, timed) => {
     // timed = 闪响应窗口；非 timed = 濒死自救
     if (ai === 'hero' && timed) return heroRespond(g, Number(/伤害 (\d+)/.exec(text)?.[1] ?? 1), legal);
     return g.hand.find(legal) ?? null;
   };
+  ref.g = g;
   g.battleIdx = o.battleIdx;
   if (o.hp !== undefined) g.p.hp = o.hp;
   const hpStart = g.p.hp;
@@ -239,13 +245,13 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
 }
 
 /** 整章：依次打完所有战斗，体力继承；战间回复 rules.betweenBattleHeal（V1：1） */
-export async function runChapter(seed: number, h0: HeroOpts = {}) {
+export async function runChapter(seed: number, h0: HeroOpts = {}, contract?: ContractReport) {
   const h = resolveHeroes(h0);
   const res: GameStats[] = [];
   let hp: number | undefined;
   const heal = CONFIG.rules.betweenBattleHeal ?? 0;
   for (let i = 0; i < BATTLES.length; i++) {
-    const r = await runBattle({ ...h, battleIdx: i, seed: seed * 31 + i, hp });
+    const r = await runBattle({ ...h, battleIdx: i, seed: seed * 31 + i, hp, contract });
     res.push(r);
     if (!r.win) return { clear: false, res, hpAtLast: i === BATTLES.length - 1 ? r.hpStart : null };
     hp = Math.min(r.maxHp, r.hpEnd + heal);
