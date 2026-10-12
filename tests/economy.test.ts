@@ -129,3 +129,22 @@ describe('背包', () => {
     expect(inv.potions[1]).toBe('P05');
   });
 });
+
+describe('与 #43 RunSession 绑定', () => {
+  it('bind：共享 deckMaster 引用，入卷 / 删牌原地修改', async () => {
+    const { EconomySession, P4_UID_BASE } = await import('../src/game/economy/session');
+    const { RunSession } = await import('../src/game/run');
+    const { addCard, removeCard } = await import('../src/game/economy/inventory');
+    const run = new RunSession();
+    const g = run.start({ main: 'H03', sub: 'H04', seed: 1 });
+    const e = new EconomySession();
+    e.bind(g, 1);
+    expect(e.inventory.deck).toBe(g.deckMaster);
+    const c = addCard(e.inventory, 'B001', 'S', 7);
+    expect(c.uid).toBeGreaterThanOrEqual(P4_UID_BASE);
+    expect(g.deckMaster).toContain(c);
+    expect(removeCard(e.inventory, c.uid)).toBe(true);
+    expect(e.inventory.deck).toBe(g.deckMaster);
+    expect(g.deckMaster).not.toContain(c);
+  });
+});

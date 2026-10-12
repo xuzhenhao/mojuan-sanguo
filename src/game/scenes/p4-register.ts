@@ -7,6 +7,7 @@ import type { Engine } from '../../engine/engine';
 import type { BattleKind } from '../../data/economy';
 import type { FlowEvent } from '../flow';
 import { EconomySession } from '../economy/session';
+import type { RunSession } from '../run';
 import { RewardScene } from './reward';
 import type { Env } from './p4-kit';
 
@@ -17,6 +18,8 @@ export interface P4Deps {
   send(e: FlowEvent): void;
   /** 共享经济会话（RunSession 接入后由其提供） */
   economy?: EconomySession;
+  /** 点将建局后由此取 core Game（共享牌组） */
+  run?: Pick<RunSession, 'game' | 'params'>;
 }
 
 const num = (s: string | undefined) => (s !== undefined && s !== '' && !Number.isNaN(Number(s)) ? Number(s) : undefined);
@@ -25,6 +28,10 @@ export function registerP4(d: P4Deps) {
   const q = d.query;
   const econ = d.economy ?? new EconomySession({ seed: num(q.seed), gold: num(q.gold), potions: num(q.potions) });
   const { engine } = d;
+  const inv = () => {
+    econ.bind(d.run?.game ?? null, d.run?.params?.seed);
+    return econ.inventory;
+  };
   const env: Env = {
     overlays: engine.overlays,
     safe: d.safe,
@@ -36,7 +43,7 @@ export function registerP4(d: P4Deps) {
   const kind = (['normal', 'elite', 'boss'].includes(q.reward ?? '') ? q.reward : 'normal') as BattleKind;
   engine.scenes.register(
     'reward',
-    () => new RewardScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'reward_done' }), defaultKind: kind }),
+    () => new RewardScene({ ...env, inventory: inv, rng: () => econ.rng, done: () => d.send({ type: 'reward_done' }), defaultKind: kind }),
   );
   return econ;
 }

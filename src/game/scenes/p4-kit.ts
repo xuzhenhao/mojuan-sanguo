@@ -37,7 +37,7 @@ export const T = {
   azureHi: '#86AAB8',
 } as const;
 export const RARITY_COLOR: Record<Rarity | 'Boss', string> = { N: '#C49A6A', R: '#DFE5E8', E: '#E9C877', L: '#9AD4B8', Boss: '#D4604C' };
-export const BRUSH = (px: number) => `${px}px "Ma Shan Zheng", "MaShanZheng", "STKaiti", "KaiTi", serif`;
+export const BRUSH = (px: number) => `${px}px "Brush", "Ma Shan Zheng", "MaShanZheng", "STKaiti", "KaiTi", serif`;
 export const SANS = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px "PingFang SC", "Noto Sans CJK SC", sans-serif`;
 
 type G = ReturnType<typeof ext> &
