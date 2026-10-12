@@ -1,7 +1,7 @@
 /**
  * 战斗页内存口径（render-spec §12.2 / §12.5，UI 对齐 #63）：烘焙缓存与文字缓存。
  * - 典型组合（BATTLE_BAKE_TYPICAL）：只用于稳态展示。
- * - 满载口径（BATTLE_BAKE_FULL）：预算判定 / 峰值用。各 LRU 上限打满（render-spec §12.2 的 2.77MB 组成），
+ * - 满载口径（BATTLE_BAKE_FULL）：预算判定 / 峰值用。各 LRU 上限打满（render-spec §12.2，手牌上限改 10），
  *   覆盖手牌 10（PRD 硬上限）、敌人 5（前排 3 + 后排 2）等满编情形。
  * 用于测试与 engine-design §4.7.1 的复算，运行时不依赖。
  */
@@ -20,11 +20,11 @@ export const BATTLE_BAKE_TYPICAL: BakePlan = [
 ];
 
 /**
- * 满载口径：LRU 上限全部打满（render-spec §12.2 战斗峰值 = 手牌 12 + 敌人 6 + 武将 2 套 + 徽章 40 + 详情 1 ≈ 2.77MB）。
- * 手牌 12 / 敌人 6 是 LRU 上限（含刚离屏未淘汰项），≥ 手牌 10 / 敌人 5 的满编在屏数。
+ * 满载口径：LRU 上限全部打满（render-spec §12.2 战斗峰值 = 手牌 10 + 敌人 6 + 武将 2 套 + 徽章 40 + 详情 1 ≈ 2.64MB，原手牌 12 时 2.77）。
+ * 手牌 10 = LRU 上限 = PRD 手牌硬上限；敌人 6 是 LRU 上限（≥ 满编 5）。
  */
 export const BATTLE_BAKE_FULL: BakePlan = [
-  { cls: 'hand', wDp: 72, hDp: 104, count: 12 },
+  { cls: 'hand', wDp: 72, hDp: 104, count: 10 },
   { cls: 'enemy', wDp: 96, hDp: 132, count: 6 },
   { cls: 'general', wDp: 138, hDp: 188, count: 2 },
   { cls: 'general', wDp: 76, hDp: 104, count: 2 },

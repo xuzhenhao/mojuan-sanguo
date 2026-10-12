@@ -101,8 +101,8 @@ describe('2D 路径分辨率分级（render-spec §12.5）', () => {
           half0: full.total,
         }),
       );
-    // 满载：LRU 上限打满的烘焙缓存 ≈ render-spec §12.2 的 2.77MB
-    expect(off.bake).toBeGreaterThanOrEqual(2.4);
+    // 满载：LRU 上限打满的烘焙缓存 （手牌 10）≈ render-spec §12.2
+    expect(off.bake).toBeGreaterThanOrEqual(2.3);
     expect(off.bake).toBeLessThanOrEqual(2.8);
     expect(off.total * 1.5).toBeLessThanOrEqual(50);
     expect(on.total * 1.5).toBeLessThanOrEqual(50);
