@@ -7,6 +7,7 @@ import { seeded } from '../core/rng';
 import { def, isRed, isShaPlay } from '../core/rules';
 import { BATTLES } from '../data/enemies';
 import { CONFIG } from '../data/config';
+import { heroAiTurn, heroDiscards, heroRespond } from './hero-ai';
 import type { CardInst, Enemy } from '../core/types';
 
 export type Layer = 'huzhu' | 'bagua' | 'shan' | 'armor' | 'tao';
@@ -176,7 +177,10 @@ export interface HeroOpts {
   main?: string;
   sub?: string;
   preset?: string;
+  /** hero（默认，按武将画像）/ greedy（#19 的旧贪心 AI） */
+  ai?: AiKind;
 }
+export type AiKind = 'hero' | 'greedy';
 /** 统计用副将：未指定时取主将第一个已启用珠联的搭档（不能与主将相同），否则 rules.defaultHeroes.sub */
 export function pickSub(main: string): string {
   const cb = (CONFIG.heroes[main].combos ?? []).find((c) => c.enabled !== false && c.partner !== main && CONFIG.heroes[c.partner]?.roster !== false);
@@ -197,8 +201,13 @@ export interface RunOpts extends HeroOpts {
 export async function runBattle(o: RunOpts): Promise<GameStats> {
   let win = false;
   const io = silentIO((w) => (win = w));
-  const g = new StatGame(seeded(o.seed), io, { autoShan: true, main: o.main, sub: o.sub, preset: o.preset });
-  io.respond = async (_t, legal) => g.hand.find(legal) ?? null;
+  const ai = o.ai ?? 'hero';
+  const g = new StatGame(seeded(o.seed), io, { autoShan: ai === 'greedy', main: o.main, sub: o.sub, preset: o.preset });
+  io.respond = async (text, legal, _pass, timed) => {
+    // timed = 闪响应窗口；非 timed = 濒死自救
+    if (ai === 'hero' && timed) return heroRespond(g, Number(/伤害 (\d+)/.exec(text)?.[1] ?? 1), legal);
+    return g.hand.find(legal) ?? null;
+  };
   g.battleIdx = o.battleIdx;
   if (o.hp !== undefined) g.p.hp = o.hp;
   const hpStart = g.p.hp;
@@ -206,10 +215,11 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   g.startBattle();
   const maxTurns = o.maxTurns ?? 40;
   while (!g.over && g.turn <= maxTurns) {
-    await aiTurn(g, plays);
+    if (ai === 'hero') await heroAiTurn(g, plays);
+    else await aiTurn(g, plays);
     if (g.over) break;
     g.turnEnd();
-    await g.endTurn(pickDiscards(g));
+    await g.endTurn(ai === 'hero' ? heroDiscards(g) : pickDiscards(g));
   }
   return {
     battleIdx: o.battleIdx,
