@@ -67,4 +67,17 @@ describe('Web 主动技按钮（配置生成）', () => {
     const g = setup('H02', 'H04');
     expect(skillButtons(g, true).every((b) => b.disabled)).toBe(true);
   });
+  it('离间只剩 1 名敌人：原因为「没有可选目标」，且该敌人不可选', () => {
+    const g = setup('H02', 'H04');
+    const keep = g.alive()[0];
+    for (const e of g.alive()) if (e !== keep) e.hp = 0;
+    expect(g.alive()).toEqual([keep]);
+    expect(skillButtons(g).find((x) => x.id === 'lijian')).toMatchObject({ disabled: true, reason: '没有可选目标' });
+    expect(skillTargetOk(g, 'lijian', keep)).toBe(false);
+  });
+  it('选目标只认引擎 legalTargets', () => {
+    const g = setup('H02', 'H04');
+    const legal = g.legalTargets('lijian');
+    for (const e of g.alive()) expect(skillTargetOk(g, 'lijian', e)).toBe(legal.includes(e));
+  });
 });
