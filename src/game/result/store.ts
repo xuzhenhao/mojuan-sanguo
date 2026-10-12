@@ -6,8 +6,9 @@
 import type { StorageAdapter } from '../../platform/types';
 import { EMPTY_META, META_KEY, applyOutcome, type MetaProgress, type RunOutcome } from './settlement';
 
-/** 局内存档键（与 core/run 的 RunSave 写入方约定；对齐前以此为准） */
-export const RUN_SAVE_KEY = 'mojuan.run.v1';
+import { RUN_SAVE_KEY, clearRunSave, loadRunSave } from './run-save';
+
+export { RUN_SAVE_KEY };
 
 /** 续玩弹窗显示用的摘要（flow.md §1：主副将、章节/层、体力、铜钱、牌组张数、天命） */
 export interface ResumeSummary {
@@ -49,25 +50,18 @@ export function summarize(raw: unknown): ResumeSummary | null {
   };
 }
 
+/** 局内存档（经 run-save 适配层，与 #78 同键同名） */
 export class RunSaveSlot {
-  constructor(
-    private storage: StorageAdapter,
-    readonly key = RUN_SAVE_KEY,
-  ) {}
+  readonly key = RUN_SAVE_KEY;
+  constructor(private storage: StorageAdapter) {}
   raw(): unknown {
-    const t = this.storage.get(this.key);
-    if (!t) return null;
-    try {
-      return JSON.parse(t);
-    } catch {
-      return null;
-    }
+    return loadRunSave(this.storage);
   }
   peek(): ResumeSummary | null {
     return summarize(this.raw());
   }
   remove() {
-    this.storage.remove(this.key);
+    clearRunSave(this.storage);
   }
 }
 

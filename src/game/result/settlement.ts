@@ -4,18 +4,11 @@
  * - 将魂首版只累计和展示（O30/O37）；天命 N 通关解锁 N+1（15.3）；武将全部免费（15.2）。
  */
 
-/** PRD 21.4 stats（供结算页使用）。core/run 尚未提供时由适配层给 0 */
-export interface RunStats {
-  battlesWon: number;
-  elitesKilled: number;
-  bossKilled: number;
-  turns: number;
-  dmgDealt: number;
-  dmgTaken: number;
-  maxTurnLoss: number;
-  epiphanies: number;
-}
-export const EMPTY_STATS: RunStats = { battlesWon: 0, elitesKilled: 0, bossKilled: 0, turns: 0, dmgDealt: 0, dmgTaken: 0, maxTurnLoss: 0, epiphanies: 0 };
+import { emptyStats, type RunStats } from '../run/stats';
+
+export type { RunStats };
+/** @deprecated 用 emptyStats() */
+export const EMPTY_STATS: RunStats = Object.freeze(emptyStats());
 
 export interface ResultCard {
   id: string;

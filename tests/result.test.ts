@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { showStatusBar } from '../src/platform/web/platform';
+import { battleResultDelta, emptyStats, mergeStats, parseStats } from '../src/game/run/stats';
 import { OverlayStack } from '../src/engine/modal';
 import { SceneManager, CUT } from '../src/engine/scene';
 import { FlowMachine } from '../src/game/flow';
@@ -248,5 +250,25 @@ describe('Pages 入口对调（#46）', () => {
     expect(cfg('production').build.outDir).toBe('dist');
     expect(cfg('debug').base).toBe('/mojuan-sanguo/debug/');
     expect(PAGES_BASE).toEqual({ h5: '/mojuan-sanguo/', debug: '/mojuan-sanguo/debug/' });
+  });
+});
+
+describe('调试状态栏开关（#79）', () => {
+  it('正式根目录默认隐藏；?debug=1 或 /debug/ 下显示', () => {
+    expect(showStatusBar({}, '/mojuan-sanguo/')).toBe(false);
+    expect(showStatusBar({ debug: '1' }, '/mojuan-sanguo/')).toBe(true);
+    expect(showStatusBar({}, '/mojuan-sanguo/debug/')).toBe(true);
+    expect(showStatusBar({ debug: '0' }, '/mojuan-sanguo/debug/')).toBe(false);
+  });
+});
+
+describe('RunStats（PRD 21.4）', () => {
+  it('empty / merge（maxTurnLoss 取最大，其余累加）/ battleResultDelta / parseStats', () => {
+    const a = mergeStats(emptyStats(), { battlesWon: 1, dmgDealt: 10, maxTurnLoss: 5 });
+    const b = mergeStats(a, { ...battleResultDelta('elite', true), dmgDealt: 4, maxTurnLoss: 3, turns: 6 });
+    expect(b).toMatchObject({ battlesWon: 2, elitesKilled: 1, bossKilled: 0, dmgDealt: 14, maxTurnLoss: 5, turns: 6 });
+    expect(a.battlesWon).toBe(1);
+    expect(battleResultDelta('boss', false)).toEqual({});
+    expect(parseStats({ turns: 3, dmgTaken: 'x' })).toEqual({ ...emptyStats(), turns: 3 });
   });
 });

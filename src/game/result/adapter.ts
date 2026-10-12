@@ -7,18 +7,12 @@
 import type { Game } from '../../core/battle';
 import { CARDS } from '../../data/cards';
 import { HEROES } from '../../data/heroes';
-import { EMPTY_STATS, SETTLEMENT_CONFIG, type ResultCard, type RunOutcome, type RunStats } from './settlement';
+import { emptyStats, mergeStats, parseStats } from '../run/stats';
+import { SETTLEMENT_CONFIG, type ResultCard, type RunOutcome, type RunStats } from './settlement';
 import type { ResumeSummary } from './store';
 
 export const heroName = (id: string) => HEROES[id]?.name ?? id;
 export const CHAPTER_NAME: Record<number, string> = { 1: '黄巾', 2: '讨董', 3: '赤壁' };
-
-function statsFrom(raw: unknown): RunStats {
-  const s = (raw ?? {}) as Partial<Record<keyof RunStats, unknown>>;
-  const out = { ...EMPTY_STATS };
-  for (const k of Object.keys(out) as (keyof RunStats)[]) if (typeof s[k] === 'number') out[k] = s[k] as number;
-  return out;
-}
 
 /** 放弃本局：按失败结算（PRD 5.13） */
 export function outcomeFromSave(s: ResumeSummary, raw: unknown, now: number): RunOutcome {
@@ -36,7 +30,7 @@ export function outcomeFromSave(s: ResumeSummary, raw: unknown, now: number): Ru
     tianming: s.tianming,
     chaptersCleared: 0,
     reviveUsed: typeof r.reviveLeft === 'number' ? r.reviveLeft <= 0 : false,
-    stats: statsFrom(r.stats),
+    stats: parseStats(r.stats),
     deck: Array.isArray(r.deck) ? r.deck.map(cardOf) : [],
     relics: Array.isArray(r.relics) ? r.relics.map(String) : [],
     gold: s.gold,
@@ -56,7 +50,9 @@ export function outcomeFromGame(
 ): RunOutcome {
   const win = g.p.hp > 0 && g.isLast;
   const won = g.battleIdx + (g.p.hp > 0 ? 1 : 0);
-  const stats: RunStats = { ...EMPTY_STATS, battlesWon: won, bossKilled: win ? 1 : 0, epiphanies: g.epiCount, turns: g.turn, ...o.stats };
+  const stats: RunStats = o.stats
+    ? mergeStats(emptyStats(), o.stats)
+    : { ...emptyStats(), battlesWon: won, bossKilled: win ? 1 : 0, epiphanies: g.epiCount, turns: g.turn };
   const killer = g.p.hp <= 0 ? g.en?.find((e) => e.hp > 0)?.name : undefined;
   return {
     win,

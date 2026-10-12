@@ -9,7 +9,7 @@ import { FlowMachine, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
-import { createWebPlatform } from './platform';
+import { createWebPlatform, showStatusBar } from './platform';
 import { ResultScene } from '../../game/result/scene';
 import { buildView, type RunOutcome } from '../../game/result/settlement';
 import { MetaStore, RunSaveSlot } from '../../game/result/store';
@@ -68,22 +68,23 @@ engine.scenes.register(
     }),
 );
 
-// 状态栏（非模态系统层）：渲染路径与纹理内存
-engine.overlays.push({
-  id: 'status',
-  kind: 'system',
-  modal: false,
-  draw(s) {
-    const mb = (n: number) => (n / 1048576).toFixed(1);
-    s.ctx.fillStyle = '#8c7448';
-    s.ctx.font = '11px sans-serif';
-    s.ctx.fillText?.(
-      `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
-      16,
-      engine.height - 24,
-    );
-  },
-});
+// 状态栏（非模态系统层）：渲染路径与纹理内存。正式入口默认隐藏，`?debug=1` 或 /debug/ 路径下显示（#79）
+if (showStatusBar(platform.launchQuery(), location.pathname))
+  engine.overlays.push({
+    id: 'status',
+    kind: 'system',
+    modal: false,
+    draw(s) {
+      const mb = (n: number) => (n / 1048576).toFixed(1);
+      s.ctx.fillStyle = '#8c7448';
+      s.ctx.font = '11px sans-serif';
+      s.ctx.fillText?.(
+        `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
+        16,
+        engine.height - 24,
+      );
+    },
+  });
 
 // 启动页可用 ?page=map 等直接进入（截图与测试用）
 const q = query.page as Page | undefined;
