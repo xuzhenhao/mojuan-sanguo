@@ -28,7 +28,8 @@ mainSkills:
   - id: qianxun_ling
     name: 谦逊
     kind: 锁定技
-    desc: 每回合开始时 +1 军令。
+    # 与上一条 qianxun 同属一个技能「谦逊」（DSL 一条能力只能有一个触发时机，所以拆两条实现）；展示层按名称合并，只显示一次（#58）
+    desc: 谦逊（实现部分）：每回合开始时 +1 军令。
     trigger: { when: turn_start }
     do:
       - { do: gain_ling, target: self, amount: 1 }

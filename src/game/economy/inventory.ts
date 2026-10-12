@@ -84,6 +84,10 @@ export function canRemove(inv: Inventory, uid: number): boolean {
 
 export function removeCard(inv: Inventory, uid: number): boolean {
   if (!canRemove(inv, uid)) return false;
-  inv.deck = inv.deck.filter((x) => x.uid !== uid);
+  // 原地删除：牌组数组与 core Game.deckMaster 共享引用
+  inv.deck.splice(
+    inv.deck.findIndex((x) => x.uid === uid),
+    1,
+  );
   return true;
 }
