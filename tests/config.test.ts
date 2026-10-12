@@ -19,7 +19,8 @@ describe('V1 数值（design-v1 第 7 节定稿）', () => {
   it('rules 机制与检查', () => {
     expect(CONFIG.rules.mechanics).toEqual({ judgeSource: 'pool', passiveQuotaPerEnemyTurn: 2, moying: false, zeroCostPerTurn: 1 });
     expect(CONFIG.rules.starterDeck).toBe('hero');
-    expect(CONFIG.rules.betweenBattleHeal).toBe(1);
+    expect(CONFIG.rules.sim.baselineBetweenBattleHeal).toBe(1);
+    expect(CONFIG.rules.map.betweenBattleHeal).toBe(0);
   });
   it('每将起始牌组 12 张，红 50%', () => {
     for (const id of heroes.ROSTER) {
