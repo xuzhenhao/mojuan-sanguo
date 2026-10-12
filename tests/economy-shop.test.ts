@@ -54,3 +54,34 @@ describe('集市（10.7）', () => {
     expect(inv.deck.every((c) => !canRemove(inv, c.uid))).toBe(true);
   });
 });
+
+describe('定价读配置（#70）与 RunSession 背包', () => {
+  it('非定价卡按 rules.shop.cardPrice ±10%', async () => {
+    const { CONFIG } = await import('../src/data/config');
+    const { cardPrice } = await import('../src/game/economy/pools');
+    const rng = seeded(21);
+    const inv = demoInventory();
+    const base = CONFIG.rules.shop!.cardPrice.N;
+    for (let i = 0; i < 30; i++) {
+      const p = cardPrice(rng, 'B001', inv);
+      expect(Math.abs(p - base)).toBeLessThanOrEqual(base * 0.1 + 2.5);
+    }
+  });
+  it('集市购买 / 删牌改到 core Game.deckMaster', async () => {
+    const { EconomySession } = await import('../src/game/economy/session');
+    const { RunSession } = await import('../src/game/run');
+    const run = new RunSession();
+    const g = run.start({ main: 'H03', sub: 'H04', seed: 3 });
+    const e = new EconomySession();
+    e.bind(g, 3);
+    const inv = e.inventory;
+    inv.gold = 999;
+    const st = openShop(seeded(22), inv);
+    const n = g.deckMaster.length;
+    expect(buy(inv, st, st.cards[0])).toBe('ok');
+    expect(g.deckMaster).toHaveLength(n + 1);
+    const uid = g.deckMaster.find((c) => canRemove(inv, c.uid))!.uid;
+    expect(removeService(inv, st, uid)).toBe(true);
+    expect(g.deckMaster.some((c) => c.uid === uid)).toBe(false);
+  });
+});
