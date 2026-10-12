@@ -4,16 +4,18 @@ import { seeded } from '../../core/rng';
 import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../core/rules';
 import { BATTLES } from '../../data/enemies';
 import type { AffixDef, CardInst } from '../../core/types';
+import { nextSkillStep, skillButtons, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
 const S = { autoShan: false, timeout: 8, demoEpi: false, confirmEnd: false, speed: 1 };
-type Mode = 'idle' | 'target' | 'aogu' | 'redSel' | 'discard' | 'response' | 'enemy' | 'over';
+type Mode = 'idle' | 'target' | 'skillCard' | 'skillTarget' | 'redSel' | 'discard' | 'response' | 'enemy' | 'over';
 const ui = {
   mode: 'idle' as Mode,
   busy: false,
   hint: '',
   pending: null as null | { card: CardInst; red?: CardInst },
   picks: [] as CardInst[],
+  skill: null as null | { b: SkillButton; pick: SkillPick },
   need: 0,
   legal: null as null | ((c: CardInst) => boolean),
   respond: null as null | ((c: CardInst | null) => void),
@@ -65,6 +67,7 @@ function newRun() {
   ui.busy = false;
   ui.pending = null;
   ui.picks = [];
+  ui.skill = null;
   G.startBattle();
 }
 function syncSettings() {
@@ -91,8 +94,9 @@ function render() {
       .filter((e) => e.row === row)
       .map((e) => {
         const ii = enemyIntent(e);
-        const tg = ui.mode === 'target';
-        const ok = tg && ui.pending && G.canTarget(e, ui.pending.card);
+        const sk = ui.mode === 'skillTarget' && ui.skill;
+        const tg = ui.mode === 'target' || !!sk;
+        const ok = sk ? skillTargetOk(G, sk.b.id, e) : tg && ui.pending && G.canTarget(e, ui.pending.card);
         const lethal = ii.dmg > 0 && ii.dmg >= G.p.hp + G.p.armor;
         return `<div class="enemy ${e.elite ? 'elite' : ''} ${tg ? (ok ? 'targetable' : 'untarget') : ''}" data-e="${e.uid}" title="${ii.tip}">
         <div class="intent ${lethal ? 'lethal' : ''}">${ii.txt}</div>
@@ -126,8 +130,9 @@ function render() {
       let cls = 'card';
       if (ui.pending?.card === c) cls += ' sel';
       if (ui.mode === 'response') cls += ui.legal?.(c) ? ' legal' : ' dim';
-      if (['discard', 'aogu', 'redSel'].includes(ui.mode) && ui.picks.includes(c)) cls += ' sel';
-      if ((ui.mode === 'aogu' || ui.mode === 'redSel') && (!isRed(c) || ui.pending?.card === c)) cls += ' dim';
+      if (['discard', 'redSel'].includes(ui.mode) && ui.picks.includes(c)) cls += ' sel';
+      if (ui.mode === 'redSel' && (!isRed(c) || ui.pending?.card === c)) cls += ' dim';
+      if (ui.mode === 'skillCard' && ui.skill && !skillCardOk(G, ui.skill.b.id, c)) cls += ' dim';
       if (c.mods.length) cls += ' evo';
       const nm = c.mods.map((m) => G.affixName(m)).join('·');
       return `<div class="${cls}" data-c="${c.uid}" title="${d.desc}"><div class="cost">${G.costOf(c)}</div>
@@ -137,9 +142,20 @@ function render() {
     .join('');
   $('#piles').textContent = `摸牌堆${G.draw.length} 弃牌堆${G.discard.length}`;
   $<HTMLButtonElement>('#btnEnd').disabled = ui.mode !== 'idle' || ui.busy;
-  $<HTMLButtonElement>('#skAogu').disabled = ui.mode !== 'idle' || G.aoguUsed || ui.busy;
+  renderSkills();
   $('#hint').textContent = ui.hint;
   renderLog();
+}
+function renderSkills() {
+  const locked = ui.mode !== 'idle' || ui.busy;
+  $('#skills').innerHTML = skillButtons(G, locked)
+    .map((b) => {
+      const left = Number.isFinite(b.remaining) ? `（${Math.max(0, b.remaining)}）` : '';
+      const tip = `${b.name}：${b.desc}${b.reason ? `【${b.reason}】` : ''}`;
+      const on = ui.skill?.b.id === b.id ? ' sel' : '';
+      return `<button class="skill${on}" data-skill="${b.id}" title="${tip}" ${b.disabled && !on ? 'disabled' : ''}>${b.name}${left}</button>`;
+    })
+    .join('');
 }
 const hint = (t: string) => {
   ui.hint = t;
@@ -252,6 +268,7 @@ function cancelPending() {
   ui.pending = null;
   ui.mode = 'idle';
   ui.picks = [];
+  ui.skill = null;
   hint('');
   render();
 }
@@ -283,12 +300,10 @@ async function clickCard(c: CardInst) {
     return;
   }
   if (ui.busy) return;
-  if (ui.mode === 'aogu') {
-    if (!isRed(c)) return;
-    ui.mode = 'idle';
-    G.aogu(c);
-    hint('');
-    render();
+  if (ui.mode === 'skillCard' && ui.skill) {
+    if (!skillCardOk(G, ui.skill.b.id, c)) return;
+    ui.skill.pick.card = c;
+    await advanceSkill();
     return;
   }
   if (ui.mode === 'redSel') {
@@ -355,6 +370,13 @@ async function clickCard(c: CardInst) {
   await run(() => G.play(c, null));
 }
 async function clickEnemy(uid: number) {
+  if (ui.mode === 'skillTarget' && ui.skill && !ui.busy) {
+    const e = G.en.find((x) => x.uid === uid);
+    if (!e || !skillTargetOk(G, ui.skill.b.id, e)) return;
+    ui.skill.pick.target = e;
+    await advanceSkill();
+    return;
+  }
   if (ui.mode !== 'target' || ui.busy || !ui.pending) return;
   const e = G.en.find((x) => x.uid === uid);
   if (!e || !G.canTarget(e, ui.pending.card)) {
@@ -367,17 +389,38 @@ async function clickEnemy(uid: number) {
   ui.mode = 'idle';
   await run(() => G.play(card, e, red));
 }
-$('#skAogu').onclick = () => {
+/** 主动技：按配置需求依次选牌 / 选目标，齐了就交给引擎 activate */
+async function advanceSkill() {
+  const sk = ui.skill;
+  if (!sk) return;
+  const step = nextSkillStep(sk.b, sk.pick);
+  if (step === 'card') {
+    ui.mode = 'skillCard';
+    hint(`${sk.b.name}：选择要弃置的牌（点空白或再点技能取消）`);
+  } else if (step === 'target') {
+    ui.mode = 'skillTarget';
+    hint(`${sk.b.name}：选择一名敌人（点空白或再点技能取消）`);
+  } else {
+    ui.skill = null;
+    ui.mode = 'idle';
+    await run(() => G.activate(sk.b.id, sk.pick.card, sk.pick.target));
+    return;
+  }
+  render();
+}
+function clickSkill(id: string) {
+  if (ui.skill?.b.id === id) return cancelPending();
   if (ui.mode !== 'idle' || ui.busy) return;
-  if (!G.canAogu()) {
-    hint('没有红色牌');
+  const b = skillButtons(G).find((x) => x.id === id);
+  if (!b) return;
+  if (b.disabled) {
+    hint(`${b.name}：${b.reason}`);
     render();
     return;
   }
-  ui.mode = 'aogu';
-  hint('傲骨：弃1张红色牌（点空白取消）');
-  render();
-};
+  ui.skill = { b, pick: {} };
+  void advanceSkill();
+}
 $('#btnEnd').onclick = async () => {
   if (ui.mode !== 'idle' || ui.busy) return;
   if (S.confirmEnd && (await chooseMenu('确认结束回合？', ['结束', '取消']))) return;
@@ -422,6 +465,11 @@ $('#btnSet').onclick = () => {
 };
 document.addEventListener('click', (ev) => {
   const t = ev.target as HTMLElement;
+  const sb = t.closest<HTMLElement>('[data-skill]');
+  if (sb) {
+    clickSkill(sb.dataset.skill!);
+    return;
+  }
   const c = t.closest<HTMLElement>('.card');
   if (c) {
     const card = G.hand.find((x) => x.uid == +c.dataset.c!);
@@ -433,7 +481,7 @@ document.addEventListener('click', (ev) => {
     void clickEnemy(+e.dataset.e!);
     return;
   }
-  if (t.closest('#field') && ['target', 'aogu', 'redSel'].includes(ui.mode)) cancelPending();
+  if (t.closest('#field') && ['target', 'skillCard', 'skillTarget', 'redSel'].includes(ui.mode)) cancelPending();
 });
 // 调试/自动化测试钩子
 Object.assign(window, { G_: () => G, S_: S, UI_: ui });
