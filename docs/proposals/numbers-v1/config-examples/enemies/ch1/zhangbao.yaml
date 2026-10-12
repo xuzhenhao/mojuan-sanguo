@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第一章精英：张宝·墨影 ─────────
+id: E1E1
+name: 张宝·墨影
+chapter: 1
+tier: 精英
+hp: 10                    # V1：15 → 10（缩短回合，配合墨影控满血率）
+row: front
+flashMarksPerTurn: 0
+cardMods:
+  杀+: [E_S01]            # 已灵光一闪「锋锐」：这张杀打 2 点
+intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）
+  - [杀, 杀]
+  - [闪, 杀]
+  - [万箭, 杀+]
+desc: 黄巾三兄弟之一，墨魇附身。玩家满血时会多出一刀。
+budget:
+  firstTurnSha: 2
+  maxBurst: 3
+  note: 首回合与弓手合计约 3.3 张（实测 3.28）；1000 场实测 中位 6/8、满血 14.1%、战败 8.0%、回合 10
+abilities:
+  - id: moying
+    name: 墨影
+    kind: 被动
+    desc: 敌方回合开始时，若你（玩家）体力已满，本回合张宝额外打出 1 张【杀】。
+    note: 抗满血机制；去掉后精英满血率 14.5% → 39.8%
+    trigger: { when: enemy_turn_start }
+    if:
+      - { type: hp_full }
+    do:
+      - { do: add_enemy_acts, target: self, acts: [杀] }
+  - id: huangtian
+    name: 黄天庇佑
+    kind: 被动
+    desc: 回合开始时若有后排友军，张宝获得 1 点护甲。
+    trigger: { when: enemy_turn_start }
+    if:
+      - { type: has_back_row_ally }
+    do:
+      - { do: armor, target: self, amount: 1 }

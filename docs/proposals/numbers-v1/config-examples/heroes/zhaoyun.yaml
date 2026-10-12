@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=../schema/hero.schema.json
+# ───────── 武将：赵云（蜀）─────────
+# 修改说明：改数值只需改本文件，保存后运行 `npm run config:check` 校验。
+# 「desc」是玩家看到的文字；「note」是策划备注，不显示给玩家。
+id: H03
+name: 赵云
+faction: 蜀
+hp: 8                      # 体力（价值 8 × 1.5 = 12 点）
+role: 攻防转换——杀闪互转，每次转换都过牌；防守反击，操作感“灵活”
+unlock: 初始
+budget: { hp: 12, main: 9.6, sub: 3.0, total: 24.6 }   # 主将目标 22±1.5（不含副将）
+
+mainSkills:
+  - id: longdan
+    name: 龙胆
+    kind: 锁定技
+    desc: 你的【杀】可当【闪】打出，【闪】可当【杀】使用。
+    note: 灵活度价值约 0.6 点/回合 × 6
+    value: 3.6
+    trigger: { when: static }
+    do:
+      - { do: convert, from: { tag: sha }, as: B004 }
+      - { do: convert, from: { tag: shan }, as: B001 }
+
+  - id: chongzhen
+    name: 冲阵
+    kind: 锁定技
+    desc: 每回合前 2 次通过【龙胆】转换的牌结算后，你摸 1 张牌。
+    note: 约 1.0 次/回合 × 1 点 × 6 = 6
+    value: 6.0
+    trigger: { when: card_converted }
+    limit: { per: turn, times: 2 }
+    do:
+      - { do: draw, target: self, amount: 1 }
+
+subSkill:
+  id: huzhu
+  name: 护主
+  kind: 被动
+  desc: 主将成为【杀】的目标时，判定：若为♥或♦，此杀无效。（每回合限 1 次，计入被动免伤配额）
+  note: P(红)=50%（天机签筒），0.5 × 1 × 6 = 3；V0.3 的“仅 ♥”只有 1.5，偏弱
+  value: 3.0
+  trigger: { when: targeted_by_sha, who: main_hero }
+  limit: { per: enemy_turn, times: 1, passiveQuota: true }
+  do:
+    - do: judge
+      success: { color: red }
+      then:
+        - { do: negate_sha, target: current_sha }
+
+starterDeck:               # 12 张，红色 6 张 = 50%
+  - { card: B001, suit: S, rank: 7 }
+  - { card: B001, suit: C, rank: 8 }
+  - { card: B001, suit: H, rank: 10 }
+  - { card: B004, suit: H, rank: 2 }
+  - { card: B004, suit: D, rank: 2 }
+  - { card: B004, suit: C, rank: 2 }
+  - { card: B005, suit: H, rank: 3 }
+  - { card: T001, suit: D, rank: 7 }
+  - { card: T012, suit: S, rank: 3 }
+  - { card: X301, suit: D, rank: 12 }
+  - { card: SH01, suit: S, rank: 4 }
+  - { card: B006, suit: C, rank: 9 }
+
+exclusiveCards: [X301, X302]
+
+combos:
+  - partner: H04            # 刘备
+    name: 托孤
+    note: 手牌上限 +1 ≈ 2 点/场
+    value: 2
+    abilities:
+      - id: tuogu
+        name: 托孤
+        desc: 你的手牌上限 +1。
+        trigger: { when: static }
+        do:
+          - { do: modify, stat: hand_limit, amount: 1, scope: battle }
+  - partner: H05            # 郭嘉（跨阵营）
+    name: 白马
+    value: 2.9
+    abilities:
+      - id: baima
+        name: 白马
+        desc: 每回合你首次通过【龙胆】转换牌后，获得 1 点护甲。
+        trigger: { when: card_converted }
+        limit: { per: turn, times: 1 }
+        do:
+          - { do: armor, target: self, amount: 1 }

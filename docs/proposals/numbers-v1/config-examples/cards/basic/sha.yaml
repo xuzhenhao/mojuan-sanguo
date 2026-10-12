@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 基本牌：杀 ─────────
+id: B001
+name: 杀
+type: 基本
+tags: [sha]
+cost: 1
+rarity: N
+faction: 通用
+target: range            # 攻击范围内一名敌人
+desc: 对攻击范围内一名敌人造成 1 点伤害（可被闪抵消）。
+note: 基础牌净值偏负，由武将技能回本（如赵云冲阵、刘备招贤）
+value: { effect: 1.0, net: -1.5, calc: "1 − 1.5×1(费) − 1(占牌)" }
+abilities:
+  - id: sha_hit
+    name: 杀
+    desc: 造成 1 点伤害。
+    trigger: { when: play }
+    do:
+      - { do: damage, target: chosen, amount: 1, asSha: true }
+instances:               # 奖励池里的花色点数（参照三国杀标准版杀的分布：黑 70%）
+  - { suit: S, rank: 7 }
+  - { suit: S, rank: 8 }
+  - { suit: C, rank: 9 }
+  - { suit: C, rank: 10 }
+  - { suit: H, rank: 10 }
+  - { suit: D, rank: 6 }
