@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊：以逸待劳 ─────────
+id: T012
+name: 以逸待劳
+type: 锦囊
+tags: [trick]
+cost: 1
+rarity: R
+desc: "获得3点护甲"
+abilities:
+  - id: yiyi_armor
+    name: 以逸待劳
+    desc: 获得 3 点护甲。
+    trigger: { when: play }
+    do:
+      - { do: armor, target: self, amount: 3 }

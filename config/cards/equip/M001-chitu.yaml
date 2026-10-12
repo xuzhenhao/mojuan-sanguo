@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 装备·-1马：赤兔 ─────────
+id: M001
+name: 赤兔
+type: 装备
+typeLabel: 装备·-1马
+slot: minus_horse
+tags: [equip]
+cost: 1
+rarity: R
+desc: "你与他人距离-1"
+abilities:
+  - id: chitu_dist
+    name: 赤兔
+    kind: 锁定技
+    desc: 你与他人距离 -1。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: distance, amount: -1, scope: permanent }

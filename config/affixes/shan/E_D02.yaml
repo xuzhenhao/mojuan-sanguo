@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：反震 ─────────
+id: E_D02
+name: 反震
+rarity: R
+category: shan
+desc: "抵消后对来源造成1伤害"

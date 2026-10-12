@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 基本：杀 ─────────
+id: B001
+name: 杀
+type: 基本
+tags: [sha]
+cost: 1
+rarity: N
+target: range
+desc: "对攻击范围内一名敌人造成1点伤害（视为杀，可闪）"
+abilities:
+  - id: sha_hit
+    name: 杀
+    desc: 造成 1 点伤害。
+    trigger: { when: play }
+    do:
+      - { do: damage, target: chosen, amount: 1, asSha: true }

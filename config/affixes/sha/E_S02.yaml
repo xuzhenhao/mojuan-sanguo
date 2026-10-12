@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：轻招 ─────────
+id: E_S02
+name: 轻招
+rarity: N
+category: sha
+desc: "费用-1（最低0）"

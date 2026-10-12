@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 装备·防具：八卦阵 ─────────
+id: A001
+name: 八卦阵
+type: 装备
+typeLabel: 装备·防具
+slot: armor
+tags: [equip, 判定]
+cost: 1
+rarity: R
+desc: "你成为杀的目标时，可判定：红色则视为打出闪"
+abilities:
+  - id: bagua_judge
+    name: 八卦
+    desc: 成为杀的目标时判定，红色视为打出闪。
+    trigger: { when: targeted_by_sha }
+    do:
+      - do: judge
+        success: { color: red }
+        then:
+          - { do: negate_sha, target: current_sha }

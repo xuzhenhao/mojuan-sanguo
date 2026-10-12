@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 基本：闪 ─────────
+id: B004
+name: 闪
+type: 基本
+tags: [shan]
+cost: 0
+rarity: N
+desc: "响应：抵消一张杀"
+abilities:
+  - id: shan_negate
+    name: 闪
+    kind: 响应技
+    desc: 抵消一张杀。
+    trigger: { when: targeted_by_sha }
+    do:
+      - { do: negate_sha, target: current_sha }

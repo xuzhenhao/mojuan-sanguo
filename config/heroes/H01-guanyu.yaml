@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=../schema/hero.schema.json
+# ───────── 武将：关羽（蜀）─────────
+# 改数值只需改本文件，改完运行 `npm run config:check` 校验。
+# desc 是玩家看到的文字；note 是策划备注，不显示给玩家。
+id: H01
+name: 关羽
+faction: 蜀
+hp: 8
+role: 红色杀爆发
+unlock: 初始
+
+mainSkills:
+  - id: wuzhi
+    name: 武执
+    kind: 锁定技
+    desc: 锁定：你的红色牌可当「杀」使用（仍支付杀的费用）
+    trigger: { when: static }
+    do:
+      - { do: convert, from: { color: red }, as: B001 }
+  - id: aogu
+    name: 傲骨
+    kind: 主动技
+    desc: 主动，出牌阶段限1：弃1张红色牌，本回合下一张杀伤害+1
+    trigger: { when: active }
+    limit: { per: turn, times: 1 }
+    do:
+      - { do: discard, target: self, amount: 1, from: { color: red } }
+      - { do: apply_status, target: self, status: next_sha_bonus, duration: 1 }
+
+subSkill:
+  id: zhuwei
+  name: 助威
+  kind: 被动
+  desc: 主将每回合第一次用杀造成伤害后，摸1张牌
+  trigger: { when: deal_damage, who: main_hero, filter: { tag: sha } }
+  limit: { per: turn, times: 1 }
+  do:
+    - { do: draw, target: self, amount: 1 }
+
+combos:
+  - partner: H02 # 赵云
+    name: 龙虎会
+    note: PRD 7.4；开场护甲在 V1 业务校验中要求 ≤3
+    abilities:
+      - id: longhu_armor
+        name: 龙虎会
+        desc: 战斗开始时获得 3 护甲。
+        trigger: { when: battle_start }
+        do:
+          - { do: armor, target: self, amount: 3 }
+      - id: longhu_draw
+        name: 龙虎会
+        desc: 每场战斗首次使用杀后摸 1 张牌。
+        trigger: { when: play, filter: { tag: sha } }
+        limit: { per: battle, times: 1 }
+        do:
+          - { do: draw, target: self, amount: 1 }

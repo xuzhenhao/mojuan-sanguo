@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：化境 ─────────
+id: E_W03
+name: 化境
+rarity: E
+category: equip
+desc: "装备后摸2"

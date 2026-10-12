@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：扩写 ─────────
+id: E_T04
+name: 扩写
+rarity: R
+category: trick
+only: T001
+desc: "无中生有类：额外摸1"

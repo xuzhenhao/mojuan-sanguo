@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=schema/rules.schema.json
+# ───────── 全局规则 ─────────
+lingPerTurn: 3 # 每回合军令
+drawPerTurn: 3 # 每回合摸牌
+firstTurnBonus: 2 # 首回合额外摸牌
+minHandLimit: 2 # 手牌上限 = max(2, 当前体力)
+responseSeconds: 8 # 响应窗口秒数
+armorKeep: 2 # 玩家回合开始时护甲最多保留 2 点（V0.3）
+maxFlashMarks: 2 # 敌人闪标记上限
+starterDeck: prototype # decks/prototype.yaml
+
+# 敌人意图牌：杀 = 1 点；杀+ = 已进化「锋锐」的杀（2 点）
+enemyCards:
+  杀: { t: 杀, dmg: 1 }
+  杀+: { t: 杀, dmg: 2, mod: 锋锐 }
+  万箭: { t: 万箭, dmg: 1 }
+  闪: { t: 闪 }
+  咒: { t: 咒 }
+
+# 灵光一闪（PRD 8.3）
+epiphany:
+  baseRate: 0.08
+  maxPerBattle: 2
+  pityPlays: 12
+
+# 词条稀有度权重：先抽稀有度再抽词条
+rarityWeight: { N: 50, R: 35, E: 12, L: 3 }
+
+# 尚未实装的护甲牌数值（V0.3 方案 D），实装后移入卡牌文件
+pendingValues:
+  gushou: 3 # 固守
+  jinchuangyao: 4 # 金创药
+  qijinqichu: 3 # 七进七出
+
+# 业务校验开关：第①步保持原型数值，第③步套 V1 时开启
+checks:
+  starterRedRatio: null # V1：0.5
+  zeroCostDrawNeedsLimit: false # V1：true（M4）
+  comboStartArmorMax: 3

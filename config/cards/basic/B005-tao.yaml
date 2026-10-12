@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 基本：桃 ─────────
+id: B005
+name: 桃
+type: 基本
+tags: [tao]
+cost: 1
+rarity: N
+desc: "回复1点体力；濒死时也可使用"
+abilities:
+  - id: tao_heal
+    name: 桃
+    desc: 回复 1 点体力。
+    trigger: { when: play }
+    do:
+      - { do: heal, target: self, amount: 1 }

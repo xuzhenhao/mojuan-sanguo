@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：连环闪 ─────────
+id: E_D03
+name: 连环闪
+rarity: E
+category: shan
+desc: "抵消后，本回合下一张杀费用-1"

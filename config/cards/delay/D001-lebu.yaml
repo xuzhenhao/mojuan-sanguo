@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 延时锦囊：乐不思蜀 ─────────
+id: D001
+name: 乐不思蜀
+type: 延时锦囊
+tags: [trick, delay]
+cost: 1
+rarity: R
+target: any
+desc: "置入目标判定区。其回合开始判定：若不为♥，跳过出杀/锦囊"
+abilities:
+  - id: lebu_judge
+    name: 乐不思蜀
+    desc: 目标回合开始判定，若不为 ♥，跳过出杀/锦囊。
+    trigger: { when: play }
+    do:
+      - { do: apply_status, target: chosen, status: lebu }

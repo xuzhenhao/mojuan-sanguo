@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=../schema/deck.schema.json
+# ───────── 原型开局牌组（19 张） ─────────
+id: prototype
+name: 关羽起始牌组 + 原型演示追加
+note: 前 11 张为 PRD 7.3 关羽起始牌组，后 8 张为原型演示追加
+cards:
+  - { card: B001, suit: S, rank: 7 }
+  - { card: B001, suit: C, rank: 8 }
+  - { card: B001, suit: H, rank: 10 }
+  - { card: B002, suit: D, rank: 4 }
+  - { card: B004, suit: H, rank: 2 }
+  - { card: B004, suit: D, rank: 2 }
+  - { card: B005, suit: H, rank: 3 }
+  - { card: T001, suit: H, rank: 7 }
+  - { card: SH01, suit: S, rank: 4 }
+  - { card: X004, suit: D, rank: 12 }
+  - { card: T012, suit: C, rank: 3 }
+  - { card: B006, suit: S, rank: 9 }
+  - { card: T005, suit: S, rank: 13 }
+  - { card: D001, suit: H, rank: 6 }
+  - { card: T003, suit: C, rank: 12 }
+  - { card: T013, suit: D, rank: 9 }
+  - { card: W001, suit: D, rank: 1 }
+  - { card: A001, suit: S, rank: 2 }
+  - { card: M001, suit: H, rank: 5 }

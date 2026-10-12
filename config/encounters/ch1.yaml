@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../schema/encounter.schema.json
+# ───────── 第一章战斗序列（原型按顺序进行） ─────────
+chapter: 1
+battles:
+  - { name: 黄巾前哨, kind: 普通, enemies: [E101, E101, E102] }
+  - { name: 流民之乱, kind: 普通, enemies: [E104, E101, E103] }
+  - { name: 精英·张宝, kind: 精英, enemies: [E1E1, E102] }

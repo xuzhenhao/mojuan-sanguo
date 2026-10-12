@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊：知己知彼 ─────────
+id: T013
+name: 知己知彼
+type: 锦囊
+tags: [trick]
+cost: 0
+rarity: N
+target: any
+desc: "查看一名敌人的下2个意图；摸1张牌"
+abilities:
+  - id: zhiji_reveal
+    name: 知己知彼
+    desc: 查看一名敌人的下 2 个意图；摸 1 张牌。
+    note: 0 费摸牌牌，V1 需加每回合限 1（M4），第①步保持原行为不加 limit
+    trigger: { when: play }
+    do:
+      - { do: reveal_intent, target: chosen, amount: 2 }
+      - { do: draw, target: self, amount: 1 }

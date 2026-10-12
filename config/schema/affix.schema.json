@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "affix.schema.json",
+  "title": "词条配置（一个词条一个文件：affixes/<类别>/<id>.yaml）",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "rarity",
+    "category",
+    "desc"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^E_[A-Z][0-9]{2}$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "rarity": {
+      "enum": [
+        "N",
+        "R",
+        "E",
+        "L"
+      ]
+    },
+    "category": {
+      "enum": [
+        "sha",
+        "shan",
+        "tao",
+        "jiu",
+        "trick",
+        "equip"
+      ],
+      "description": "可附着的牌类别"
+    },
+    "only": {
+      "type": "string",
+      "description": "只能附着在这张卡牌上（卡牌 id）"
+    },
+    "slot": {
+      "enum": [
+        "weapon",
+        "armor",
+        "plus_horse",
+        "minus_horse"
+      ],
+      "description": "只能附着在该栏位的装备上"
+    },
+    "mutex": {
+      "enum": [
+        "fire"
+      ],
+      "description": "互斥：fire = 已是火属性的牌不出现"
+    },
+    "desc": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "value": {
+      "type": "number"
+    },
+    "abilities": {
+      "type": "array",
+      "items": {
+        "$ref": "effect.schema.json#/$defs/ability"
+      }
+    }
+  },
+  "additionalProperties": false
+}

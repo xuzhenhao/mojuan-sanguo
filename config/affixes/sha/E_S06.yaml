@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：双响 ─────────
+id: E_S06
+name: 双响
+rarity: E
+category: sha
+desc: "可额外指定1名目标（伤害各算）"

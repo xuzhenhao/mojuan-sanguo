@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：追击 ─────────
+id: E_S03
+name: 追击
+rarity: R
+category: sha
+desc: "击杀时摸1"

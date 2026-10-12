@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "enemy.schema.json",
+  "title": "敌人配置（一个敌人一个文件：enemies/<章>/<名>.yaml）",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "chapter",
+    "tier",
+    "hp",
+    "row",
+    "intents"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "chapter": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "tier": {
+      "enum": [
+        "小怪",
+        "精英",
+        "Boss"
+      ]
+    },
+    "hp": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "armorStart": {
+      "type": "integer",
+      "default": 0
+    },
+    "row": {
+      "enum": [
+        "front",
+        "back",
+        "any"
+      ]
+    },
+    "flashMarksPerTurn": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2,
+      "default": 0
+    },
+    "cardMods": {
+      "type": "object",
+      "description": "已进化的意图牌，如 杀+: [E_S01]",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "intents": {
+      "type": "array",
+      "description": "意图循环：每回合打出的牌列表。合法牌：杀、杀+、杀[无影]、杀[火]、万箭、闪、咒、召唤:<id>、锦囊:<id>",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^(杀|杀\\+|杀\\[[^\\]]+\\]|万箭|闪|咒|召唤:[A-Z0-9]+|锦囊:[A-Z0-9]+)$"
+        },
+        "maxItems": 3
+      },
+      "minItems": 1
+    },
+    "phases": {
+      "type": "array",
+      "description": "阶段切换",
+      "items": {
+        "type": "object",
+        "required": [
+          "when",
+          "intents"
+        ],
+        "properties": {
+          "when": {
+            "type": "string",
+            "description": "如 hp_below_50%"
+          },
+          "intents": {
+            "type": "array"
+          },
+          "abilities": {
+            "type": "array",
+            "items": {
+              "$ref": "effect.schema.json#/$defs/ability"
+            }
+          }
+        }
+      }
+    },
+    "abilities": {
+      "type": "array",
+      "items": {
+        "$ref": "effect.schema.json#/$defs/ability"
+      }
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "firstTurnSha": {
+          "type": "number"
+        },
+        "maxBurst": {
+          "type": "integer",
+          "maximum": 3,
+          "description": "第 1 章单回合最大张数上限 3"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "desc": {
+      "type": "string",
+      "description": "特技说明（玩家可见，显示在意图栏后）"
+    },
+    "glyph": {
+      "type": "string",
+      "maxLength": 1,
+      "description": "立绘占位用的单字（如 卒、弓）"
+    }
+  },
+  "additionalProperties": false
+}

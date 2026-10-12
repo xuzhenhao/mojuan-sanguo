@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rules.schema.json",
+  "title": "全局规则（config/rules.yaml）",
+  "type": "object",
+  "required": [
+    "lingPerTurn",
+    "drawPerTurn",
+    "firstTurnBonus",
+    "minHandLimit",
+    "responseSeconds",
+    "armorKeep",
+    "maxFlashMarks",
+    "starterDeck",
+    "enemyCards",
+    "epiphany",
+    "rarityWeight",
+    "checks"
+  ],
+  "properties": {
+    "lingPerTurn": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "每回合军令"
+    },
+    "drawPerTurn": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "每回合摸牌"
+    },
+    "firstTurnBonus": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "首回合额外摸牌"
+    },
+    "minHandLimit": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "手牌上限 = max(本值, 当前体力)"
+    },
+    "responseSeconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "响应窗口秒数"
+    },
+    "armorKeep": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "玩家回合开始时护甲最多保留几点"
+    },
+    "maxFlashMarks": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "敌人闪标记上限"
+    },
+    "starterDeck": {
+      "type": "string",
+      "description": "开局牌组（decks/ 下的 id）"
+    },
+    "enemyCards": {
+      "type": "object",
+      "description": "敌人意图牌定义：t=类型，dmg=伤害，mod=显示的进化词条名",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "t"
+        ],
+        "properties": {
+          "t": {
+            "enum": [
+              "杀",
+              "万箭",
+              "闪",
+              "咒"
+            ]
+          },
+          "dmg": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mod": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "epiphany": {
+      "type": "object",
+      "required": [
+        "baseRate",
+        "maxPerBattle",
+        "pityPlays"
+      ],
+      "properties": {
+        "baseRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "灵光一闪基础概率"
+        },
+        "maxPerBattle": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pityPlays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "保底：连续多少张未触发后必触发"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rarityWeight": {
+      "type": "object",
+      "required": [
+        "N",
+        "R",
+        "E",
+        "L"
+      ],
+      "description": "词条稀有度权重",
+      "properties": {
+        "N": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "R": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "E": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "L": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "pendingValues": {
+      "type": "object",
+      "description": "尚未实装的卡牌数值登记（实装后移入对应卡牌文件）",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "checks": {
+      "type": "object",
+      "description": "业务校验开关（第③步套 V1 数值时开启）",
+      "properties": {
+        "starterRedRatio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "起始牌组红色比例必须等于该值；null 不检查"
+        },
+        "zeroCostDrawNeedsLimit": {
+          "type": "boolean",
+          "description": "0 费且会摸牌的牌必须带 limit"
+        },
+        "comboStartArmorMax": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

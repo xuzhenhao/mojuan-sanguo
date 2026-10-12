@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：厚味 ─────────
+id: E_P01
+name: 厚味
+rarity: N
+category: tao
+desc: "回复+1"
