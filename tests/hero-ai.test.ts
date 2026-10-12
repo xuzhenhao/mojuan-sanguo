@@ -12,8 +12,8 @@ function setup(main: string, sub: string, battleIdx = 0) {
 }
 
 describe('武将画像从技能配置推导', () => {
-  it('陆逊打空、郭嘉/曹操受伤摸牌、其他武将默认', () => {
-    expect(profileOf(setup('H08', 'H04')).emptyHand).toBe(true);
+  it('打空收益、郭嘉/曹操受伤摸牌、其他武将默认', () => {
+    expect(profileOf(setup('H07', 'H08')).emptyHand).toBe(true); // 副将陆逊·连营·辅（hand_empty）
     expect(profileOf(setup('H05', 'H06')).takeHits).toBe(true);
     expect(profileOf(setup('H06', 'H05')).takeHits).toBe(true);
     expect(profileOf(setup('H01', 'H04'))).toMatchObject({ emptyHand: false, takeHits: false });
@@ -21,12 +21,12 @@ describe('武将画像从技能配置推导', () => {
 });
 
 describe('hero AI 行为', () => {
-  it('陆逊：手牌（除闪外）可全部打出时故意打空，触发连营', async () => {
-    const g = setup('H08', 'H04');
+  it('有打空收益（连营·辅）时，手牌（除闪外）可全部打出就故意打空', async () => {
+    const g = setup('H07', 'H08');
     g.hand = [card('T012'), card('B001')];
     g.p.ling = 3;
     await heroAiTurn(g, plays());
-    expect(g.logs.join('|')).toContain('连营：');
+    expect(g.logs.join('|')).toContain('连营·辅');
   });
   it('张宝在场：后排弓手为使能者，优先作为目标；用义勇打后排', async () => {
     const g = setup('H03', 'H04', 2);
