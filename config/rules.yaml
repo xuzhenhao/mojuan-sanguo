@@ -52,6 +52,10 @@ defaultHeroes: { main: H03, sub: H04 }
 # 自动对局整章模拟：战间回复体力（用户确认的验收口径：战间各回 1 体力）
 betweenBattleHeal: 1
 
+# 商店卡牌基础价（PRD 14.2，浮动前；卡牌 shopPrice 可单独覆盖）
+shop:
+  cardPrice: { N: 40, R: 60, E: 90, L: 130 }
+
 # 回归预设：只用于自动对局对照，不影响正式选将
 presets:
   legacy_guanyu_zhaoyun:
