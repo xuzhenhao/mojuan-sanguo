@@ -95,16 +95,13 @@ const shaThreat = (e: Enemy) => e.pat[e.step % e.pat.length].filter((a) => a.sta
 
 /** 执行 AI 的一个出牌阶段，返回打出的牌分类计数 */
 export async function aiTurn(g: Game, plays: GameStats['plays']) {
-  // 主动技：离间（打出杀最多的敌人，需有友军）、挟令（手牌多于 3 张时弃最差的牌）
+  // 主动技：离间（打出杀最多的合法目标；发动条件与目标合法性由配置 + canActivate / legalTargets 判断）、挟令（手牌多于 3 张时弃最差的牌）
   for (const s of g.effects.activeAbilities()) {
     const id = s.ab.id;
     if (id === 'aogu' || !g.canActivate(id)) continue;
     const need = g.activeNeeds(id);
     if (need.target) {
-      const t = g
-        .alive()
-        .filter(() => g.alive().length >= 2)
-        .sort((a, b) => shaThreat(b) - shaThreat(a))[0];
+      const t = g.legalTargets(id).sort((a, b) => shaThreat(b) - shaThreat(a))[0];
       if (t && shaThreat(t)) await g.activate(id, undefined, t);
     } else if (need.card) {
       if (g.hand.length >= 4) await g.activate(id, g.worstCard());

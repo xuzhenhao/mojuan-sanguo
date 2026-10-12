@@ -161,9 +161,10 @@
             "hand_over_limit",
             "has_skill",
             "target_chained",
-            "not_main_hero_turn"
+            "not_main_hero_turn",
+            "alive_enemies_at_least"
           ],
-          "description": "turn_is=当前是第 value 回合；hand_over_limit=手牌数超过上限；has_skill=主将或副将拥有 id 为 value 的技能；target_chained=目标处于连环"
+          "description": "turn_is=当前是第 value 回合；hand_over_limit=手牌数超过上限；has_skill=主将或副将拥有 id 为 value 的技能；target_chained=目标处于连环；alive_enemies_at_least=存活敌人数 ≥ value"
         },
         "value": {
           "type": [
@@ -378,6 +379,33 @@
           "items": {
             "$ref": "#/$defs/condition"
           }
+        },
+        "targets": {
+          "type": "object",
+          "description": "主动技的目标筛选（选敌人时的合法性）：全部满足才合法；不写则任一存活敌人都合法",
+          "properties": {
+            "row": {
+              "enum": [
+                "front",
+                "back"
+              ],
+              "description": "只能选该排的敌人"
+            },
+            "hasAlly": {
+              "type": "boolean",
+              "description": "目标须有其他存活友军"
+            },
+            "armorAtLeast": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "目标护甲 ≥ 该值"
+            },
+            "inRange": {
+              "type": "boolean",
+              "description": "目标须在攻击范围内"
+            }
+          },
+          "additionalProperties": false
         },
         "do": {
           "type": "array",

@@ -16,6 +16,9 @@ mainSkills:
     desc: 出牌阶段限 1 次：选择一名敌人判定，若不为 ♥，该敌人本回合的杀改为打向其友军（每张 1 点伤害）。
     trigger: { when: active }
     limit: { per: turn, times: 1 }
+    if:
+      - { type: alive_enemies_at_least, value: 2 }
+    targets: { hasAlly: true }
     do:
       - do: judge
         success: { suit: [H], not: true }

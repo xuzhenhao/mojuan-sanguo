@@ -254,6 +254,7 @@ const COND: Record<string, Cond> = {
   partner_is: (g, c) => g.sub.id === c.value,
   partner_faction_is: (g, c) => g.sub.faction === c.value,
   turn_is: (g, c) => g.turn === Number(c.value),
+  alive_enemies_at_least: (g, c) => g.alive().length >= Number(c.value),
   has_skill: (g, c) => [...CONFIG.heroes[g.main.id].mainSkills, CONFIG.heroes[g.sub.id].subSkill].some((a) => a.id === c.value),
 };
 

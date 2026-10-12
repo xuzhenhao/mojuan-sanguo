@@ -55,6 +55,7 @@ export const IMPLEMENTED = {
     'partner_faction_is',
     'turn_is',
     'has_skill',
+    'alive_enemies_at_least',
   ],
   statuses: ['jiu', 'aogu', 'yiyong', 'lebu', 'no_sha', 'yice', 'xieling', 'empty_draw', 'lian_shan', 'shandian'],
   stats: [

@@ -420,9 +420,26 @@ export class Game {
   canActivate(id: string) {
     const s = this.effects.activeAbility(id);
     if (!s || !this.effects.ready(s, {})) return false;
+    if (this.activeNeeds(id).target && !this.legalTargets(id).length) return false;
     const dis = s.ab.do.find((a) => a.do === 'discard');
     if (!dis) return true;
     return this.hand.some((c) => cardMatches(c, dis.from));
+  }
+  /** 主动技的合法敌人目标（按配置 targets 筛选）；不需要选敌人的技能返回 [] */
+  legalTargets(id: string): Enemy[] {
+    const s = this.effects.activeAbility(id);
+    if (!s || !this.activeNeeds(id).target) return [];
+    const f = s.ab.targets ?? {};
+    return this.alive().filter(
+      (e) =>
+        (!f.row || e.row === f.row) &&
+        (!f.hasAlly || this.alive().some((o) => o !== e)) &&
+        (f.armorAtLeast == null || e.armor >= f.armorAtLeast) &&
+        (!f.inRange || this.inRange(e)),
+    );
+  }
+  isLegalTarget(id: string, e: Enemy) {
+    return this.legalTargets(id).includes(e);
   }
   /** 主动技需要的东西：弃牌 / 敌人目标 */
   activeNeeds(id: string) {
@@ -436,6 +453,7 @@ export class Game {
     if (!s || !this.canActivate(id)) return;
     const dis = s.ab.do.find((a) => a.do === 'discard');
     if (dis && (!c || !cardMatches(c, dis.from))) return;
+    if (this.activeNeeds(id).target && (!tgt || !this.isLegalTarget(id, tgt))) return;
     const ctx = { card: c, chosen: tgt ?? null };
     if (JSON.stringify(s.ab.do).includes('"judge"')) await this.effects.emit('active', [s], ctx);
     else this.effects.emitSync('active', [s], ctx);
@@ -681,3 +699,8 @@ export class Game {
   }
 }
 export { CARDS };
+
+/** 列出主动技 id 当前的合法敌人目标（按配置 targets 筛选；不需选敌人的技能返回 []）。UI / AI 统一用它判断可选目标。 */
+export function legalTargets(g: Game, id: string): Enemy[] {
+  return g.legalTargets(id);
+}
