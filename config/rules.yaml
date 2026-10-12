@@ -9,6 +9,7 @@ responseSeconds: 8 # 响应窗口秒数
 armorKeep: 2 # 玩家回合开始时护甲最多保留 2 点（V0.3）
 enemyArmorKeep: 2 # 敌人从第 2 回合起，回合开始（黄天庇佑前）护甲最多保留 2 点（design-v1 8.1）
 maxFlashMarks: 2 # 敌人闪标记上限
+maxEnemiesAlive: 3 # 场上存活敌人上限：召唤达到上限时落空（PRD 未写，取组包最大人数）
 starterDeck: hero # hero = 用主将配置里的 starterDeck；也可写 decks/ 下的 id
 
 # 敌人意图牌：杀 = 1 点；杀+ = 已进化「锋锐」的杀（2 点）

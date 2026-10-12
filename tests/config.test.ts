@@ -29,9 +29,9 @@ describe('V1 数值（design-v1 第 7 节定稿）', () => {
       expect(d.filter((c) => c.suit === 'H' || c.suit === 'D').length).toBe(6);
     }
   });
-  it('第 1 章：波才 / 张角为停用占位；闪电 D003 统一定义，张角覆盖 2', () => {
+  it('第 1 章：波才为停用占位、张角已启用；闪电 D003 统一定义，张角覆盖 2', () => {
     expect(CONFIG.enemies.E1E2.enabled).toBe(false);
-    expect(CONFIG.enemies.B1.enabled).toBe(false);
+    expect(CONFIG.enemies.B1.enabled).not.toBe(false); // B1 已启用（feat/boss-b1）
     expect(CONFIG.enemies.B1.trickOverrides).toEqual({ D003: { amount: 2 } });
     expect(cards.CARDS.D003.cost).toBe(1);
   });

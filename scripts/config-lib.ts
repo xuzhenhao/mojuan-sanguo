@@ -162,13 +162,22 @@ export function businessChecks(c: Built): string[] {
     if (e.enabled === false) continue;
     for (const [act, mods] of Object.entries(e.cardMods ?? {}))
       for (const m of mods as string[]) if (!affixIds.has(m)) errs.push(`enemies/${e.id}: cardMods.${act} 引用了不存在的词条 ${m}`);
-    e.intents.forEach((it: string[], i: number) => {
-      for (const act of it) {
-        const base = act.split(':')[0];
-        if (base === '召唤' && !c.enemies[act.split(':')[1]]) errs.push(`enemies/${e.id}: 意图 ${i + 1} 召唤了不存在的敌人 ${act}`);
-        else if (base !== '召唤' && base !== '锦囊' && !c.rules.enemyCards?.[act])
-          errs.push(`enemies/${e.id}: 意图 ${i + 1} 的牌「${act}」未在 rules.enemyCards 中定义`);
-      }
+    const checkIntents = (list: string[][], where: string) =>
+      list.forEach((it: string[], i: number) => {
+        for (const act of it) {
+          const [base, ref] = act.split(':');
+          if (base === '召唤' && !c.enemies[ref]) errs.push(`enemies/${e.id}: ${where}意图 ${i + 1} 召唤了不存在的敌人 ${act}`);
+          else if (base === '锦囊' && !c.cards[ref]) errs.push(`enemies/${e.id}: ${where}意图 ${i + 1} 的锦囊 ${ref} 不存在`);
+          else if (base !== '召唤' && base !== '锦囊' && !c.rules.enemyCards?.[act])
+            errs.push(`enemies/${e.id}: ${where}意图 ${i + 1} 的牌「${act}」未在 rules.enemyCards 中定义`);
+        }
+      });
+    checkIntents(e.intents, '');
+    (e.phases ?? []).forEach((ph: any, k: number) => {
+      checkIntents(ph.intents ?? [], `阶段 ${k + 2} `);
+      if (ph.abilities?.length) errs.push(`enemies/${e.id}: 阶段 ${k + 2} 的 abilities 引擎未实装`);
+      for (const s of ph.summon ?? [])
+        if (!c.enemies[s.enemy] || c.enemies[s.enemy].enabled === false) errs.push(`enemies/${e.id}: 阶段 ${k + 2} 召唤了不存在或停用的敌人 ${s.enemy}`);
     });
   }
   for (const enc of Object.values(c.encounters))

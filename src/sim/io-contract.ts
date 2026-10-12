@@ -12,6 +12,7 @@ import { CONFIG } from '../data/config';
 import type { CardInst, JudgeEvent } from '../core/types';
 
 const SUITS = ['S', 'H', 'C', 'D'];
+const ENEMY_IDS = new Set(Object.keys(CONFIG.enemies));
 
 export interface ContractReport {
   events: Record<string, number>;
@@ -58,6 +59,11 @@ export function checkSnapshot(g: Game): string[] {
   for (const e of g.en) {
     if (!e.name) out.push(`enemy ${e.uid}: 缺少名称`);
     for (const c of e.judge) out.push(...checkCard(c, `enemy ${e.name}.judge`));
+    if (e.phase && !e.phases?.[e.phase - 1]) out.push(`enemy ${e.name}: 阶段 ${e.phase} 无定义`);
+  }
+  for (const t of g.pJudge) {
+    if (!CARDS[t.id]) out.push(`pJudge: 锦囊 ${t.id} 无定义`);
+    if (!g.en.some((e) => e.uid === t.from && e.hp > 0)) out.push(`pJudge: 【${t.name}】的施放者不在场`);
   }
   if (g.hand.length > CONFIG.rules.handHardCap) out.push(`hand: ${g.hand.length} 张超过硬上限 ${CONFIG.rules.handHardCap}`);
   if (!Number.isFinite(g.p.hp) || !Number.isFinite(g.p.maxHp)) out.push('player: hp 非数字');
@@ -112,6 +118,36 @@ export function withContract(io: BattleIO, getGame: () => Game | undefined, rep:
       if (g && g.hand.length > ev.cap) add([`handOverflow: 手牌 ${g.hand.length} 超过硬上限 ${ev.cap}`]);
       if (g && !g.discard.includes(ev.card)) add(['handOverflow: 弃置的牌不在弃牌堆']);
       io.handOverflow?.(ev);
+    },
+    enemyPhase(ev) {
+      hit('enemyPhase');
+      const g = getGame();
+      if (ev?.type !== 'enemy_phase') add(['enemyPhase: 事件 type 非法']);
+      if (g && !g.en.includes(ev.enemy)) add(['enemyPhase: 敌人不在场上']);
+      if (!Number.isInteger(ev?.phase) || ev.phase < 2) add([`enemyPhase: 阶段序号非法 ${ev?.phase}`]);
+      if (ev?.enemy && ev.enemy.step !== 0) add(['enemyPhase: 切换后步数未归零']);
+      io.enemyPhase?.(ev);
+    },
+    enemySummon(ev) {
+      hit('enemySummon');
+      const g = getGame();
+      if (ev?.type !== 'enemy_summon') add(['enemySummon: 事件 type 非法']);
+      if (!ENEMY_IDS.has(ev?.enemyId)) add([`enemySummon: 敌人 ${ev?.enemyId} 无定义`]);
+      if (ev?.summoned) {
+        if (g && !g.en.includes(ev.summoned)) add(['enemySummon: 召唤的敌人不在 Game.en']);
+        if (!ev.summoned.name || ev.summoned.hp <= 0) add(['enemySummon: 召唤的敌人缺少名称/体力']);
+      }
+      if (g && g.alive().length > (CONFIG.rules.maxEnemiesAlive ?? 3)) add([`enemySummon: 存活敌人 ${g.alive().length} 超过上限`]);
+      io.enemySummon?.(ev);
+    },
+    playerDelayed(ev) {
+      hit('playerDelayed');
+      const g = getGame();
+      if (ev?.type !== 'player_delayed') add(['playerDelayed: 事件 type 非法']);
+      if (!ev?.trick?.name || !CARDS[ev.trick.id]) add([`playerDelayed: 锦囊 ${ev?.trick?.id} 无定义/名称`]);
+      if (g && ev.action === 'place' && !g.pJudge.includes(ev.trick)) add(['playerDelayed: 放置后不在判定区']);
+      if (g && ev.action !== 'place' && g.pJudge.includes(ev.trick)) add([`playerDelayed: ${ev.action} 后仍在判定区`]);
+      io.playerDelayed?.(ev);
     },
     onBattleEnd(w) {
       hit('battleEnd');

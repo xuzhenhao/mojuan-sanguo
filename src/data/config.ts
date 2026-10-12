@@ -65,6 +65,8 @@ export interface EnemyCfg {
   intents: string[][];
   enabled?: boolean;
   trickOverrides?: Record<string, { amount?: number }>;
+  /** 阶段切换（PRD 11.2）：when = hp_below_<N>%；summon = 切换时召唤 */
+  phases?: { when: string; intents: string[][]; summon?: { enemy: string; row?: 'front' | 'back' }[] }[];
   armorStart?: number;
   desc?: string;
   abilities?: Ability[];
@@ -81,6 +83,8 @@ export interface ConfigBundle {
     armorKeep: number;
     enemyArmorKeep?: number;
     maxFlashMarks: number;
+    /** 场上存活敌人上限（召唤受此约束） */
+    maxEnemiesAlive?: number;
     starterDeck: string;
     enemyCards: Record<string, { t: '杀' | '万箭' | '闪' | '咒'; dmg?: number; mod?: string }>;
     epiphany: { baseRate: number; maxPerBattle: number; pityPlays: number };
