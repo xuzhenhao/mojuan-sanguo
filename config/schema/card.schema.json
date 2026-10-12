@@ -64,6 +64,18 @@
         "L"
       ]
     },
+    "rewardWeight": {
+      "type": "number",
+      "minimum": 0,
+      "default": 1,
+      "description": "奖励池权重：同稀有度内按权重抽取（PRD 6.8 第 3 条，默认 1；0 = 不进奖励池）"
+    },
+    "shopPrice": {
+      "type": "integer",
+      "minimum": 0,
+      "multipleOf": 5,
+      "description": "商店基础价（浮动前）；不填按 rules.shop.cardPrice[稀有度]（PRD 14.2）"
+    },
     "faction": {
       "enum": [
         "通用",

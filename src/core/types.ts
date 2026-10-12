@@ -22,6 +22,8 @@ export interface CardDef {
   trick?: boolean;
   /** 无懈可击：只能在锦囊响应窗口打出 */
   wuxie?: boolean;
+  /** 响应牌（tag response）：不计入 M4 的 0 费每回合次数 */
+  response?: boolean;
 }
 
 export interface CardInst {

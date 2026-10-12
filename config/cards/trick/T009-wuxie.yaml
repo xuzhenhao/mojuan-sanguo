@@ -5,10 +5,11 @@
 id: T009
 name: 无懈可击
 type: 锦囊
-tags: [trick, wuxie]
+tags: [trick, wuxie, response]
 cost: 0
 rarity: R
-desc: 响应：使一张锦囊对你无效（含敌方妖咒、闪电、火攻）。
+rewardWeight: 0.7 # design-v1 §12.3：无敌方锦囊时是死牌，低于 R 默认 1；商店价按 rules.shop.cardPrice.R = 60
+desc: 响应：使一张锦囊对你无效（含敌方妖咒、闪电、火攻）。响应牌，不受 0 费每回合 1 次限制。
 abilities:
   - id: wuxie_negate
     name: 无懈可击

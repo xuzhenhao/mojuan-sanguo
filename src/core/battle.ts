@@ -282,7 +282,7 @@ export class Game {
     if (d.tao && !c.asSha && this.p.hp >= this.p.maxHp) return '体力已满';
     if (d.needRed && !c.asSha && !this.hand.some((x) => x !== c && isRed(x))) return `${d.name}需另一张红色牌`;
     const zl = CONFIG.rules.mechanics.zeroCostPerTurn;
-    if (zl != null && !d.shan && this.costOf(c) === 0 && (this.zeroCostPlays.get(c.id) ?? 0) >= zl) return `0 费牌每回合限 ${zl} 次`;
+    if (zl != null && !d.shan && !d.response && this.costOf(c) === 0 && (this.zeroCostPlays.get(c.id) ?? 0) >= zl) return `0 费牌每回合限 ${zl} 次`;
     const own = this.effects.cardSources(c, false).find((s) => s.ab.trigger.when === 'play' && !c.asSha);
     if (own && this.effects.remaining(own) <= 0) return '本回合已使用过';
     return null;
@@ -296,7 +296,7 @@ export class Game {
     const p = this.p;
     const cost = this.costOf(c);
     p.ling -= cost;
-    if (cost === 0 && !d.shan) this.zeroCostPlays.set(c.id, (this.zeroCostPlays.get(c.id) ?? 0) + 1);
+    if (cost === 0 && !d.shan && !d.response) this.zeroCostPlays.set(c.id, (this.zeroCostPlays.get(c.id) ?? 0) + 1);
     if (isShaPlay(c) && d.cost + this.effects.cardStat(c, 'card_cost') > 0) this.effects.stat('sha_cost', true);
     if (isShaPlay(c)) p.lianShan = 0;
     const wasSha = !!c.asSha;
