@@ -2,7 +2,10 @@
  * 地图 → 节点页的路由约定（P3 #44）。奖励/集市/宝箱页（P4）与战斗页（P1a）按这里的参数类型读取 Scene.enter 的 params。
  */
 import type { MapNode, NodeType } from '../../core/run/map';
-import type { FlowEvent, NodePage } from '../flow';
+import type { FlowEvent } from '../flow';
+
+/** 地图节点可去的页面（flow.ts 的 enter_node.node） */
+export type NodePage = Extract<FlowEvent, { type: 'enter_node' }>['node'];
 
 interface Base {
   from: 'map';
@@ -25,22 +28,11 @@ export interface BattleRouteParams extends Base {
 export interface ShopRouteParams extends Base {
   kind: 'shop';
 }
-/** 宝箱 params（#83 合并前暂走 reward 页，kind:'chest'；#83 合并后切到 chest 页，见 CHEST_PAGE） */
+/** 宝箱页（#83）params：地图只传节点信息，offer 由宝箱页生成 */
 export interface ChestRouteParams extends Base {
   kind: 'chest';
 }
-/** #83 合并前宝箱借用奖励页：奖励页（#45）只认 kind 'normal'|'elite'|'boss'，传 'chest' 会抽奖失败，所以临时按 normal 发 */
-export interface ChestViaRewardParams extends Base {
-  kind: 'normal';
-  nodeType: 'CHEST';
-}
-export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams | ChestViaRewardParams;
-
-/**
- * 宝箱去哪个页面：#83（chest 页 + enter_node{node:'chest'} + chest_done）合并前为 'reward'。
- * #83 合并后：改成 'chest'，并把 NodePage 换成 flow.ts 的定义。
- */
-export const CHEST_PAGE: NodePage = 'reward';
+export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams;
 
 /** 节点类型 → 页面；null = 页面未实现，在地图内处理（营地最小版直接疗伤、奇遇跳过；不走任何奖励类页面，避免误发奖励） */
 export const PAGE_OF: Record<NodeType, NodePage | null> = {
@@ -48,7 +40,7 @@ export const PAGE_OF: Record<NodeType, NodePage | null> = {
   ELITE: 'battle',
   BOSS: 'battle',
   SHOP: 'shop',
-  CHEST: CHEST_PAGE,
+  CHEST: 'chest',
   REST: null,
   EVENT: null,
 };
@@ -72,7 +64,5 @@ export function routeFor(
     };
   }
   if (node.type === 'SHOP') return { event, params: { ...base, kind: 'shop' } };
-  // #83 合并后：CHEST_PAGE = 'chest'，只保留 kind:'chest' 分支
-  if (page === 'reward') return { event, params: { ...base, kind: 'normal', nodeType: 'CHEST' } };
   return { event, params: { ...base, kind: 'chest' } };
 }

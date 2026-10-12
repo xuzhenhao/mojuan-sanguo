@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MapScene, type MapSceneDeps } from '../src/game/map/scene';
 import { MapSession } from '../src/game/map/session';
 import { RUN_SAVE_KEY, loadRunSave, setRunSaveStore } from '../src/core/run/save';
-import { CHEST_PAGE, isComingSoon, routeFor } from '../src/game/map/route';
+import { isComingSoon, routeFor } from '../src/game/map/route';
 import { MAP_CONFIG, poolsOf } from '../src/data/map';
 import { OverlayStack } from '../src/engine/modal';
 import { BakeCache, TextureBudget, AtlasManager, CANVAS2D_ATLASES } from '../src/engine/memory';
@@ -243,14 +243,15 @@ describe('路由约定', () => {
       event: { type: 'enter_node', node: 'shop' },
       params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'shop' },
     });
-    expect(routeFor(1, n('CHEST')).event).toEqual({ type: 'enter_node', node: 'reward' });
-    expect(routeFor(1, n('CHEST')).params).toMatchObject({ kind: 'normal', nodeType: 'CHEST' }); // #83 前借用奖励页
-    expect(routeFor(1, n('CHEST')).event).toEqual({ type: 'enter_node', node: CHEST_PAGE });
+    expect(routeFor(1, n('CHEST'))).toEqual({
+      event: { type: 'enter_node', node: 'chest' },
+      params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'chest' },
+    });
   });
-  it('FlowMachine：地图 → 奖励（宝箱）→ 地图', () => {
+  it('FlowMachine：地图 → 宝箱 → chest_done → 地图', () => {
     const f = new FlowMachine();
     f.send({ type: 'start_run' });
-    expect(f.send({ type: 'enter_node', node: 'reward' })).toBe('reward');
-    expect(f.send({ type: 'reward_done' })).toBe('map');
+    expect(f.send({ type: 'enter_node', node: 'chest' })).toBe('chest');
+    expect(f.send({ type: 'chest_done' })).toBe('map');
   });
 });
