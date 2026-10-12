@@ -8,8 +8,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "eslint . && prettier --check \"src/**/*.{ts,css}\" \"tests/**/*.ts\"",
-    "format": "prettier --write \"src/**/*.{ts,css}\" \"tests/**/*.ts\""
+    "lint": "eslint . && prettier --check \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
+    "autoplay": "tsx scripts/autoplay.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -17,6 +18,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.1",
     "vite": "^8.3.4",
