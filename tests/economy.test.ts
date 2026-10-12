@@ -4,7 +4,7 @@ import { CONFIG } from '../src/data/config';
 import { ECONOMY, POTIONS, RELICS } from '../src/data/economy';
 import { addPotion, potionsFull } from '../src/game/economy/inventory';
 import { cardPool, cardPrice, jitter, pickCards, rarityWeights, rollSuit } from '../src/game/economy/pools';
-import { enterReward, refreshReward, resolvePotion, rollReward, takeCard, takeRelic } from '../src/game/economy/reward';
+import { enterReward, resolvePotion, rollReward, takeCard, takeRelic } from '../src/game/economy/reward';
 import { demoInventory } from '../src/game/economy/session';
 
 const cfg = (id: string) => CONFIG.cards[id] as { rarity: string; exclusiveHero?: string; faction?: string };
@@ -90,6 +90,15 @@ describe('战斗奖励', () => {
     expect(takeRelic(inv, st, o.relics[0])).toBe(true);
     expect(takeRelic(inv, st, o.relics[0])).toBe(false);
   });
+  it('Boss：宝物三选一只出 Boss 级，不足用 E 补', () => {
+    for (let s = 1; s < 30; s++) {
+      const o = rollReward(seeded(s), demoInventory(), 'boss');
+      expect(o.relics).toHaveLength(3);
+      const rs = o.relics.map((id) => RELICS.find((r) => r.id === id)!.rarity);
+      expect(rs.every((r) => r === 'Boss' || r === 'E')).toBe(true);
+      expect(rs).toContain('Boss');
+    }
+  });
   it('Boss：宝物三选一、铜钱 80', () => {
     const o = rollReward(seeded(6), demoInventory(), 'boss');
     expect(o.relics).toHaveLength(3);
@@ -108,12 +117,10 @@ describe('战斗奖励', () => {
     expect(resolvePotion(inv, st2, null)).toBe(true);
     expect(inv.potions[1]).toBe('P10');
   });
-  it('选牌入卷一次；H5 免费刷新本局 1 次', () => {
+  it('选牌入卷一次', () => {
     const inv = demoInventory();
     const rng = seeded(8);
     const st = enterReward(inv, rollReward(rng, inv, 'normal'));
-    expect(refreshReward(rng, inv, st)).toBe(true);
-    expect(refreshReward(rng, inv, st)).toBe(false);
     const n = inv.deck.length;
     expect(takeCard(inv, st, 0)).toBe(true);
     expect(takeCard(inv, st, 1)).toBe(false);

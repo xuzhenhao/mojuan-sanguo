@@ -44,7 +44,10 @@ export function rollReward(rng: Rng, inv: Inventory, kind: BattleKind): RewardOf
   const potion = rng() < ECONOMY.potionDrop[kind] ? pickPotion(rng) : null;
   let relics: string[] = [];
   if (kind === 'elite') relics = pickRelics(rng, inv.relics, 1, ECONOMY.relicRarity);
-  if (kind === 'boss') relics = pickRelics(rng, inv.relics, 3, Object.fromEntries(ECONOMY.bossRelicPool.map((r) => [r, 1])));
+  if (kind === 'boss') {
+    relics = pickRelics(rng, inv.relics, 3, { [ECONOMY.bossRelicPool]: 1 });
+    relics.push(...pickRelics(rng, [...inv.relics, ...relics], 3 - relics.length, { [ECONOMY.bossRelicFill]: 1 }));
+  }
   return { kind, gold, potion, relics, relicPick: kind === 'boss' ? 'choose' : relics.length ? 'one' : 'none', cards: rollCards(rng, inv, kind) };
 }
 
@@ -76,17 +79,5 @@ export function takeCard(inv: Inventory, st: RewardState, i: number) {
   if (!c || st.cardTaken || st.skipped) return false;
   addCard(inv, c.id, c.suit, c.rank);
   st.cardTaken = c;
-  return true;
-}
-
-export function canRefresh(inv: Inventory, st: RewardState) {
-  return !st.cardTaken && !st.skipped && inv.rewardRefreshUsed < ECONOMY.rewardFreeRefresh;
-}
-
-/** H5 免费刷新（本局 1 次）：只换卡牌候选 */
-export function refreshReward(rng: Rng, inv: Inventory, st: RewardState) {
-  if (!canRefresh(inv, st)) return false;
-  inv.rewardRefreshUsed++;
-  st.offer.cards = rollCards(rng, inv, st.offer.kind);
   return true;
 }

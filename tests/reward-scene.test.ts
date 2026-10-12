@@ -61,16 +61,10 @@ describe('奖励页 reward（#45）', () => {
     expect(t.done).toBe(1);
     expect(t.s.st.skipped).toBe(true);
   });
-  it('免费刷新（本局 1 次）：换卡并置灰', () => {
+  it('H5 奖励页没有刷新按钮', () => {
     const t = setup();
     t.s.skipAnim();
-    const r = t.s.buttons().find((b) => b.id === 'refresh')!;
-    expect(r.text).toContain('免费刷新（本局 1 次）');
-    t.s.gesture(tap(...center(r.rect)));
-    expect(t.inv.rewardRefreshUsed).toBe(1);
-    expect(t.s.flipping).toBe(true);
-    t.s.skipAnim();
-    expect(t.s.buttons().find((b) => b.id === 'refresh')!.disabled).toBe(true);
+    expect(t.s.buttons().map((b) => b.id)).toEqual(['skip', 'take']);
   });
   it('精英：点宝物条领取（独立于选卡）', () => {
     const t = setup('elite');
