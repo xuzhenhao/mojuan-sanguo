@@ -154,9 +154,10 @@ describe('引擎接入', () => {
   it('dpr2：上屏 + 3 块离屏的帧缓冲记账；WebGL 关闭时无叠加层', () => {
     const f = fakePlatform({ query: { webgl: '0' } });
     const e = new Engine(f.p);
-    expect(e.budget.usedBy('framebuffer')).toBe(780 * 1688 * 4 * 3 + 390 * 844 * 4);
+    // 上屏 + main 2x，背景 1x（半尺寸默认开），氛围层半分辨率
+    expect(e.budget.usedBy('framebuffer')).toBe(780 * 1688 * 4 * 2 + 390 * 844 * 4 * 2);
     expect(e.warnings).toHaveLength(0);
-    expect(e.bakeScale).toBe(2);
+    expect(e.bakeScale).toBe(1.5);
   });
   it('低端配置：缓存 1.5x', () => {
     const f = fakePlatform({ query: { webgl: '0' } });

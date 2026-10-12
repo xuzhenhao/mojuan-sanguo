@@ -14,6 +14,8 @@ export interface RenderConfig {
   textureWarnBytes: number;
   /** 低端机：缓存按 1.5x 烘焙（render-spec §12.2） */
   lowEnd: boolean;
+  /** 资源半尺寸分级开关（render-spec §12.5，默认开）；URL `?half=0` 可关闭 */
+  halfSizeAssets: boolean;
 }
 
 export const DEFAULT_RENDER_CONFIG: RenderConfig = {
@@ -22,6 +24,7 @@ export const DEFAULT_RENDER_CONFIG: RenderConfig = {
   textureBudgetBytes: 50 * 1024 * 1024,
   textureWarnBytes: 45 * 1024 * 1024,
   lowEnd: false,
+  halfSizeAssets: true,
 };
 
 export type WebGLDecision = { enabled: boolean; reason: 'query' | 'config' | 'unsupported' };
