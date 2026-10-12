@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "card.schema.json",
+  "title": "卡牌配置（一类卡牌一个文件：cards/<类别>/<名>.yaml）",
+  "type": "object",
+  "required": ["id", "name", "type", "cost", "rarity", "desc", "abilities"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[A-Z]{1,2}[0-9A-Z]{2,4}$" },
+    "name": { "type": "string" },
+    "type": { "enum": ["基本", "锦囊", "延时锦囊", "装备", "势力", "专属"] },
+    "slot": { "enum": ["weapon", "armor", "plus_horse", "minus_horse"], "description": "装备栏位（装备牌必填）" },
+    "range": { "type": "integer", "description": "武器攻击范围" },
+    "tags": { "type": "array", "items": { "type": "string" }, "description": "如 sha、shan、trick、消耗、保留" },
+    "cost": { "type": "integer", "minimum": 0, "maximum": 3, "description": "军令费用" },
+    "rarity": { "enum": ["N", "R", "E", "L"] },
+    "faction": { "enum": ["通用", "蜀", "魏", "吴", "群"], "default": "通用" },
+    "exclusiveHero": { "type": "string", "description": "专属武将 id" },
+    "target": { "enum": ["none", "range", "any", "self"], "default": "none", "description": "range=攻击范围内；any=无视距离" },
+    "desc": { "type": "string", "description": "卡面文字（中文）" },
+    "note": { "type": "string" },
+    "value": { "type": "object", "description": "价值模型：effect=效果点数，net=净值",
+               "properties": { "effect": { "type": "number" }, "net": { "type": "number" }, "calc": { "type": "string" } } },
+    "abilities": { "type": "array", "items": { "$ref": "effect.schema.json#/$defs/ability" }, "minItems": 1 },
+    "instances": { "type": "array", "description": "牌组/奖励池中的实例（花色点数）",
+                   "items": { "type": "object", "required": ["suit", "rank"], "properties": { "suit": { "enum": ["S","H","C","D"] }, "rank": { "type": "integer", "minimum": 1, "maximum": 13 } }, "additionalProperties": false } }
+  },
+  "additionalProperties": false
+}
