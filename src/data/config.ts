@@ -75,6 +75,7 @@ export interface ConfigBundle {
     minHandLimit: number;
     responseSeconds: number;
     armorKeep: number;
+    enemyArmorKeep?: number;
     maxFlashMarks: number;
     starterDeck: string;
     enemyCards: Record<string, { t: '杀' | '万箭' | '闪' | '咒'; dmg?: number; mod?: string }>;

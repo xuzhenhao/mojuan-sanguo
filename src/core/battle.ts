@@ -247,7 +247,7 @@ export class Game {
     this.turn++;
     const p = this.p;
     p.ling = p.maxLing;
-    p.jiu = 0;
+    if (this.turn > 1) p.jiu = 0; // 首回合保留战斗开始获得的酒（凤仪亭）
     p.aogu = 0;
     p.yiyong = 0;
     p.lianShan = 0;
@@ -525,6 +525,11 @@ export class Game {
       if (e.hp <= 0 || this.over) continue;
       const skipAtk = await this.resolveJudgeArea(e);
       if (e.hp <= 0 || this.over) continue;
+      const eak = CONFIG.rules.enemyArmorKeep;
+      if (eak != null && this.turn > 1 && e.armor > eak) {
+        this.log(`${e.name}护甲保留上限：${e.armor}→${eak}`);
+        e.armor = eak;
+      }
       await this.effects.emit('enemy_turn_start', this.effects.enemySources(e), { owner: e });
       if (CONFIG.rules.mechanics.moying && e.tier !== '小怪' && this.p.hp >= this.p.maxHp) {
         this.extraActs.set(e, [...(this.extraActs.get(e) ?? []), '杀']);

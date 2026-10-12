@@ -64,17 +64,15 @@ exclusiveCards: [X101]
 combos:
   - partner: H02
     name: 凤仪亭
-    enabled: false
-    note: 每场首次离间生效后，吕布的下一张杀 +1（每场 1 次）。需要「离间生效」事件，引擎尚未支持，暂停用
+    note: 定稿改写：战斗开始时获得「酒」（首张杀 +1），不再依赖离间事件
     value: 1.5
     abilities:
       - id: fengyiting
         name: 凤仪亭
-        desc: 每场首次离间生效后，你的下一张杀伤害 +1。
-        trigger: { when: active }
-        limit: { per: battle, times: 1 }
+        desc: 战斗开始时，你的下一张杀伤害 +1（视为饮酒）。
+        trigger: { when: battle_start }
         do:
-          - { do: apply_status, target: self, status: aogu }
+          - { do: apply_status, target: self, status: jiu }
   - partner: H04
     name: 辕门
     value: 2

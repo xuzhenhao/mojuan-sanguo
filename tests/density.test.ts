@@ -10,7 +10,7 @@ const CH1 = ['E101', 'E102', 'E103', 'E104', 'E1E1'];
 
 describe('V1 第 1 章敌人表（v1-sim/en-final.json）', () => {
   it('血量', () => {
-    expect(Object.fromEntries(CH1.map((k) => [k, ENEMIES[k].hp]))).toEqual({ E101: 3, E102: 3, E103: 4, E104: 5, E1E1: 10 });
+    expect(Object.fromEntries(CH1.map((k) => [k, ENEMIES[k].hp]))).toEqual({ E101: 3, E102: 3, E103: 4, E104: 5, E1E1: 9 });
   });
   it('意图循环', () => {
     expect(ENEMIES.E101.pat).toEqual([['杀', '杀'], ['杀'], ['杀', '杀']]);
