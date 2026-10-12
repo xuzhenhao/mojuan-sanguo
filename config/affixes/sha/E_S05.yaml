@@ -6,3 +6,10 @@ rarity: R
 category: sha
 mutex: fire
 desc: "变为火属性"
+abilities:
+  - id: e_s05
+    name: 烈焰
+    desc: 变为火属性。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: sha_fire, amount: 1, scope: permanent }

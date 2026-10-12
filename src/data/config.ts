@@ -11,7 +11,7 @@ export interface Ability {
   desc: string;
   kind?: string;
   trigger: { when: string; who?: string; filter?: Record<string, any> };
-  limit?: { per?: string; times?: number; passiveQuota?: boolean };
+  limit?: { per?: string; times?: number; passiveQuota?: boolean; everyNTurns?: number };
   if?: Record<string, any>[];
   do: Record<string, any>[];
 }
@@ -38,6 +38,7 @@ export interface AffixCfg {
   slot?: CardCfg['slot'];
   mutex?: 'fire';
   desc: string;
+  maxPerDeck?: number;
   abilities?: Ability[];
 }
 export interface HeroCfg {
@@ -47,7 +48,9 @@ export interface HeroCfg {
   hp: number;
   mainSkills: Ability[];
   subSkill: Ability;
-  combos?: { partner: string; name: string; abilities: Ability[] }[];
+  roster?: boolean;
+  starterDeck: { card: string; suit: 'S' | 'H' | 'C' | 'D'; rank: number }[];
+  combos?: { partner: string; name: string; enabled?: boolean; abilities: Ability[] }[];
 }
 export interface EnemyCfg {
   id: string;
@@ -58,6 +61,9 @@ export interface EnemyCfg {
   flashMarksPerTurn?: number;
   glyph: string;
   intents: string[][];
+  enabled?: boolean;
+  trickOverrides?: Record<string, { amount?: number }>;
+  armorStart?: number;
   desc?: string;
   abilities?: Ability[];
 }
@@ -75,6 +81,9 @@ export interface ConfigBundle {
     epiphany: { baseRate: number; maxPerBattle: number; pityPlays: number };
     rarityWeight: Record<'N' | 'R' | 'E' | 'L', number>;
     pendingValues?: Record<string, number>;
+    defaultHeroes: { main: string; sub: string };
+    betweenBattleHeal?: number;
+    presets?: Record<string, { main: string; sub: string; deck?: string; forceCombos?: string[] }>;
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };
   cards: Record<string, CardCfg>;

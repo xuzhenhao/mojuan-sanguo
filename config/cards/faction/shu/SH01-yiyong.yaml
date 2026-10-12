@@ -8,7 +8,7 @@ tags: [trick]
 cost: 1
 rarity: R
 faction: 蜀
-desc: "本回合下一张杀伤害+1，且无视距离"
+desc: 本回合下一张杀伤害 +1，且无视距离；摸 1 张牌。（V1：再摸 1）
 abilities:
   - id: yiyong_buff
     name: 义勇
@@ -16,3 +16,4 @@ abilities:
     trigger: { when: play }
     do:
       - { do: apply_status, target: self, status: yiyong, duration: 1 }
+      - { do: draw, target: self, amount: 1 }

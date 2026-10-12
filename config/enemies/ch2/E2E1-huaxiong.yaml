@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第2章精英：华雄·墨影（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E2E1
+name: 华雄·墨影
+chapter: 2
+tier: 精英
+enabled: false
+hp: 14
+row: front
+flashMarksPerTurn: 0
+glyph: 雄
+cardMods:
+  杀+: [E_S01]
+intents:
+  - [杀+, 杀]
+  - ["杀[无影]", "杀[无影]"]
+  - [闪, 闪]
+desc: 击杀小兵回 2 HP

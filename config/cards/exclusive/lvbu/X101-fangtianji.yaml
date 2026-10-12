@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·吕布：方天戟·破阵（V1） ─────────
+id: X101
+name: 方天戟·破阵
+type: 专属
+typeLabel: 专属·吕布·武器
+slot: weapon
+range: 3
+tags: [equip]
+target: self
+cost: 2
+rarity: E
+exclusiveHero: H01
+desc: 武器，攻击范围 3；本回合你使用的第 2 张起的杀伤害 +1（与虓烈不叠加：若你有虓烈，改为攻击范围再 +1）。
+abilities:
+  - id: pozhen_dmg
+    name: 破阵
+    desc: 本回合第 2 张起的杀伤害 +1（没有虓烈时）。
+    trigger: { when: static }
+    if:
+      - { type: sha_index_in_turn_at_least, value: 2 }
+      - { type: has_skill, value: xiaolie, not: true }
+    do:
+      - { do: modify, stat: sha_damage, amount: 1, scope: this_turn }
+  - id: pozhen_range
+    name: 破阵
+    desc: 有虓烈时，攻击范围 +1。
+    trigger: { when: static }
+    if:
+      - { type: has_skill, value: xiaolie }
+    do:
+      - { do: modify, stat: range, amount: 1, scope: permanent }

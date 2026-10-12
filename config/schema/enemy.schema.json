@@ -69,7 +69,7 @@
         "type": "array",
         "items": {
           "type": "string",
-          "pattern": "^(杀|杀\\+|杀\\[[^\\]]+\\]|万箭|闪|咒|召唤:[A-Z0-9]+|锦囊:[A-Z0-9]+)$"
+          "pattern": "^(杀|杀\\+|杀\\[[^\\]]+\\]\\+?|万箭|闪|咒|召唤:[A-Z0-9]+|锦囊:[A-Z0-9]+)$"
         },
         "maxItems": 3
       },
@@ -131,6 +131,24 @@
       "type": "string",
       "maxLength": 1,
       "description": "立绘占位用的单字（如 卒、弓）"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "false = 停用占位（保留配置，不进组包、不做引用校验）"
+    },
+    "trickOverrides": {
+      "type": "object",
+      "description": "意图「锦囊:<id>」的参数覆盖，如 D003: { amount: 2 }（卡牌本体不分叉）",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

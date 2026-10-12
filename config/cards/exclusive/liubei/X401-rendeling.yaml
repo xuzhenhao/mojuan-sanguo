@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·刘备：仁德令（V1） ─────────
+id: X401
+name: 仁德令
+type: 专属
+typeLabel: 专属·刘备
+tags: [trick]
+target: self
+cost: 1
+rarity: R
+exclusiveHero: H04
+desc: 回复 1 点体力并获得 2 点护甲。
+abilities:
+  - id: rendeling
+    name: 仁德令
+    desc: 回复 1 点体力并获得 2 点护甲。
+    trigger: { when: play }
+    do:
+      - { do: heal, target: self, amount: 1 }
+      - { do: armor, target: self, amount: 2 }

@@ -16,9 +16,9 @@ export function mkIO(over: Partial<BattleIO> = {}): BattleIO & { ended: boolean[
     ...over,
   };
 }
-export function mkGame(over: Partial<BattleIO> = {}, seed = 1) {
+export function mkGame(over: Partial<BattleIO> = {}, seed = 1, heroes: { main?: string; sub?: string; preset?: string } = { preset: 'legacy_guanyu_zhaoyun' }) {
   const io = mkIO(over);
-  const g = new Game(seeded(seed), io, { autoShan: false });
+  const g = new Game(seeded(seed), io, { autoShan: false, ...heroes });
   return { g, io };
 }
 let u = 1000;

@@ -4,11 +4,11 @@ id: E_W01
 name: 坚固
 rarity: N
 category: equip
-desc: "装备后获得2护甲"
+desc: "装备后获得1护甲" # V1：2 → 1（N）
 abilities:
-  - id: jiangu
+  - id: e_w01
     name: 坚固
-    desc: 装备后获得 2 护甲。
+    desc: 装备后获得 1 点护甲。
     trigger: { when: equip }
     do:
-      - { do: armor, target: self, amount: 2 }
+      - { do: armor, target: self, amount: 1 }

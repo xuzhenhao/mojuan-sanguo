@@ -7,11 +7,11 @@ tags: [trick, delay]
 cost: 1
 rarity: R
 target: any
-desc: "置入目标判定区。其回合开始判定：若不为♥，跳过出杀/锦囊"
+desc: 置入目标判定区，持续 2 个敌方回合：每回合开始判定 1 次，若不为 ♥，该回合不打出杀和伤害类锦囊。（V1：持续 2 回合）
 abilities:
   - id: lebu_judge
     name: 乐不思蜀
     desc: 目标回合开始判定，若不为 ♥，跳过出杀/锦囊。
     trigger: { when: play }
     do:
-      - { do: apply_status, target: chosen, status: lebu }
+      - { do: apply_status, target: chosen, status: lebu, duration: 2 }

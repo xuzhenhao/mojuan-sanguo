@@ -54,7 +54,13 @@ const q = new URLSearchParams(location.search);
 if (q.has('demo')) S.demoEpi = true;
 function newRun() {
   const seed = q.has('seed') ? Number(q.get('seed')) : Date.now() & 0xffffffff;
-  G = new Game(seeded(seed), io, { autoShan: S.autoShan, epiphanyRate: S.demoEpi ? 0.5 : undefined });
+  G = new Game(seeded(seed), io, {
+    autoShan: S.autoShan,
+    epiphanyRate: S.demoEpi ? 0.5 : undefined,
+    main: q.get('main') ?? undefined,
+    sub: q.get('sub') ?? undefined,
+    preset: q.get('preset') ?? undefined,
+  });
   ui.mode = 'idle';
   ui.busy = false;
   ui.pending = null;
@@ -316,8 +322,10 @@ async function clickCard(c: CardInst) {
   if (ui.mode !== 'idle') return;
   const d = def(c);
   c.asSha = false;
-  if (isRed(c) && !d.sha) {
-    const k = await chooseMenu(`${d.name}（${SUIT_CH[c.suit]}红色）`, ['原效果', '武执：当【杀】使用', '取消']);
+  const conv = G.canAsSha(c) ? G.effects.convertFor(c, 'B001') : undefined;
+  if (conv && d.shan) c.asSha = true;
+  else if (conv) {
+    const k = await chooseMenu(`${d.name}（${SUIT_CH[c.suit]}${isRed(c) ? '红色' : '黑色'}）`, ['原效果', `${conv.ab.name}：当【杀】使用`, '取消']);
     if (k === 2) return;
     c.asSha = k === 1;
   }
@@ -373,6 +381,7 @@ $('#skAogu').onclick = () => {
 $('#btnEnd').onclick = async () => {
   if (ui.mode !== 'idle' || ui.busy) return;
   if (S.confirmEnd && (await chooseMenu('确认结束回合？', ['结束', '取消']))) return;
+  G.turnEnd();
   const need = G.discardNeeded();
   if (need) {
     ui.mode = 'discard';

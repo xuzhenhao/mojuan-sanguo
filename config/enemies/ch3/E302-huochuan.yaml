@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第3章小怪：火船死士（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E302
+name: 火船死士
+chapter: 3
+tier: 小怪
+enabled: false
+hp: 5
+row: front
+flashMarksPerTurn: 0
+glyph: 船
+intents:
+  - ["杀[火]", "杀[火]"]
+  - [锦囊:T010]
+desc: 自爆：打出虚拟锦囊【火攻】（2 点火伤，可无懈）；死亡时若连环则传导

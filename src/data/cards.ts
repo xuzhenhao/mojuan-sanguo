@@ -13,6 +13,7 @@ function toDef(c: CardCfg): CardDef {
   if (tags.has('tao')) d.tao = true;
   if (tags.has('jiu')) d.jiu = true;
   if (tags.has('aoe')) d.aoe = true;
+  if (tags.has('trick')) d.trick = true;
   if (tags.has('need_red')) d.needRed = true;
   if (d.sha) {
     const dmg = atomAmount(c.abilities, 'damage') ?? 1;
@@ -27,4 +28,10 @@ function toDef(c: CardCfg): CardDef {
 export const CARDS: Record<string, CardDef> = Object.fromEntries(Object.values(CONFIG.cards).map((c) => [c.id, toDef(c)]));
 
 /** 开局牌组：config/decks/<rules.starterDeck>.yaml */
-export const STARTER_DECK: [string, Suit, number][] = CONFIG.decks[CONFIG.rules.starterDeck].cards.map((c) => [c.card, c.suit, c.rank]);
+export function starterDeck(mainId: string, deckId?: string): [string, Suit, number][] {
+  const id = deckId ?? CONFIG.rules.starterDeck;
+  const list = id === 'hero' ? CONFIG.heroes[mainId].starterDeck : CONFIG.decks[id].cards;
+  return list.map((c) => [c.card, c.suit, c.rank]);
+}
+/** 默认主将的起始牌组 */
+export const STARTER_DECK: [string, Suit, number][] = starterDeck(CONFIG.rules.defaultHeroes.main);

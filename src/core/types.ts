@@ -19,6 +19,7 @@ export interface CardDef {
   tgt?: 'range' | 'any';
   slot?: Slot;
   range?: number;
+  trick?: boolean;
 }
 
 export interface CardInst {
@@ -40,6 +41,7 @@ export interface AffixDef {
   mutex?: 'fire';
   only?: string;
   slot?: Slot;
+  maxPerDeck?: number;
 }
 
 /** 敌人出牌动作（无攻击力数值：伤害全部来自牌） */
@@ -55,6 +57,7 @@ export interface EnemyDef {
   elite?: boolean;
   skill?: string;
   tier?: string;
+  armorStart?: number;
   abilities?: import('../data/config').Ability[];
 }
 
@@ -72,6 +75,13 @@ export interface Enemy extends EnemyDef {
   step: number;
   marks: number;
   judge: CardInst[];
+  /** 连环状态 */
+  chained?: boolean;
+  /** 本敌方回合不出杀（离魂）/ 杀转向友军（离间） */
+  noSha?: boolean;
+  redirect?: boolean;
+  /** 延时锦囊剩余判定次数：牌 uid → 次数 */
+  delayLeft?: Record<number, number>;
 }
 
 export interface HeroDef {

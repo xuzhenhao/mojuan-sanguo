@@ -10,7 +10,8 @@
     "hp",
     "role",
     "mainSkills",
-    "subSkill"
+    "subSkill",
+    "starterDeck"
   ],
   "properties": {
     "id": {
@@ -72,7 +73,7 @@
     },
     "starterDeck": {
       "type": "array",
-      "description": "起始牌组：card=卡牌 id，suit/rank 花色点数。红色比例需 = 50%（校验脚本检查）。数据驱动重构第①步可省略（原型共用 decks/ 下的牌组），第③步改回必填",
+      "description": "起始牌组（必填）：card=卡牌 id，suit/rank 花色点数。roster=true 的武将红色比例需 = rules.checks.starterRedRatio",
       "items": {
         "type": "object",
         "required": [
@@ -137,10 +138,20 @@
             "items": {
               "$ref": "effect.schema.json#/$defs/ability"
             }
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "false = 停用（保留配置）"
           }
         },
         "additionalProperties": false
       }
+    },
+    "roster": {
+      "type": "boolean",
+      "default": true,
+      "description": "是否进入开局名单 / 选将界面（false = 保留配置但不可选，如关羽 H09）"
     }
   },
   "additionalProperties": false

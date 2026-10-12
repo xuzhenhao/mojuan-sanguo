@@ -15,7 +15,8 @@
         "back_row",
         "random_enemy",
         "ally_of_source",
-        "current_sha"
+        "current_sha",
+        "random_ally"
       ]
     },
     "cardFilter": {
@@ -66,7 +67,7 @@
       ],
       "properties": {
         "when": {
-          "description": "触发时机（注意：键名不用 on，YAML 1.1 会把 on 解析成布尔 true）。static=锁定改规则（无需事件）；play=打出本牌时；equip=装备进入装备区时",
+          "description": "触发时机（注意：键名不用 on，YAML 1.1 会把 on 解析成布尔 true）。static=锁定改规则（无需事件）；play=打出本牌时；equip=装备进入装备区时；dodged=你用闪（或当闪的牌）抵消一张杀后",
           "enum": [
             "static",
             "play",
@@ -86,7 +87,8 @@
             "dying",
             "judge_shown",
             "card_converted",
-            "active"
+            "active",
+            "dodged"
           ]
         },
         "filter": {
@@ -153,8 +155,14 @@
             "partner_faction_is",
             "has_back_row_ally",
             "ling_left_at_least",
-            "chapter_is"
-          ]
+            "chapter_is",
+            "turn_is",
+            "hand_over_limit",
+            "has_skill",
+            "target_chained",
+            "not_main_hero_turn"
+          ],
+          "description": "turn_is=当前是第 value 回合；hand_over_limit=手牌数超过上限；has_skill=主将或副将拥有 id 为 value 的技能；target_chained=目标处于连环"
         },
         "value": {
           "type": [
@@ -279,7 +287,7 @@
         },
         "stat": {
           "type": "string",
-          "description": "modify 的属性，如 sha_damage、sha_cost、hand_limit、draw_per_turn、ling_per_turn、flash_marks_to_dodge"
+          "description": "modify 的属性：sha_damage、sha_cost、card_cost、hand_limit、draw_per_turn、distance、range、flash_marks_to_dodge、fire_damage、sha_fire、heal_amount、jiu_bonus、draw_amount、aoe_damage、extra_targets、ignore_range、undodgeable、armor_break、immune_curse"
         },
         "scope": {
           "enum": [
@@ -307,6 +315,10 @@
         "enemy": {
           "type": "string",
           "description": "summon：敌人 id"
+        },
+        "choose": {
+          "type": "string",
+          "description": "discard：hand_worst=弃一张价值最低的手牌；chosen=玩家选择"
         }
       },
       "additionalProperties": false

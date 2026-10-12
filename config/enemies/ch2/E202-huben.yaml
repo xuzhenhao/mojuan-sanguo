@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第2章小怪：虎贲卫（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E202
+name: 虎贲卫
+chapter: 2
+tier: 小怪
+enabled: false
+hp: 7
+row: front
+flashMarksPerTurn: 1
+glyph: 贲
+cardMods:
+  杀+: [E_S01]
+intents:
+  - [闪, 杀]
+  - [杀+, 杀]

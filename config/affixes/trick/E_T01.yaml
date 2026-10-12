@@ -5,3 +5,10 @@ name: 精研
 rarity: N
 category: trick
 desc: "费用-1（最低0）"
+abilities:
+  - id: e_t01
+    name: 精研
+    desc: 费用 -1。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: card_cost, amount: -1, scope: permanent }

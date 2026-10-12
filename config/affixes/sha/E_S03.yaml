@@ -5,3 +5,10 @@ name: 追击
 rarity: R
 category: sha
 desc: "击杀时摸1"
+abilities:
+  - id: e_s03
+    name: 追击
+    desc: 击杀时摸 1。
+    trigger: { when: kill }
+    do:
+      - { do: draw, target: self, amount: 1 }

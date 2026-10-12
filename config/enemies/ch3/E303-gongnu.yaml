@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第3章小怪：弓弩手（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E303
+name: 弓弩手
+chapter: 3
+tier: 小怪
+enabled: false
+hp: 5
+row: back
+flashMarksPerTurn: 0
+glyph: 弩
+intents:
+  - [杀, 杀]
+  - [杀, 杀, 杀]
+desc: 每张随机目标

@@ -6,3 +6,10 @@ rarity: R
 category: equip
 slot: weapon
 desc: "武器：攻击范围+1"
+abilities:
+  - id: e_w02
+    name: 贯虹
+    desc: 武器攻击范围 +1。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: range, amount: 1, scope: permanent }

@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·赵云：冲阵枪（V1） ─────────
+id: X301
+name: 冲阵枪
+type: 专属
+typeLabel: 专属·赵云
+tags: [trick]
+target: any
+cost: 1
+rarity: R
+exclusiveHero: H03
+desc: 对任意一名敌人造成 1 点伤害（无视距离）；摸 1 张牌。
+abilities:
+  - id: chongzhenqiang
+    name: 冲阵枪
+    desc: 造成 1 点伤害；摸 1 张牌。
+    trigger: { when: play }
+    do:
+      - { do: damage, target: chosen, amount: 1 }
+      - { do: draw, target: self, amount: 1 }

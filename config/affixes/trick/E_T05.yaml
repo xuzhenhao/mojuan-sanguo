@@ -6,3 +6,10 @@ rarity: E
 category: trick
 only: T005
 desc: "群体锦囊伤害+1"
+abilities:
+  - id: e_t05
+    name: 播迁
+    desc: 群体伤害 +1。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: aoe_damage, amount: 1, scope: permanent }

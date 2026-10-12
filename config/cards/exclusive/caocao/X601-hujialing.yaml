@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·曹操：护驾令（V1） ─────────
+id: X601
+name: 护驾令
+type: 专属
+typeLabel: 专属·曹操
+tags: [trick]
+target: self
+cost: 1
+rarity: R
+exclusiveHero: H06
+desc: 获得 3 点护甲；若副将为魏势力，摸 1 张牌。
+abilities:
+  - id: hujialing
+    name: 护驾令
+    desc: 获得 3 点护甲。
+    trigger: { when: play }
+    do:
+      - { do: armor, target: self, amount: 3 }
+  - id: hujialing_draw
+    name: 护驾令
+    desc: 副将为魏时摸 1。
+    trigger: { when: play }
+    if:
+      - { type: partner_faction_is, value: 魏 }
+    do:
+      - { do: draw, target: self, amount: 1 }

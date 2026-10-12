@@ -1,0 +1,161 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { CONFIG } from '../src/data/config';
+import { card, mkGame } from './helpers';
+import { runChapter } from '../src/sim/autoplay';
+import { ROSTER } from '../src/data/heroes';
+
+const M0 = { ...CONFIG.rules.mechanics };
+afterEach(() => Object.assign(CONFIG.rules.mechanics, M0));
+
+function setup(main: string, sub = main === 'H04' ? 'H03' : 'H04') {
+  const r = mkGame({}, 1, { main, sub });
+  r.g.startBattle();
+  r.g.en.forEach((e) => (e.pat = [['闪']]));
+  return r.g;
+}
+
+describe('选将', () => {
+  it('起始牌组取主将配置；预设回归关羽+赵云', () => {
+    const g = setup('H01');
+    expect(g.main.id).toBe('H01');
+    expect(g.deckMaster.map((c) => c.id)).toEqual(CONFIG.heroes.H01.starterDeck.map((c) => c.card));
+    const r = mkGame({}, 1);
+    r.g.startBattle();
+    expect(r.g.main.id).toBe('H09');
+    expect(r.g.p.armor).toBe(3); // forceCombos: 龙虎会
+  });
+  it('停用的珠联不生效', () => {
+    const g = setup('H01', 'H02'); // 凤仪亭 enabled:false
+    expect(g.effects.combos()).toEqual([]);
+  });
+  it.each(ROSTER)('%s 能打完整章不报错', async (main) => {
+    const r = await runChapter(5, { main });
+    expect(r.res.length).toBeGreaterThan(0);
+  });
+});
+
+describe('V1 武将技能', () => {
+  it('吕布·无俦：敌人需 2 枚闪标记；虓烈：第 2 张杀 +1', async () => {
+    const g = setup('H01');
+    const e = g.en[0];
+    e.marks = 1;
+    e.hp = e.max = 9;
+    const a = card('B001');
+    const b = card('B001');
+    g.hand.push(a, b);
+    await g.play(a, e);
+    expect(e.hp).toBe(8);
+    expect(e.marks).toBe(1);
+    await g.play(b, e);
+    expect(e.hp).toBe(6);
+  });
+  it('赵云·龙胆：闪当杀、杀当闪，冲阵摸牌', async () => {
+    const g = setup('H03');
+    g.io.respond = async (_t, legal) => g.hand.find(legal) ?? null;
+    g.hand = [card('B001')];
+    g.effects.used.enemy_turn.set('sub:huzhu', 1);
+    expect(await g.enemySha(g.en[0], 1)).toBe('shan');
+    expect(g.hand.length).toBe(1); // 冲阵摸 1
+    const s = card('B004');
+    g.hand.push(s);
+    s.asSha = true;
+    expect(g.checkPlay(s)).toBeNull();
+    const hp = g.en[0].hp;
+    await g.play(s, g.en[0]);
+    expect(g.en[0].hp).toBe(hp - 1);
+  });
+  it('貂蝉·离间：非 ♥ 时敌人的杀打向友军', async () => {
+    CONFIG.rules.mechanics.judgeSource = 'deck';
+    const g = setup('H02');
+    g.draw.push(card('B001', 'S', 3));
+    await g.activate('lijian', undefined, g.en[0]);
+    expect(g.en[0].redirect).toBe(true);
+    g.en[0].pat = [['杀']];
+    const hp0 = g.p.hp;
+    const ally = g.en[1].hp + g.en[2].hp;
+    await g.endTurn();
+    expect(g.p.hp).toBe(hp0);
+    expect(g.en[1].hp + g.en[2].hp).toBe(ally - 1);
+  });
+  it('刘备·仁义：回合结束超上限赠牌得甲', () => {
+    const g = setup('H04');
+    g.p.armor = 0;
+    g.p.hp = 2;
+    g.hand = [card('B001'), card('B001'), card('B001')];
+    g.turnEnd();
+    expect(g.hand.length).toBe(2);
+    expect(g.p.armor).toBe(1);
+  });
+  it('郭嘉·天策：受伤摸 2（护甲完全吸收不算）', async () => {
+    const g = setup('H05');
+    g.p.armor = 1;
+    const n = g.hand.length;
+    await g.dmgPlayer(1);
+    expect(g.hand.length).toBe(n);
+    await g.dmgPlayer(1);
+    expect(g.hand.length).toBe(n + 2); // 天策 2（副将刘备无天妒）
+  });
+  it('曹操·挟令：弃 1 得 2 甲，护甲被打穿反击', async () => {
+    const g = setup('H06');
+    g.p.armor = 0;
+    g.hand.push(card('B001'));
+    await g.activate('xieling', g.hand[0]);
+    expect(g.p.armor).toBe(2);
+    const e = g.en[0];
+    const hp = e.hp;
+    await g.dmgPlayer(3, e);
+    expect(e.hp).toBe(hp - 1);
+  });
+  it('周瑜·铁索 + 火计：连环传导', async () => {
+    const g = setup('H07');
+    g.p.ling = 9;
+    const t = card('X702');
+    const f = card('X701');
+    g.hand.push(t, f);
+    await g.play(t, null);
+    expect(g.en.every((e) => e.chained)).toBe(true);
+    const hps = g.en.map((e) => e.hp);
+    await g.play(f, g.en[0]);
+    expect(g.en[0].hp).toBe(hps[0] - 2); // 纵火 +1
+    expect(g.en[1].hp).toBeLessThan(hps[1]);
+  });
+  it('陆逊·连营：手牌打空摸 2；谦逊免咒', async () => {
+    const g = setup('H08');
+    const c = card('T012');
+    g.hand = [c];
+    await g.play(c, null);
+    expect(g.hand.length).toBe(2); // 连营 2
+    g.en[0].pat = [['咒']];
+    const n = g.hand.length;
+    await g.endTurn();
+    expect(g.logs.some((l) => l.includes('谦逊'))).toBe(true);
+    expect(g.hand.length).toBeGreaterThanOrEqual(n);
+  });
+});
+
+describe('V1 卡牌', () => {
+  it('乐不思蜀持续 2 个敌方回合', async () => {
+    const g = setup('H03');
+    const lb = card('D001');
+    g.hand.push(lb);
+    await g.play(lb, g.en[0]);
+    expect(g.en[0].judge).toContain(lb);
+    await g.endTurn();
+    expect(g.en[0].judge).toContain(lb);
+    await g.endTurn();
+    expect(g.en[0].judge).not.toContain(lb);
+  });
+  it('闪电：判定 ♠2–9 造成 3 点雷伤并移除', async () => {
+    CONFIG.rules.mechanics.judgeSource = 'deck';
+    const g = setup('H03');
+    const sd = card('D003');
+    g.hand.push(sd);
+    const e = g.en[0];
+    e.hp = e.max = 9;
+    await g.play(sd, e);
+    g.draw.push(card('B001', 'S', 5));
+    await g.endTurn();
+    expect(e.hp).toBe(6);
+    expect(e.judge).not.toContain(sd);
+  });
+});

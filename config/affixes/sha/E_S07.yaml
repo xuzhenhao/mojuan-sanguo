@@ -2,6 +2,13 @@
 # ───────── 词条：破甲 ─────────
 id: E_S07
 name: 破甲
-rarity: E
+rarity: R # V1：E → R
 category: sha
 desc: "先弃目标2护甲再结算"
+abilities:
+  - id: e_s07
+    name: 破甲
+    desc: 结算前先弃目标 2 点护甲。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: armor_break, amount: 2, scope: permanent }

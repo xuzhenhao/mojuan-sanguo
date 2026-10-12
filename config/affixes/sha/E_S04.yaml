@@ -2,6 +2,13 @@
 # ───────── 词条：穿杨 ─────────
 id: E_S04
 name: 穿杨
-rarity: R
+rarity: N # V1：R → N
 category: sha
 desc: "无视距离"
+abilities:
+  - id: e_s04
+    name: 穿杨
+    desc: 无视距离。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: ignore_range, amount: 1, scope: permanent }

@@ -5,3 +5,10 @@ name: 余韵
 rarity: N
 category: shan
 desc: "抵消后摸1"
+abilities:
+  - id: e_d01
+    name: 余韵
+    desc: 抵消后摸 1。
+    trigger: { when: dodged }
+    do:
+      - { do: draw, target: self, amount: 1 }

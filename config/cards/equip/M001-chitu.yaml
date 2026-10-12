@@ -8,7 +8,7 @@ slot: minus_horse
 tags: [equip]
 cost: 1
 rarity: R
-desc: "你与他人距离-1"
+desc: 你与他人距离 -1；装备时摸 1 张牌。（V1 新增摸 1）
 abilities:
   - id: chitu_dist
     name: 赤兔
@@ -17,3 +17,9 @@ abilities:
     trigger: { when: static }
     do:
       - { do: modify, stat: distance, amount: -1, scope: permanent }
+  - id: chitu_draw
+    name: 赤兔
+    desc: 装备时摸 1 张牌。
+    trigger: { when: equip }
+    do:
+      - { do: draw, target: self, amount: 1 }

@@ -70,6 +70,11 @@
       "items": {
         "$ref": "effect.schema.json#/$defs/ability"
       }
+    },
+    "maxPerDeck": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "同一牌组中最多几张牌带此词条（灵光候选生成时过滤）"
     }
   },
   "additionalProperties": false

@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·貂蝉：离魂（V1） ─────────
+id: X201
+name: 离魂
+type: 专属
+typeLabel: 专属·貂蝉
+tags: [trick]
+target: any
+cost: 1
+rarity: R
+exclusiveHero: H02
+desc: 目标判定：若不为 ♥，其本回合不打出杀；并对其造成 1 点伤害。
+abilities:
+  - id: lihun
+    name: 离魂
+    desc: 判定非 ♥ 则目标本回合不出杀；造成 1 点伤害。
+    trigger: { when: play }
+    do:
+      - do: judge
+        success: { suit: [H], not: true }
+        then:
+          - { do: apply_status, target: chosen, status: no_sha }
+      - { do: damage, target: chosen, amount: 1 }

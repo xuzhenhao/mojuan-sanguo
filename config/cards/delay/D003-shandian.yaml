@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 延时锦囊：闪电（V1 统一定义） ─────────
+id: D003
+name: 闪电
+type: 延时锦囊
+tags: [trick, delay, thunder]
+cost: 1
+rarity: E
+target: any
+desc: 置入一名敌人的判定区。其每个回合开始判定 1 次：若为 ♠2–9，受到 3 点雷电伤害并移除；未命中则保留，最多判定 4 次。
+note: design-v1 第 7.2 节第 6 条：唯一定义；伤害用 amount 参数，张角用 trickOverrides 覆盖为 2（对玩家，可被无懈）
+abilities:
+  - id: shandian
+    name: 闪电
+    desc: 置入目标判定区（每回合判定 ♠2–9 → 3 点雷伤，最多 4 次）。
+    trigger: { when: play }
+    do:
+      - { do: apply_status, target: chosen, status: shandian, duration: 4 }
+  - id: shandian_judge
+    name: 闪电
+    desc: 判定 ♠2–9 则受到 3 点雷电伤害。
+    trigger: { when: enemy_turn_start }
+    do:
+      - do: judge
+        success: { suit: [S], rankRange: [2, 9] }
+        then:
+          - { do: damage, target: self, amount: 3, element: thunder }

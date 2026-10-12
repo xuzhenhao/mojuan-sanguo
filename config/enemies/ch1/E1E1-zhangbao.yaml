@@ -4,17 +4,17 @@ id: E1E1
 name: 张宝·墨影
 chapter: 1
 tier: 精英
-hp: 15
+hp: 10
 row: front
 flashMarksPerTurn: 0
 glyph: 宝
 cardMods:
   杀+: [E_S01]            # 已灵光一闪「锋锐」：这张杀打 2 点
-intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）
+intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）· V1 定稿 en-final.json
   - [杀+, 杀]
   - [闪, 杀, 杀]
-  - [万箭, 杀+, 杀+]
-desc: "黄天庇佑：回合开始若有后排友军，护甲+1｜其【杀】已灵光一闪「锋锐」：伤害+1"
+  - [万箭, 杀+, 杀]
+desc: "黄天庇佑：回合开始若有后排友军，护甲+1｜其【杀+】已灵光一闪「锋锐」：伤害+1（V1 不加墨影）"
 abilities:
   - id: huangtian
     name: 黄天庇佑

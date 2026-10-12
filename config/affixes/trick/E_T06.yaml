@@ -5,3 +5,10 @@ name: 天启
 rarity: L
 category: trick
 desc: "打出时获得1军令"
+abilities:
+  - id: e_t06
+    name: 天启
+    desc: 打出时获得 1 军令。
+    trigger: { when: play }
+    do:
+      - { do: gain_ling, target: self, amount: 1 }

@@ -3,26 +3,41 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { loadConfig } from '../scripts/config-lib';
-import legacy from './fixtures/legacy-data.json';
+import { CONFIG } from '../src/data/config';
 import * as cards from '../src/data/cards';
 import * as affixes from '../src/data/affixes';
 import * as heroes from '../src/data/heroes';
-import * as enemies from '../src/data/enemies';
 
 const ROOT = resolve(__dirname, '../config');
-const plain = (x: unknown) => JSON.parse(JSON.stringify(x));
 
-describe('数据驱动 ①：YAML 配置与重构前 TS 数据逐字段一致', () => {
-  it('cards', () => expect(plain(cards)).toEqual(legacy.cards));
-  it('affixes（含顺序）', () => expect(plain(affixes)).toEqual(legacy.affixes));
-  it('heroes / rules / armor', () => expect(plain(heroes)).toEqual(legacy.heroes));
-  it('enemies / battles（② 新增 tier / abilities 字段除外）', () => {
-    const e = plain(enemies);
-    for (const d of Object.values(e.ENEMIES) as Record<string, unknown>[]) {
-      delete d.tier;
-      delete d.abilities;
+describe('V1 数值（design-v1 第 7 节定稿）', () => {
+  it('开局 8 将全免费，关羽 H09 保留不进开局', () => {
+    expect(heroes.ROSTER).toEqual(['H01', 'H02', 'H03', 'H04', 'H05', 'H06', 'H07', 'H08']);
+    expect(CONFIG.heroes.H09.roster).toBe(false);
+    expect(CONFIG.heroes.H09.combos!.find((c) => c.name === '龙虎会')!.enabled).toBe(false);
+  });
+  it('rules 机制与检查', () => {
+    expect(CONFIG.rules.mechanics).toEqual({ judgeSource: 'pool', passiveQuotaPerEnemyTurn: 2, moying: false, zeroCostPerTurn: 1 });
+    expect(CONFIG.rules.starterDeck).toBe('hero');
+    expect(CONFIG.rules.betweenBattleHeal).toBe(1);
+  });
+  it('每将起始牌组 12 张，红 50%', () => {
+    for (const id of heroes.ROSTER) {
+      const d = CONFIG.heroes[id].starterDeck;
+      expect(d.length).toBe(12);
+      expect(d.filter((c) => c.suit === 'H' || c.suit === 'D').length).toBe(6);
     }
-    expect(e).toEqual(legacy.enemies);
+  });
+  it('第 1 章：波才 / 张角为停用占位；闪电 D003 统一定义，张角覆盖 2', () => {
+    expect(CONFIG.enemies.E1E2.enabled).toBe(false);
+    expect(CONFIG.enemies.B1.enabled).toBe(false);
+    expect(CONFIG.enemies.B1.trickOverrides).toEqual({ D003: { amount: 2 } });
+    expect(cards.CARDS.D003.cost).toBe(1);
+  });
+  it('锋锐升 R 且同牌组最多 2 张', () => {
+    const f = affixes.AFFIXES.find((a) => a.id === 'E_S01')!;
+    expect(f.r).toBe('R');
+    expect(f.maxPerDeck).toBe(2);
   });
 });
 
@@ -39,11 +54,11 @@ describe('config:check 校验', () => {
 
   it('仓库配置全部通过', () => expect(loadConfig(ROOT).errors).toEqual([]));
   it('Schema：体力超上限被拦下', () => {
-    expect(broken('heroes/H01-guanyu.yaml', (s) => s.replace('hp: 8', 'hp: 18')).join('\n')).toMatch(/H01-guanyu.yaml: \/hp must be <= 10/);
+    expect(broken('heroes/H09-guanyu.yaml', (s) => s.replace('hp: 8', 'hp: 18')).join('\n')).toMatch(/H09-guanyu.yaml: \/hp must be <= 10/);
   });
   it('Schema：单回合意图超过 3 张被拦下', () => {
-    expect(broken('enemies/ch1/E101-buzu.yaml', (s) => s.replace('[杀, 杀, 杀]', '[杀, 杀, 杀, 杀]')).join('\n')).toMatch(
-      /E101-buzu.yaml: \/intents\/2 must NOT have more than 3 items/,
+    expect(broken('enemies/ch1/E101-buzu.yaml', (s) => s.replace('[杀, 杀]', '[杀, 杀, 杀, 杀]')).join('\n')).toMatch(
+      /E101-buzu.yaml: \/intents\/0 must NOT have more than 3 items/,
     );
   });
   it('Schema：未知字段被拦下', () => {
@@ -53,15 +68,22 @@ describe('config:check 校验', () => {
     expect(broken('encounters/ch1.yaml', (s) => s.replace('E1E1', 'E9X9')).join('\n')).toMatch(/不存在的敌人 E9X9/);
     expect(broken('decks/prototype.yaml', (s) => s.replace('card: B001', 'card: B999')).join('\n')).toMatch(/不存在的卡牌 B999/);
   });
-  it('业务：开启 V1 检查后，红色比例与 0 费摸牌限次被拦下', () => {
-    const errs = broken('rules.yaml', (s) =>
-      s.replace('starterRedRatio: null', 'starterRedRatio: 0.5').replace('zeroCostDrawNeedsLimit: false', 'zeroCostDrawNeedsLimit: true'),
-    ).join('\n');
-    expect(errs).toMatch(/decks\/prototype: 红色比例 57.9% ≠ 50%/);
-    expect(errs).toMatch(/T013: 0 费摸牌牌必须设置 limit/);
+  it('业务：起始牌组红色比例与 0 费摸牌限次被拦下', () => {
+    expect(broken('heroes/H03-zhaoyun.yaml', (s) => s.replace('{ card: B001, suit: H, rank: 10 }', '{ card: B001, suit: S, rank: 10 }')).join('\n')).toMatch(
+      /heroes\/H03: 起始牌组红色比例 41.7% ≠ 50%/,
+    );
+    expect(broken('cards/trick/T013-zhijizhibi.yaml', (s) => s.replace('    limit: { per: turn, times: 1 }\n', '')).join('\n')).toMatch(
+      /T013: 0 费摸牌牌必须设置 limit/,
+    );
+  });
+  it('业务：hero.starterDeck 必填', () => {
+    expect(broken('heroes/H03-zhaoyun.yaml', (s) => s.replace(/starterDeck:[\s\S]*?exclusiveCards/, 'exclusiveCards')).join('\n')).toMatch(/starterDeck/);
+  });
+  it('业务：配置用到引擎未实现的原子被拦下', () => {
+    expect(broken('cards/trick/T003-guohe.yaml', (s) => s.replace('do: remove_armor', 'do: summon_x')).join('\n')).toMatch(/T003-guohe.yaml/);
   });
   it('业务：珠联开场护甲超过上限被拦下', () => {
-    expect(broken('heroes/H01-guanyu.yaml', (s) => s.replace('armor, target: self, amount: 3', 'armor, target: self, amount: 5')).join('\n')).toMatch(
+    expect(broken('heroes/H09-guanyu.yaml', (s) => s.replace('armor, target: self, amount: 3', 'armor, target: self, amount: 5')).join('\n')).toMatch(
       /开场护甲 5 > 3/,
     );
   });

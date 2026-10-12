@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第一章 Boss：张角·墨魇（停用占位）─────────
+# design-v1 7.2 第 6 条：本次不做。闪电用统一卡 D003，张角覆盖 amount = 2（可被无懈）
+id: B1
+name: 张角·墨魇
+chapter: 1
+tier: Boss
+enabled: false
+hp: 18
+row: front
+flashMarksPerTurn: 1
+glyph: 角
+cardMods:
+  杀+: [E_S01]
+trickOverrides:
+  D003: { amount: 2 }
+intents:
+  - [杀, 杀]
+  - [锦囊:D003]
+  - [闪, 杀]
+  - [杀+, 杀]
+desc: 阶段 2（HP 50% 切换）：全场连环，杀变雷杀，召唤弓手（phases 待 Boss 轮实装）

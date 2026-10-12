@@ -5,3 +5,10 @@ name: 厚味
 rarity: N
 category: tao
 desc: "回复+1"
+abilities:
+  - id: e_p01
+    name: 厚味
+    desc: 回复 +1。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: heal_amount, amount: 1, scope: permanent }

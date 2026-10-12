@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第2章小怪：投石卒（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E204
+name: 投石卒
+chapter: 2
+tier: 小怪
+enabled: false
+hp: 4
+row: back
+flashMarksPerTurn: 0
+glyph: 石
+intents:
+  - ["杀[穿杨]"]
+  - ["杀[穿杨]", "杀[穿杨]"]
+desc: 其杀已进化「穿杨」（无视距离，敌人侧仅作展示）

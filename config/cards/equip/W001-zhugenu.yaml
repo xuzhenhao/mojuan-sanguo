@@ -7,15 +7,15 @@ typeLabel: 装备·武器
 slot: weapon
 range: 1
 tags: [equip]
-cost: 1
-rarity: R
-desc: "攻击范围1。你使用杀的军令费用-1（最低0），每回合限2次"
+cost: 2
+rarity: E
+desc: 攻击范围 1；每回合你使用的第一张杀费用 -1（最低 0）。（V1）
 abilities:
   - id: zhugenu_cost
     name: 诸葛弩
     kind: 锁定技
-    desc: 你使用杀的军令费用 -1（最低 0），每回合限 2 次。
+    desc: 每回合你使用的第一张杀费用 -1（最低 0）。
     trigger: { when: static }
-    limit: { per: turn, times: 2 }
+    limit: { per: turn, times: 1 }
     do:
       - { do: modify, stat: sha_cost, amount: -1, scope: this_turn }

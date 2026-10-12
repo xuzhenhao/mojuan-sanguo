@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第一章精英：波才残部（停用占位）─────────
+# design-v1 7.2 第 6 条：本次不做，按 PRD 数值写占位，等第 1 章地图与 Boss 指标就绪后单独一轮
+id: E1E2
+name: 波才残部
+chapter: 1
+tier: 精英
+enabled: false
+hp: 9
+row: front
+glyph: 波
+intents:
+  - [召唤:E101]
+  - [杀, 杀]
+  - [闪, 闪]
+desc: 召唤黄巾步卒

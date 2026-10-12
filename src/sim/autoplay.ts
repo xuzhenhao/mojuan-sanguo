@@ -6,6 +6,7 @@ import { Game, type BattleIO } from '../core/battle';
 import { seeded } from '../core/rng';
 import { def, isRed, isShaPlay } from '../core/rules';
 import { BATTLES } from '../data/enemies';
+import { CONFIG } from '../data/config';
 import type { CardInst, Enemy } from '../core/types';
 
 export type Layer = 'huzhu' | 'bagua' | 'shan' | 'armor' | 'tao';
@@ -18,6 +19,7 @@ export interface GameStats {
   win: boolean;
   timeout: boolean;
   hpStart: number;
+  maxHp: number;
   hpEnd: number;
   turns: number;
   /** 本场曾进入濒死（体力 ≤0） */
@@ -46,14 +48,14 @@ export class StatGame extends Game {
     }
     return r;
   }
-  async dmgPlayer(n: number) {
+  async dmgPlayer(n: number, src?: Enemy) {
     this.st.incoming += n;
     const a = Math.min(this.p.armor, n);
     this.st.absorbed.armor += a;
     this.st.hpLost += n - a;
     if (n - a > 0) this.st.turnHit.set(this.turn, (this.st.turnHit.get(this.turn) ?? 0) + n - a);
     if (this.p.hp - (n - a) <= 0) this.st.dying = true;
-    await super.dmgPlayer(n);
+    await super.dmgPlayer(n, src);
   }
   heal(n: number) {
     const b = this.p.hp;
@@ -75,21 +77,39 @@ export function silentIO(onEnd: (w: boolean) => void): BattleIO {
   };
 }
 
-// ---------------- 简单贪心 AI ----------------
+// ---------------- 简单贪心 AI（按标签 / 原子通用，不绑定具体武将） ----------------
+const tags = (c: CardInst) => CONFIG.cards[c.id]?.tags ?? [];
+const atoms = (c: CardInst) => (CONFIG.cards[c.id]?.abilities ?? []).flatMap((a) => a.do.map((x) => x.do));
 const isDefCard = (c: CardInst) => {
   const d = def(c);
-  return !!(d.shan || d.tao || c.id === 'T012' || d.slot === 'armor');
+  return !!(d.shan || d.tao || d.slot === 'armor' || (atoms(c).includes('armor') && !d.slot));
 };
+const isDraw = (c: CardInst) => !def(c).slot && !def(c).tgt && !def(c).jiu && c.id !== 'SH01' && atoms(c).includes('draw') && !atoms(c).includes('armor');
 
 function targetFor(g: Game, c: CardInst): Enemy | null {
   const cands = g.alive().filter((e) => g.canTarget(e, c));
   if (!cands.length) return null;
-  // 优先无闪标记、体力低的
   return cands.sort((a, b) => a.marks - b.marks || a.hp + a.armor - (b.hp + b.armor))[0];
 }
+const shaThreat = (e: Enemy) => e.pat[e.step % e.pat.length].filter((a) => a.startsWith('杀')).length;
 
 /** 执行 AI 的一个出牌阶段，返回打出的牌分类计数 */
 export async function aiTurn(g: Game, plays: GameStats['plays']) {
+  // 主动技：离间（打出杀最多的敌人，需有友军）、挟令（手牌多于 3 张时弃最差的牌）
+  for (const s of g.effects.activeAbilities()) {
+    const id = s.ab.id;
+    if (id === 'aogu' || !g.canActivate(id)) continue;
+    const need = g.activeNeeds(id);
+    if (need.target) {
+      const t = g
+        .alive()
+        .filter(() => g.alive().length >= 2)
+        .sort((a, b) => shaThreat(b) - shaThreat(a))[0];
+      if (t && shaThreat(t)) await g.activate(id, undefined, t);
+    } else if (need.card) {
+      if (g.hand.length >= 4) await g.activate(id, g.worstCard());
+    } else await g.activate(id);
+  }
   for (let guard = 0; guard < 30 && !g.over; guard++) {
     const p = g.p;
     const ok = (c: CardInst) => g.hand.includes(c) && !g.checkPlay(c);
@@ -101,37 +121,45 @@ export async function aiTurn(g: Game, plays: GameStats['plays']) {
 
     if ((c = find((x) => !!def(x).slot && !p.equip[def(x).slot!]))) {
       /* 装备 */
-    } else if ((c = find((x) => x.id === 'T013' || x.id === 'T001'))) {
+    } else if (p.hp <= p.maxHp - 2 && (c = find((x) => !!def(x).tao || (atoms(x).includes('heal') && !def(x).tgt)))) {
+      /* 回复 */
+    } else if (
+      (c = find(
+        (x) => (x.id === 'T013' || x.id === 'T001' || (isDraw(x) && g.costOf(x) === 0)) && (g.costOf(x) === 0 || !shas().length || p.ling - g.costOf(x) >= 1),
+      ))
+    ) {
       if (c.id === 'T013') tgt = g.alive()[0];
-    } else if (p.hp <= p.maxHp - 2 && (c = find((x) => !!def(x).tao))) {
-      /* 桃 */
-    } else if ((c = find((x) => x.id === 'D001'))) {
+    } else if ((c = find((x) => tags(x).includes('delay')))) {
       tgt = g.alive().sort((a, b) => b.hp - a.hp)[0];
-    } else if (g.alive().length >= 2 && (c = find((x) => x.id === 'T005'))) {
-      /* 南蛮 */
+    } else if (g.alive().length >= 2 && (c = find((x) => !!def(x).aoe))) {
+      /* 群体 */
     } else if (shas().length && p.ling >= 2 && !p.jiu && (c = find((x) => !!def(x).jiu || x.id === 'SH01'))) {
       /* 酒/义勇 先手 */
     } else if (shas().length) {
-      // 傲骨：弃一张非桃非闪的红牌
       if (g.canAogu() && !p.aogu) {
         const r = g.hand.find((x) => isRed(x) && !isDefCard(x) && !def(x).sha && x.id !== 'X004');
         if (r) g.aogu(r);
       }
       const all = shas();
       c = all.find((x) => x.id !== 'X004') ?? all[0];
+      if (!c) continue;
       if (c.id === 'X004') red = g.hand.find((x) => x !== c && isRed(x));
       tgt = targetFor(g, c);
     } else if ((c = find((x) => x.id === 'T003' && g.alive().some((e) => e.armor > 0)))) {
       tgt = g.alive().find((e) => e.armor > 0)!;
-    } else if ((c = find((x) => x.id === 'T012'))) {
-      /* 以逸待劳 */
+    } else if ((c = find((x) => def(x).tgt === 'any' && atoms(x).includes('damage') && !def(x).sha))) {
+      tgt = g.alive().sort((a, b) => a.hp + a.armor - (b.hp + b.armor))[0];
+    } else if ((c = find((x) => isDraw(x)))) {
+      /* 其余摸牌牌（有费） */
+    } else if ((c = find((x) => !def(x).slot && !def(x).tgt && atoms(x).includes('armor')))) {
+      /* 加甲牌 */
     } else if (p.hp < p.maxHp && (c = find((x) => !!def(x).tao))) {
       /* 桃 */
     }
     if (!c) return;
     if (g.needsTarget(c) && !tgt) return;
     const d = def(c);
-    if (isShaPlay(c) || d.jiu || c.id === 'SH01' || c.id === 'T005' || c.id === 'X004') plays.attack++;
+    if (isShaPlay(c) || d.jiu || c.id === 'SH01' || d.aoe || c.id === 'X004' || (d.tgt && atoms(c).includes('damage'))) plays.attack++;
     else if (isDefCard(c)) plays.defense++;
     else plays.other++;
     await g.play(c, tgt, red);
@@ -144,7 +172,21 @@ function pickDiscards(g: Game): CardInst[] {
   return [...g.hand].sort((a, b) => score(a) - score(b)).slice(0, n);
 }
 
-export interface RunOpts {
+export interface HeroOpts {
+  main?: string;
+  sub?: string;
+  preset?: string;
+}
+/** 统计用副将：未指定时取主将第一个已启用珠联的搭档（不能与主将相同），否则 rules.defaultHeroes.sub */
+export function pickSub(main: string): string {
+  const cb = (CONFIG.heroes[main].combos ?? []).find((c) => c.enabled !== false && c.partner !== main && CONFIG.heroes[c.partner]?.roster !== false);
+  if (cb) return cb.partner;
+  const d = CONFIG.rules.defaultHeroes;
+  return d.sub !== main ? d.sub : d.main;
+}
+const resolveHeroes = (h: HeroOpts): HeroOpts => (h.preset || !h.main || h.sub ? h : { ...h, sub: pickSub(h.main) });
+
+export interface RunOpts extends HeroOpts {
   battleIdx: number;
   seed: number;
   hp?: number;
@@ -155,7 +197,7 @@ export interface RunOpts {
 export async function runBattle(o: RunOpts): Promise<GameStats> {
   let win = false;
   const io = silentIO((w) => (win = w));
-  const g = new StatGame(seeded(o.seed), io, { autoShan: true });
+  const g = new StatGame(seeded(o.seed), io, { autoShan: true, main: o.main, sub: o.sub, preset: o.preset });
   io.respond = async (_t, legal) => g.hand.find(legal) ?? null;
   g.battleIdx = o.battleIdx;
   if (o.hp !== undefined) g.p.hp = o.hp;
@@ -166,6 +208,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   while (!g.over && g.turn <= maxTurns) {
     await aiTurn(g, plays);
     if (g.over) break;
+    g.turnEnd();
     await g.endTurn(pickDiscards(g));
   }
   return {
@@ -174,6 +217,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
     win: g.over && win,
     timeout: !g.over,
     hpStart,
+    maxHp: g.p.maxHp,
     hpEnd: Math.max(0, g.p.hp),
     turns: g.turn,
     dying: g.st.dying,
@@ -187,15 +231,17 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   };
 }
 
-/** 整章：依次打完所有战斗，体力继承 */
-export async function runChapter(seed: number) {
+/** 整章：依次打完所有战斗，体力继承；战间回复 rules.betweenBattleHeal（V1：1） */
+export async function runChapter(seed: number, h0: HeroOpts = {}) {
+  const h = resolveHeroes(h0);
   const res: GameStats[] = [];
   let hp: number | undefined;
+  const heal = CONFIG.rules.betweenBattleHeal ?? 0;
   for (let i = 0; i < BATTLES.length; i++) {
-    const r = await runBattle({ battleIdx: i, seed: seed * 31 + i, hp });
+    const r = await runBattle({ ...h, battleIdx: i, seed: seed * 31 + i, hp });
     res.push(r);
     if (!r.win) return { clear: false, res, hpAtLast: i === BATTLES.length - 1 ? r.hpStart : null };
-    hp = r.hpEnd;
+    hp = Math.min(r.maxHp, r.hpEnd + heal);
   }
   return { clear: true, res, hpAtLast: res[res.length - 1].hpStart };
 }
@@ -215,7 +261,7 @@ export function summarize(rs: GameStats[]) {
   const n = rs.length;
   const wins = rs.filter((r) => r.win);
   const hp = rs.map((r) => r.hpEnd);
-  const maxHp = rs[0]?.hpStart ?? 8;
+  const maxHp = rs[0]?.maxHp ?? 8;
   const dist: Record<number, number> = {};
   for (const h of hp) dist[h] = (dist[h] ?? 0) + 1;
   const absorbed = emptyLayers();
@@ -252,6 +298,8 @@ export function summarize(rs: GameStats[]) {
     ),
     absorbedPerGame: Object.fromEntries(LAYERS.map((l) => [l, absorbed[l] / n])) as Record<Layer, number>,
     incomingPerGame: mean(rs.map((r) => r.incoming)),
+    /** 被动免伤占比 = (护主 + 八卦) / 敌方伤害输入 */
+    passiveShare: (absorbed.huzhu + absorbed.bagua) / (rs.reduce((a, r) => a + r.incoming, 0) || 1),
     hpLostPerGame: mean(rs.map((r) => r.hpLost)),
     hitTurnShare: rs.reduce((a, r) => a + r.turnsHit, 0) / rs.reduce((a, r) => a + r.turns, 0),
     firstTurnSha: mean(rs.map((r) => r.firstTurnEnemySha)),
@@ -282,10 +330,12 @@ export function report(title: string, per: { idx: number; s: Summary }[], ch: { 
           .join('  '),
     );
   L.push('', '## 防御层抵消量（每场平均点数）', '');
-  L.push(`| 战斗 | 敌方伤害输入 | ${LAYERS.map((l) => LAYER_CH[l]).join(' | ')} | 实际掉血 |`);
-  L.push(`|---|---|${LAYERS.map(() => '---').join('|')}|---|`);
+  L.push(`| 战斗 | 敌方伤害输入 | ${LAYERS.map((l) => LAYER_CH[l]).join(' | ')} | 实际掉血 | 被动免伤占比 |`);
+  L.push(`|---|---|${LAYERS.map(() => '---').join('|')}|---|---|`);
   for (const { idx, s } of per)
-    L.push(`| ${BATTLES[idx].name} | ${f(s.incomingPerGame, 2)} | ${LAYERS.map((l) => f(s.absorbedPerGame[l], 2)).join(' | ')} | ${f(s.hpLostPerGame, 2)} |`);
+    L.push(
+      `| ${BATTLES[idx].name} | ${f(s.incomingPerGame, 2)} | ${LAYERS.map((l) => f(s.absorbedPerGame[l], 2)).join(' | ')} | ${f(s.hpLostPerGame, 2)} | ${pct(s.passiveShare, 1)} |`,
+    );
   L.push('', '## 过程指标', '');
   L.push('| 战斗 | 首回合敌方杀数 | 首回合掉血 | 掉血回合占比 | 进攻牌占比 | 防御牌占比 |', '|---|---|---|---|---|---|');
   for (const { idx, s } of per)
@@ -294,7 +344,7 @@ export function report(title: string, per: { idx: number; s: Summary }[], ch: { 
     );
   L.push(
     '',
-    `## 整章（${ch.n} 局，体力继承）`,
+    `## 整章（${ch.n} 局，体力继承，战间回 ${CONFIG.rules.betweenBattleHeal ?? 0}）`,
     '',
     `- 通关率 ${pct(ch.clear, ch.n)}`,
     `- 到达最后一战时体力中位数 ${f(quantile(ch.hpAtLast, 0.5))}（样本 ${ch.hpAtLast.length}）`,
@@ -303,20 +353,21 @@ export function report(title: string, per: { idx: number; s: Summary }[], ch: { 
 }
 
 /** 批量：每战 n 场（前半固定种子 1..n/2，后半随机种子），每战从满血开始 */
-export async function batch(n: number, randomSeed = Date.now()) {
+export async function batch(n: number, randomSeed = Date.now(), h0: HeroOpts = {}) {
+  const h = resolveHeroes(h0);
   const seeds = Array.from({ length: n }, (_, i) => (i < n / 2 ? i + 1 : (randomSeed + i * 7919) >>> 0));
   const per: { idx: number; s: Summary }[] = [];
   for (let idx = 0; idx < BATTLES.length; idx++) {
     const rs: GameStats[] = [];
-    for (const seed of seeds) rs.push(await runBattle({ battleIdx: idx, seed }));
+    for (const seed of seeds) rs.push(await runBattle({ ...h, battleIdx: idx, seed }));
     per.push({ idx, s: summarize(rs) });
   }
   let clear = 0;
   const hpAtLast: number[] = [];
   for (const seed of seeds) {
-    const c = await runChapter(seed);
+    const c = await runChapter(seed, h);
     if (c.clear) clear++;
     if (c.hpAtLast !== null) hpAtLast.push(c.hpAtLast);
   }
-  return { per, ch: { n, clear, hpAtLast } };
+  return { heroes: h, per, ch: { n, clear, hpAtLast } };
 }

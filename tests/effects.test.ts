@@ -7,6 +7,7 @@ const M0 = { ...CONFIG.rules.mechanics };
 afterEach(() => Object.assign(CONFIG.rules.mechanics, M0));
 
 function setup() {
+  CONFIG.rules.mechanics.judgeSource = 'deck'; // 用 g.draw 预置判定牌（M1 单独测试）
   const r = mkGame({}, 1);
   r.g.startBattle();
   r.g.en.forEach((e) => (e.pat = [['闪']]));
@@ -153,11 +154,11 @@ describe('事件总线：limit / if / 配额 / 筛选', () => {
     await g.effects.emit('play', [src(a)]);
     expect(g.p.ling).toBe(5);
   });
-  it('默认配置不限配额（保持现行行为）', async () => {
+  it('V1 配额：每敌方回合 2 次', async () => {
     const g = setup();
     const a = ab({ limit: { passiveQuota: true }, do: [{ do: 'gain_ling', amount: 1 }] });
     await g.effects.emit('play', [src(a), src(a, 'k2'), src(a, 'k3')]);
-    expect(g.p.ling).toBe(6);
+    expect(g.p.ling).toBe(5);
   });
   it('cardMatches 筛选', () => {
     expect(cardMatches(card('B001'), { tag: 'sha' })).toBe(true);
@@ -189,7 +190,7 @@ describe('配置驱动的现有效果', () => {
   });
   it('八卦阵：红色视为闪', async () => {
     const g = setup();
-    g.effects.used.turn.set('sub:huzhu', 1);
+    g.effects.used.enemy_turn.set('sub:huzhu', 1);
     g.p.equip.armor = card('A001', 'S', 2);
     g.draw.push(card('B001', 'D', 3));
     expect(await g.enemySha(g.en[0], 1)).toBe('bagua');
@@ -204,14 +205,14 @@ describe('配置驱动的现有效果', () => {
   });
 });
 
-describe('机制开关（默认关闭 = 现行行为）', () => {
-  it('默认值', () => expect(M0).toEqual({ judgeSource: 'deck', passiveQuotaPerEnemyTurn: null, moying: false, zeroCostPerTurn: null }));
+describe('机制开关（V1 定稿）', () => {
+  it('默认值', () => expect(M0).toEqual({ judgeSource: 'pool', passiveQuotaPerEnemyTurn: 2, moying: false, zeroCostPerTurn: 1 }));
   it('M1 天机签筒：52 张、红 50%，判定不消耗牌组', async () => {
     const d = standardJudgeDeck();
     expect(d.length).toBe(52);
     expect(d.filter((c) => c.suit === 'H' || c.suit === 'D').length).toBe(26);
-    CONFIG.rules.mechanics.judgeSource = 'pool';
     const g = setup();
+    CONFIG.rules.mechanics.judgeSource = 'pool';
     const n = g.draw.length;
     await g.judge('测试');
     expect(g.draw.length).toBe(n);

@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第3章精英：蔡瑁·墨影（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E3E1
+name: 蔡瑁·墨影
+chapter: 3
+tier: 精英
+enabled: false
+hp: 14
+row: front
+flashMarksPerTurn: 0
+glyph: 瑁
+cardMods:
+  杀+: [E_S01]
+intents:
+  - [杀, 杀]
+  - [闪, 杀]
+  - [杀+, 杀]
+desc: 水战：后排友军距离对你视为 +1（需武器）

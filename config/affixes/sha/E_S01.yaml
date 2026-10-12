@@ -2,6 +2,14 @@
 # ───────── 词条：锋锐 ─────────
 id: E_S01
 name: 锋锐
-rarity: N
+rarity: R # V1：N → R
 category: sha
+maxPerDeck: 2 # V1：同一牌组最多 2 张杀带锋锐（灵光候选时过滤）
 desc: "伤害+1"
+abilities:
+  - id: e_s01
+    name: 锋锐
+    desc: 杀伤害 +1。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: sha_damage, amount: 1, scope: permanent }

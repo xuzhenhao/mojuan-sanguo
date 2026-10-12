@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { parse } from 'yaml';
+import { IMPLEMENTED as IMPL } from '../src/core/implemented';
 
 export interface Built {
   rules: Record<string, any>;
@@ -93,8 +94,38 @@ export function businessChecks(c: Built): string[] {
   const errs: string[] = [];
   const card = (id: string, where: string) => c.cards[id] || errs.push(`${where}: 引用了不存在的卡牌 ${id}`);
   const affixIds = new Set(c.affixes.map((a) => a.id));
-  const deck = c.decks[c.rules.starterDeck];
-  if (!deck) errs.push(`rules.yaml: starterDeck 引用了不存在的牌组 ${c.rules.starterDeck}`);
+  const deck = c.rules.starterDeck === 'hero' ? null : c.decks[c.rules.starterDeck];
+  if (c.rules.starterDeck !== 'hero' && !deck) errs.push(`rules.yaml: starterDeck 引用了不存在的牌组 ${c.rules.starterDeck}`);
+  for (const [k, ps] of Object.entries<any>(c.rules.presets ?? {})) {
+    for (const h of [ps.main, ps.sub]) if (!c.heroes[h]) errs.push(`rules.yaml: 预设 ${k} 引用了不存在的武将 ${h}`);
+    if (ps.deck && !c.decks[ps.deck]) errs.push(`rules.yaml: 预设 ${k} 引用了不存在的牌组 ${ps.deck}`);
+  }
+  for (const k of ['main', 'sub'] as const) {
+    const h = c.rules.defaultHeroes?.[k];
+    if (h && (!c.heroes[h] || c.heroes[h].roster === false)) errs.push(`rules.yaml: defaultHeroes.${k} ${h} 不存在或不在开局名单`);
+  }
+  // 效果原子 / 触发时机 / 条件必须是引擎已实现的
+  const abilities: [string, any][] = [];
+  for (const h of Object.values(c.heroes)) {
+    for (const a of [...h.mainSkills, h.subSkill]) abilities.push([`heroes/${h.id}`, a]);
+    for (const cb of h.combos ?? []) if (cb.enabled !== false) for (const a of cb.abilities) abilities.push([`heroes/${h.id}.combos.${cb.name}`, a]);
+  }
+  for (const x of Object.values(c.cards)) for (const a of x.abilities) abilities.push([`cards/${x.id}`, a]);
+  for (const x of c.affixes) for (const a of x.abilities ?? []) abilities.push([`affixes/${x.id}`, a]);
+  for (const x of Object.values(c.enemies)) if (x.enabled !== false) for (const a of x.abilities ?? []) abilities.push([`enemies/${x.id}`, a]);
+  const walkDo = (where: string, xs: any[]) => {
+    for (const d of xs) {
+      if (!IMPL.atoms.includes(d.do)) errs.push(`${where}: 效果原子 ${d.do} 引擎尚未实现`);
+      if (d.do === 'modify' && !IMPL.stats.includes(d.stat)) errs.push(`${where}: modify.stat ${d.stat} 引擎尚未实现`);
+      if (d.do === 'apply_status' && !IMPL.statuses.includes(d.status)) errs.push(`${where}: 状态 ${d.status} 引擎尚未实现`);
+      walkDo(where, [...(d.then ?? []), ...(d.else ?? [])]);
+    }
+  };
+  for (const [where, a] of abilities) {
+    if (!IMPL.whens.includes(a.trigger.when)) errs.push(`${where}: 触发时机 ${a.trigger.when} 引擎尚未实现`);
+    for (const cond of a.if ?? []) if (!IMPL.conds.includes(cond.type)) errs.push(`${where}: 条件 ${cond.type} 引擎尚未实现`);
+    walkDo(where, a.do);
+  }
   for (const d of Object.values(c.decks)) for (const x of d.cards) card(x.card, `decks/${d.id}`);
   const ratio = c.rules.checks?.starterRedRatio;
   const redRatio = (cards: any[]) => cards.filter((x) => x.suit === 'H' || x.suit === 'D').length / cards.length;
@@ -102,7 +133,7 @@ export function businessChecks(c: Built): string[] {
     if (deck && Math.abs(redRatio(deck.cards) - ratio) > 1e-9)
       errs.push(`decks/${deck.id}: 红色比例 ${(redRatio(deck.cards) * 100).toFixed(1)}% ≠ ${ratio * 100}%`);
     for (const h of Object.values(c.heroes))
-      if (h.starterDeck && Math.abs(redRatio(h.starterDeck) - ratio) > 1e-9)
+      if (h.roster !== false && h.starterDeck && Math.abs(redRatio(h.starterDeck) - ratio) > 1e-9)
         errs.push(`heroes/${h.id}: 起始牌组红色比例 ${(redRatio(h.starterDeck) * 100).toFixed(1)}% ≠ ${ratio * 100}%`);
   }
   for (const h of Object.values(c.heroes)) {
@@ -128,6 +159,7 @@ export function businessChecks(c: Built): string[] {
   }
   for (const a of c.affixes) if (a.only) card(a.only, `affixes/${a.id}.only`);
   for (const e of Object.values(c.enemies)) {
+    if (e.enabled === false) continue;
     for (const [act, mods] of Object.entries(e.cardMods ?? {}))
       for (const m of mods as string[]) if (!affixIds.has(m)) errs.push(`enemies/${e.id}: cardMods.${act} 引用了不存在的词条 ${m}`);
     e.intents.forEach((it: string[], i: number) => {

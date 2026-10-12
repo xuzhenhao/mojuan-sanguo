@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·郭嘉：遗策（V1） ─────────
+id: X501
+name: 遗策
+type: 专属
+typeLabel: 专属·郭嘉
+tags: [trick]
+target: self
+cost: 0
+rarity: R
+exclusiveHero: H05
+desc: 摸 1 张牌；你下次受到伤害时，额外摸 1 张牌。（每回合限 1 次）
+abilities:
+  - id: yice
+    name: 遗策
+    desc: 摸 1；下次受伤时额外摸 1。
+    trigger: { when: play }
+    limit: { per: turn, times: 1 }
+    do:
+      - { do: draw, target: self, amount: 1 }
+      - { do: apply_status, target: self, status: yice }

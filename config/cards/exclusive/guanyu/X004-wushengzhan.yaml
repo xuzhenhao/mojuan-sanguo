@@ -7,7 +7,7 @@ typeLabel: 专属·关羽
 tags: [sha, need_red]
 cost: 2
 rarity: E
-exclusiveHero: H01
+exclusiveHero: H09
 target: range
 desc: "将一张红色牌当杀使用，伤害+1"
 abilities:
