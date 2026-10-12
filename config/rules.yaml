@@ -87,6 +87,7 @@ map:
     shopOnEveryStart: true # 约束 4（V0.5.3）：每个起点至少能到达 1 个集市
     maxRerolls: 50 # 校验失败用同一种子流重抽的次数，仍失败则放宽约束 3
   betweenBattleHeal: 0 # 真实游戏 / 正式地图：H5 不加战后回复（#77；sim.baselineBetweenBattleHeal 只给三战回归）
+  rest: { healMin: 2, healRatio: 0.3 } # 营地疗伤 = max(healMin, floor(最大体力 × healRatio))，不超过上限（PRD 10.6）
   boss: { 1: B1 } # 每章 Boss 敌人 id（开局可见名称与头像）
   nodeIcons: { BATTLE: battle, ELITE: elite, EVENT: event, REST: rest, SHOP: shop, CHEST: chest, BOSS: boss }
   # 以下为 UI 表现参数（render-spec §8.2 / acceptance），占位可调

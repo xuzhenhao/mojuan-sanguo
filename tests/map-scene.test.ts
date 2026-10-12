@@ -165,28 +165,72 @@ describe('P3 地图页', () => {
   });
 });
 
-describe('营地/奇遇：敬请期待', () => {
-  it('点可走的营地/奇遇节点：头像走过去并写盘，弹敬请期待，不路由，留在地图；第 8 层营地之后仍可去 Boss', () => {
-    const { scene, session, overlays, sent, store } = setup();
-    for (let guard = 0; guard < 8; guard++) {
-      const soon = session.available.map((id) => session.node(id)!).find((x) => x.type === 'REST' || x.type === 'EVENT');
-      if (soon) {
-        scene.tapNode(soon);
-        tick(scene, 520);
-        expect(overlays.ids()).toEqual([`detail:map:soon:${soon.id}`]);
-        expect(sent).toHaveLength(0);
-        expect(session.state.current).toBe(soon.id);
-        expect(JSON.parse(store.m.get('mojuan.run.v1')!).mapState.current).toBe(soon.id);
-        overlays.gesture({ type: 'tap', at: { x: 5, y: 5 } });
-        expect(overlays.size).toBe(0);
-        expect(scene.log).toContain(`coming_soon:${soon.type}`);
-        if (soon.layer === 8) {
-          expect(session.available).toEqual([BOSS_ID]);
-          return;
-        }
-      } else walk(session);
-      sent.length = 0;
+describe('营地/奇遇（地图内最小版）', () => {
+  const flush = async () => {
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+  };
+  /** 走到第一个可达营地/奇遇的父节点，返回该节点 */
+  const reach = (session: MapSession, type: 'REST' | 'EVENT') => {
+    for (let guard = 0; guard < 9; guard++) {
+      const hit = session.available.map((id) => session.node(id)!).find((x) => x.type === type);
+      if (hit) return hit;
+      walk(session);
     }
+    return null;
+  };
+  it('营地：提示疗伤量，点「确定」后记为完成并前进，回血不超上限并写存档；HUD 体力随之变化', async () => {
+    const { scene, session, overlays, sent, store } = setup(3);
+    session.save({ hp: 3, maxHp: 8 });
+    const rest = reach(session, 'REST')!;
+    expect(session.restPreview()).toEqual({ hp: 5, healed: 2, maxHp: 8 }); // max(2, floor(8×0.3)) = 2
+    scene.tapNode(rest);
+    tick(scene, 520);
+    expect(overlays.ids()).toEqual([`popup:map:notice:${rest.id}`]);
+    expect(session.state.current).not.toBe(rest.id); // 未确定前不前进
+    overlays.gesture({ type: 'tap', at: { x: 5, y: 5 } }); // 点外部不关闭
+    expect(overlays.size).toBe(1);
+    overlays.gesture({ type: 'tap', at: { x: 195, y: 844 / 2 + 90 - 40 } }); // 确定
+    await flush();
+    expect(overlays.size).toBe(0);
+    expect(session.state.current).toBe(rest.id);
+    expect(sent).toHaveLength(0);
+    const saved = JSON.parse(store.m.get('mojuan.run.v1')!);
+    expect([saved.hp, saved.mapState.current]).toEqual([5, rest.id]);
+    expect(scene.log).toContain('rest_heal:2');
+  });
+  it('营地回血不超过体力上限；最大体力 10 → 回复 3', () => {
+    const { session } = setup(3);
+    session.save({ hp: 9, maxHp: 9 });
+    expect(session.restPreview()).toEqual({ hp: 9, healed: 0, maxHp: 9 });
+    session.save({ hp: 1, maxHp: 10 });
+    expect(session.restPreview()).toEqual({ hp: 4, healed: 3, maxHp: 10 });
+  });
+  it('奇遇：提示后跳过，记为完成并前进', async () => {
+    for (let seed = 1; seed < 50; seed++) {
+      const { scene, session, overlays, sent } = setup(seed);
+      const ev = reach(session, 'EVENT');
+      if (!ev) continue;
+      scene.tapNode(ev);
+      tick(scene, 520);
+      overlays.gesture({ type: 'tap', at: { x: 195, y: 844 / 2 + 90 - 40 } });
+      await flush();
+      expect(session.state.current).toBe(ev.id);
+      expect(sent).toHaveLength(0);
+      expect(scene.log).toContain('event_skip');
+      return;
+    }
+    throw new Error('没有找到奇遇');
+  });
+  it('第 8 层营地确定后可去 Boss', async () => {
+    const { scene, session, overlays } = setup(5);
+    for (let i = 0; i < 7; i++) walk(session);
+    const r8 = session.node(session.available[0])!;
+    expect(r8.layer).toBe(8);
+    scene.tapNode(r8);
+    tick(scene, 520);
+    overlays.gesture({ type: 'tap', at: { x: 195, y: 844 / 2 + 90 - 40 } });
+    await flush();
+    expect(session.available).toEqual([BOSS_ID]);
   });
 });
 
@@ -194,7 +238,7 @@ describe('路由约定', () => {
   it('节点类型 → 页面', () => {
     const n = (type: 'SHOP' | 'CHEST' | 'REST' | 'EVENT') => ({ id: 'L2C0', layer: 2, col: 0, type });
     expect(isComingSoon('REST') && isComingSoon('EVENT')).toBe(true);
-    expect(() => routeFor(1, n('REST'))).toThrow(/敬请期待/);
+    expect(() => routeFor(1, n('REST'))).toThrow(/地图内处理/);
     expect(routeFor(1, n('SHOP'))).toEqual({
       event: { type: 'enter_node', node: 'shop' },
       params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'shop' },

@@ -17,24 +17,33 @@ export function mapSession(engine: Engine, chapter = 1, seed?: number): MapSessi
   const runSeed = seed ?? (q != null && q !== '' ? Number(q) >>> 0 : (MapSession.savedSeed() ?? Math.floor(engine.platform.now() * 1000) >>> 0));
   if (!session || session.runSeed !== runSeed || session.chapter !== chapter) {
     const d = CONFIG.rules.defaultHeroes;
-    session = new MapSession(runSeed, chapter, MAP_CONFIG, poolsOf(chapter), undefined, () => {
-      const h = defaultHud();
-      return {
-        schema: 1,
-        version: '0.2.0',
-        configVersion: 'dev',
-        heroMain: d.main,
-        heroSub: d.sub,
-        hp: h.hp,
-        maxHp: h.maxHp,
-        gold: h.gold,
-        deck: [],
-        relics: [],
-        potions: [],
-        battleState: null,
-        battleStartSnapshot: null,
-      };
-    });
+    session = new MapSession(
+      runSeed,
+      chapter,
+      MAP_CONFIG,
+      poolsOf(chapter),
+      undefined,
+      () => {
+        const h = defaultHud();
+        return {
+          schema: 1,
+          version: '0.2.0',
+          configVersion: 'dev',
+          heroMain: d.main,
+          heroSub: d.sub,
+          hp: h.hp,
+          maxHp: h.maxHp,
+          gold: h.gold,
+          deck: [],
+          relics: [],
+          potions: [],
+          battleState: null,
+          battleStartSnapshot: null,
+        };
+      },
+      undefined,
+      MAP_CONFIG.rest,
+    );
   }
   return session;
 }
@@ -53,10 +62,15 @@ export function defaultHud(): HudInfo {
 export function createMapScene(
   engine: Engine,
   go: (e: FlowEvent, p: MapRouteParams) => void,
-  hud: () => HudInfo = defaultHud,
+  hud?: () => HudInfo,
   runSeed: () => number | undefined = () => undefined,
 ) {
   const s = mapSession(engine, 1, runSeed());
+  // HUD 体力/铜钱读本局存档（营地回血后即时反映）
+  hud ??= () => {
+    const h = s.head();
+    return { ...defaultHud(), hp: h.hp, maxHp: h.maxHp, gold: h.gold };
+  };
   const boss = s.state.boss;
   return new MapScene({
     session: s,

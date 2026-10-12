@@ -490,10 +490,8 @@ export class MapScene implements Scene {
   private commit(id: string) {
     const node = this.d.session.node(id)!;
     if (isComingSoon(node.type)) {
-      // 营地/奇遇页未实现：走到该节点（写盘），弹「敬请期待」，留在地图
-      this.d.session.pass(id);
-      this.comingSoon(node);
-      this.scrollToCurrent();
+      // 营地/奇遇页未实现：弹提示，点「确定」后记为完成并前进（营地直接疗伤并写存档；奇遇跳过）
+      this.notice(node);
       return;
     }
     const r = this.d.session.enter(id);
@@ -501,19 +499,25 @@ export class MapScene implements Scene {
     this.d.go(r.event, r.params);
   }
 
-  /** 营地/奇遇页未实现：弹「敬请期待」，不走节点、留在地图 */
-  comingSoon(n: MapNode) {
+  /** 营地/奇遇提示框：营地显示疗伤量，奇遇提示跳过；点「确定」后 session.pass */
+  notice(n: MapNode) {
     const { width: w, height: h } = this.ctx;
-    const rect = { x: w / 2 - 110, y: h / 2 - 50, w: 220, h: 100 };
-    this.log.push(`coming_soon:${n.type}`);
+    const rect = { x: 40, y: h / 2 - 90, w: w - 80, h: 180 };
+    const btn = { x: w / 2 - 70, y: rect.y + rect.h - 62, w: 140, h: 44 };
+    const rest = n.type === 'REST' ? this.d.session.restPreview() : null;
+    const title = rest ? '营地 · 疗伤' : '奇遇';
+    const line = rest ? `围炉小憩，回复 ${rest.healed} 点体力（${rest.hp}/${rest.maxHp}）` : '此处奇遇尚未开放，继续前行';
+    this.log.push(`notice:${n.type}`);
     this.d.overlays.closeAll('detail');
-    this.d.overlays.push({
-      id: `detail:map:soon:${n.id}`,
-      kind: 'detail',
-      dismissOnTapOutside: true,
+    const handle = this.d.overlays.push({
+      id: `popup:map:notice:${n.id}`,
+      kind: 'popup',
+      modal: true,
       rect,
       draw: (sf) => {
         const c = sf.ctx as unknown as C2D;
+        c.fillStyle = 'rgba(0,0,0,.5)';
+        c.fillRect(0, 0, w, h);
         c.fillStyle = '#2a0f0c';
         c.fillRect(rect.x, rect.y, rect.w, rect.h);
         c.strokeStyle = GOLD;
@@ -521,16 +525,30 @@ export class MapScene implements Scene {
         c.strokeRect(rect.x, rect.y, rect.w, rect.h);
         c.textAlign = 'center';
         c.fillStyle = GOLD_HI;
-        c.font = '24px Brush, serif';
-        c.fillText(`${TYPE_LABEL[n.type]} · 敬请期待`, w / 2, rect.y + 46);
+        c.font = '26px Brush, serif';
+        c.fillText(title, w / 2, rect.y + 44);
         c.fillStyle = PAPER;
-        c.font = '12px sans-serif';
-        c.fillText('点空白处返回地图', w / 2, rect.y + 76);
+        c.font = '14px sans-serif';
+        c.fillText(line, w / 2, rect.y + 84);
+        c.fillStyle = CINNABAR;
+        c.fillRect(btn.x, btn.y, btn.w, btn.h);
+        c.strokeStyle = GOLD;
+        c.strokeRect(btn.x, btn.y, btn.w, btn.h);
+        c.fillStyle = PAPER;
+        c.font = '20px Brush, serif';
+        c.fillText('确定', w / 2, btn.y + 30);
       },
-      gesture: (_e, hd) => {
-        hd.close();
+      gesture: (e, hd) => {
+        if (e.type === 'tap' && e.at.x >= btn.x && e.at.x <= btn.x + btn.w && e.at.y >= btn.y && e.at.y <= btn.y + btn.h) hd.close();
         return true;
       },
+    });
+    return handle.result.then(() => {
+      const r = this.d.session.pass(n.id);
+      this.log.push(r.type === 'REST' ? `rest_heal:${r.healed}` : 'event_skip');
+      this.scrollToCurrent();
+      this.ctx.invalidate();
+      return r;
     });
   }
 

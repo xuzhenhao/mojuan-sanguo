@@ -6,6 +6,7 @@ import { availableNodes, generateMap, getNode, moveTo, type MapConfig, type MapN
 import { drawEncounter, groupOf, newEncounterState, type EncounterPools, type EncounterState } from '../../core/run/encounters';
 import { loadRunSave, writeRunSave, type RunSave } from '../../core/run/save';
 import { isComingSoon, routeFor } from './route';
+import { applyRestHeal, type RestConfig } from '../../core/run/rest';
 
 export interface HudInfo {
   hp: number;
@@ -46,6 +47,7 @@ export class MapSession {
     private persist: { load(): RunSave | null; write(s: RunSave): void } | null = { load: loadRunSave, write: writeRunSave },
     private base: () => RunSaveBase = DEFAULT_BASE,
     private now: () => number = () => Date.now(),
+    private restCfg: RestConfig = { healMin: 2, healRatio: 0.3 },
   ) {
     const saved = persist?.load();
     const ok = saved && saved.runSeed === runSeed && saved.chapter === chapter;
@@ -57,11 +59,20 @@ export class MapSession {
     return load()?.runSeed ?? null;
   }
   /** 地图状态并进 RunSave（mojuan.run.v1）：已有同局存档则只更新 mapState / encounters / nodePath */
-  save() {
+  save(patch: Partial<RunSave> = {}) {
+    const head = this.head();
+    this.persist?.write({ ...head, ...patch, mapState: this.state, encounters: this.enc, nodePath: [...this.state.visited], timestamp: this.now() } as RunSave);
+  }
+  /** 当前局存档头（同局存档；没有则用 base 新建） */
+  head(): RunSave {
     const prev = this.persist?.load();
     const same = prev && prev.runSeed === this.runSeed && prev.chapter === this.chapter;
-    const head = same ? prev : { ...this.base(), runSeed: this.runSeed, chapter: this.chapter };
-    this.persist?.write({ ...head, mapState: this.state, encounters: this.enc, nodePath: [...this.state.visited], timestamp: this.now() } as RunSave);
+    return (same ? prev : { ...this.base(), runSeed: this.runSeed, chapter: this.chapter }) as RunSave;
+  }
+  /** 营地疗伤预览（PRD 10.6） */
+  restPreview() {
+    const h = this.head();
+    return { ...applyRestHeal(h.hp, h.maxHp, this.restCfg), maxHp: h.maxHp };
   }
   get available() {
     return availableNodes(this.state);
@@ -69,10 +80,21 @@ export class MapSession {
   node(id: string): MapNode | undefined {
     return getNode(this.state, id);
   }
-  /** 营地/奇遇（页面未实现）：只走到节点并写盘，不路由（否则第 8 层固定营地会卡住去 Boss 的路） */
-  pass(id: string) {
+  /**
+   * 营地/奇遇（页面未实现）：记为完成并前进，不路由（第 8 层固定营地之后可去 Boss）。
+   * 营地最小版：直接疗伤（不超过上限）并写存档；奇遇：直接跳过。
+   */
+  pass(id: string): { type: 'REST'; healed: number; hp: number; maxHp: number } | { type: 'EVENT' } {
+    const n = this.node(id);
+    if (!n || (n.type !== 'REST' && n.type !== 'EVENT')) throw new Error(`pass 只用于营地/奇遇：${id}`);
     this.state = moveTo(this.state, id);
+    if (n.type === 'REST') {
+      const r = this.restPreview();
+      this.save({ hp: r.hp });
+      return { type: 'REST', ...r };
+    }
     this.save();
+    return { type: 'EVENT' };
   }
   /** 走到节点：抽组包（战斗类）→ 写盘 → 返回路由事件与参数 */
   enter(id: string) {

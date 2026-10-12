@@ -37,7 +37,7 @@ export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRoutePar
  */
 export const CHEST_PAGE: NodePage = 'reward';
 
-/** 节点类型 → 页面；null = 页面未实现，地图里弹「敬请期待」并留在地图（营地/奇遇不走任何奖励类页面，避免误发奖励） */
+/** 节点类型 → 页面；null = 页面未实现，在地图内处理（营地最小版直接疗伤、奇遇跳过；不走任何奖励类页面，避免误发奖励） */
 export const PAGE_OF: Record<NodeType, NodePage | null> = {
   BATTLE: 'battle',
   ELITE: 'battle',
@@ -56,7 +56,7 @@ export function routeFor(
 ): { event: FlowEvent; params: MapRouteParams } {
   const base: Base = { from: 'map', chapter, nodeId: node.id, layer: node.layer };
   const page = PAGE_OF[node.type];
-  if (!page) throw new Error(`${node.type} 节点页面未实现（地图内弹「敬请期待」）`);
+  if (!page) throw new Error(`${node.type} 节点在地图内处理（session.pass）`);
   const event: FlowEvent = { type: 'enter_node', node: page };
   if (node.type === 'BATTLE' || node.type === 'ELITE' || node.type === 'BOSS') {
     if (!enc) throw new Error(`战斗节点 ${node.id} 缺少组包`);

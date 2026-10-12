@@ -299,7 +299,8 @@
         "constraints",
         "boss",
         "nodeIcons",
-        "betweenBattleHeal"
+        "betweenBattleHeal",
+        "rest"
       ],
       "properties": {
         "layers": {
@@ -492,6 +493,26 @@
           "type": "integer",
           "minimum": 0,
           "description": "正式地图战间回复体力（PRD 0.5.4 §10.4：H5 为 0）"
+        },
+        "rest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "healMin",
+            "healRatio"
+          ],
+          "description": "营地疗伤（PRD 10.6）：回复 max(healMin, floor(最大体力 × healRatio))",
+          "properties": {
+            "healMin": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "healRatio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
         }
       }
     },
