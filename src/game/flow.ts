@@ -1,17 +1,20 @@
 /**
- * 页面流程状态机（engine-design §4.13）：点将 → 地图 →（战斗 → 奖励 | 集市）→ … → 结算。
+ * 页面流程状态机（engine-design §4.13）：点将 → 地图 →（战斗 → 奖励 | 集市 | 宝箱）→ … → 结算。
  * 由 src/core 的局状态驱动：通过只读视图 RunStateView 读取 Game 的字段，不修改 core。
  */
 import type { Game } from '../core/battle';
 
-export type Page = 'select' | 'map' | 'battle' | 'reward' | 'shop' | 'result';
+export type Page = 'select' | 'map' | 'battle' | 'reward' | 'shop' | 'chest' | 'result';
+
+export const PAGES: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'chest', 'result'];
 
 export type FlowEvent =
   | { type: 'start_run' } // 点将确认
-  | { type: 'enter_node'; node: 'battle' | 'shop' }
+  | { type: 'enter_node'; node: 'battle' | 'shop' | 'chest' }
   | { type: 'battle_end'; win: boolean }
   | { type: 'reward_done' }
   | { type: 'shop_done' }
+  | { type: 'chest_done' }
   | { type: 'result_done' };
 
 /** core 局状态的只读视图 */
@@ -32,10 +35,11 @@ export function viewOf(g: Pick<Game, 'over' | 'isLast' | 'battleIdx' | 'p'>): Ru
 
 const TABLE: Record<Page, Partial<Record<FlowEvent['type'], (e: FlowEvent, v: RunStateView | null) => Page>>> = {
   select: { start_run: () => 'map' },
-  map: { enter_node: (e) => (e as { node: 'battle' | 'shop' }).node },
+  map: { enter_node: (e) => (e as { node: 'battle' | 'shop' | 'chest' }).node },
   battle: { battle_end: (e) => ((e as { win: boolean }).win ? 'reward' : 'result') },
   reward: { reward_done: (_e, v) => (v?.isLast ? 'result' : 'map') },
   shop: { shop_done: () => 'map' },
+  chest: { chest_done: () => 'map' },
   result: { result_done: () => 'select' },
 };
 

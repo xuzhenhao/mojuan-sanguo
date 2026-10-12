@@ -5,7 +5,7 @@
 import './style.css';
 import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
-import { FlowMachine, type FlowEvent, type Page } from '../../game/flow';
+import { FlowMachine, PAGES, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
@@ -20,7 +20,7 @@ const engine = new Engine(platform, {}, cfg);
 
 const flow = new FlowMachine();
 const send = (e: FlowEvent) => void router.send(e);
-const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
+const pages: Page[] = PAGES;
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
 const economy = registerP4({ engine, query: platform.launchQuery(), safe: () => platform.systemInfo().safeArea, send });

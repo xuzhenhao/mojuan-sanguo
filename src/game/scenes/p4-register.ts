@@ -1,7 +1,7 @@
 /**
  * P4 页面注册（#45）：把奖励 / 集市 / 宝箱场景注册到 SceneManager，替换占位页。
  * 入口 entry.ts 只需调用一次 registerP4，避免多人同时改共用入口。
- * 直入调试参数：?page=reward&reward=normal|elite|boss&potions=0..3&gold=N&seed=N
+ * 直入调试参数：?page=reward&reward=normal|elite|boss&potions=0..3&gold=N&seed=N；?page=chest&chest=relic|gold
  */
 import type { Engine } from '../../engine/engine';
 import type { BattleKind } from '../../data/economy';
@@ -9,6 +9,7 @@ import type { FlowEvent } from '../flow';
 import { EconomySession } from '../economy/session';
 import { RewardScene } from './reward';
 import { ShopScene } from './shop';
+import { ChestScene } from './chest';
 import type { Env } from './p4-kit';
 
 export interface P4Deps {
@@ -42,6 +43,11 @@ export function registerP4(d: P4Deps) {
   engine.scenes.register(
     'shop',
     () => new ShopScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'shop_done' }) }),
+  );
+  const force = q.chest === 'gold' || q.chest === 'relic' ? q.chest : undefined;
+  engine.scenes.register(
+    'chest',
+    () => new ChestScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'chest_done' }), force }),
   );
   return econ;
 }
