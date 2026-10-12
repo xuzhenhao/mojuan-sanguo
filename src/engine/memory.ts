@@ -133,9 +133,9 @@ export class TextureBudget {
   }
 }
 
-/** 烘焙缓存类别与 LRU 上限（render-spec §12.2） */
+/** 烘焙缓存类别与 LRU 上限（render-spec §12.2；手牌 10 = PRD 硬上限，#71） */
 export type BakeClass = 'hand' | 'bigcard' | 'enemy' | 'general' | 'badge' | 'detail' | 'mapscroll';
-export const BAKE_LRU_CAPS: Record<BakeClass, number> = { hand: 12, bigcard: 4, enemy: 6, general: 4, badge: 40, detail: 1, mapscroll: 1 };
+export const BAKE_LRU_CAPS: Record<BakeClass, number> = { hand: 10, bigcard: 4, enemy: 6, general: 4, badge: 40, detail: 1, mapscroll: 1 };
 
 /** 缓存位图烘焙倍率：低端机 1.5x，中高端 2x（render-spec §12.2/§12.5） */
 export function bakeScale(lowEnd: boolean, dpr: number, halfSize = false) {
