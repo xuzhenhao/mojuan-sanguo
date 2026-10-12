@@ -148,6 +148,7 @@
             "hp_lost",
             "hand_less_than_hp",
             "hand_count_at_least",
+            "hand_count_at_most",
             "sha_index_in_turn_at_least",
             "target_has_status",
             "target_armor_zero",
@@ -216,6 +217,11 @@
         "amount": {
           "type": "integer",
           "description": "数值（伤害/摸牌/护甲/回复…）"
+        },
+        "upTo": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "draw：摸牌到手牌数为 upTo（替代 amount）"
         },
         "element": {
           "enum": [

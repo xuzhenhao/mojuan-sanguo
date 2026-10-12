@@ -135,7 +135,10 @@ export const ATOMS: Record<string, Atom> = {
     }
   },
   draw(g, a, ctx, src) {
-    const n = amt(a, ctx) + (src.ab.trigger.when === 'play' && ctx.card && src.card === ctx.card ? g.effects.cardStat(ctx.card, 'draw_amount') : 0);
+    const n =
+      a.upTo != null
+        ? Math.max(0, a.upTo - g.hand.length)
+        : amt(a, ctx) + (src.ab.trigger.when === 'play' && ctx.card && src.card === ctx.card ? g.effects.cardStat(ctx.card, 'draw_amount') : 0);
     g.drawN(n);
     g.log(`${src.ab.name}：摸${n}张`);
   },
@@ -241,6 +244,7 @@ const COND: Record<string, Cond> = {
   hp_lost: (g) => g.p.hp < g.p.maxHp,
   hand_less_than_hp: (g) => g.hand.length < g.p.hp,
   hand_count_at_least: (g, c) => g.hand.length >= Number(c.value),
+  hand_count_at_most: (g, c) => g.hand.length <= Number(c.value),
   hand_over_limit: (g) => g.hand.length > g.handLimit(),
   sha_index_in_turn_at_least: (g, c) => g.shaIndex >= Number(c.value),
   has_back_row_ally: (g, _c, ctx) => g.alive().some((x) => x.row === 'back' && x !== ctx.owner),

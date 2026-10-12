@@ -13,11 +13,13 @@ mainSkills:
   - id: lianying
     name: 连营
     kind: 锁定技
-    desc: 你的手牌打空时摸 2 张牌（每回合限 2 次）。
-    trigger: { when: hand_empty }
-    limit: { per: turn, times: 2 }
+    desc: 回合结束时，若你的手牌不多于 1 张，摸牌至 2 张。
+    note: V1 定稿（用户确认）：原「手牌打空时摸 2（每回合 2 次）」改为回合结束补牌，不依赖主动打空
+    trigger: { when: turn_end }
+    if:
+      - { type: hand_count_at_most, value: 1 }
     do:
-      - { do: draw, target: self, amount: 2 }
+      - { do: draw, target: self, upTo: 2 }
   - id: qianxun
     name: 谦逊
     kind: 锁定技
@@ -57,7 +59,7 @@ starterDeck: # 12 张，红 6 / 黑 6
   - { card: X801, suit: D, rank: 11 }
   - { card: X802, suit: H, rank: 5 }
   - { card: X802, suit: S, rank: 5 }
-  - { card: B006, suit: C, rank: 9 }
+  - { card: B001, suit: C, rank: 9 } # V1 定稿：原 B006 ♣9 换成杀
 
 exclusiveCards: [X801, X802]
 

@@ -44,6 +44,7 @@ export const IMPLEMENTED = {
     'hp_lost',
     'hand_less_than_hp',
     'hand_count_at_least',
+    'hand_count_at_most',
     'hand_over_limit',
     'sha_index_in_turn_at_least',
     'has_back_row_ally',
