@@ -16,7 +16,9 @@
     "epiphany",
     "rarityWeight",
     "checks",
-    "mechanics"
+    "mechanics",
+    "sim",
+    "map"
   ],
   "properties": {
     "lingPerTurn": {
@@ -268,29 +270,24 @@
       "additionalProperties": false,
       "description": "未指定选将时的默认主将 / 副将"
     },
-    "betweenBattleHeal": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "自动对局整章模拟：战间回复体力（验收口径：1）"
-    },
-    "run": {
+    "sim": {
       "type": "object",
       "required": [
-        "chapters"
+        "baselineBetweenBattleHeal"
       ],
       "additionalProperties": false,
+      "description": "自动对局 / 回归基线专用参数",
       "properties": {
-        "chapters": {
+        "baselineBetweenBattleHeal": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 3,
-          "description": "开放章节数（PRD 10.1 run.chapters）"
+          "minimum": 0,
+          "description": "3 战回归基线：战间回复体力（design-v1 §12.2：1）"
         }
       }
     },
     "map": {
       "type": "object",
-      "description": "章节地图（PRD 10.1–10.4、10.9）",
+      "description": "章节地图与正式地图流程参数（PRD 10.1–10.4、10.9；betweenBattleHeal 来自 #77）",
       "additionalProperties": false,
       "required": [
         "layers",
@@ -301,7 +298,8 @@
         "weights",
         "constraints",
         "boss",
-        "nodeIcons"
+        "nodeIcons",
+        "betweenBattleHeal"
       ],
       "properties": {
         "layers": {
@@ -493,7 +491,22 @@
         "betweenBattleHeal": {
           "type": "integer",
           "minimum": 0,
-          "description": "地图模式战后回复体力（PRD 10.4：H5 地图不加战后回复 = 0；betweenBattleHeal 顶层键只用于三战制指标口径）"
+          "description": "正式地图战间回复体力（PRD 0.5.4 §10.4：H5 为 0）"
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "required": [
+        "chapters"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "chapters": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "开放章节数（PRD 10.1 run.chapters）"
         }
       }
     }
