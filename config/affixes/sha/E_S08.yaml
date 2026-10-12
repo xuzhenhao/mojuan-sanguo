@@ -5,3 +5,10 @@ name: 无影
 rarity: L
 category: sha
 desc: "不可闪"
+abilities:
+  - id: e_s08
+    name: 无影
+    desc: 不可闪。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: undodgeable, amount: 1, scope: permanent }

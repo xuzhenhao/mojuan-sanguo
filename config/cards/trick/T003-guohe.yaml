@@ -7,7 +7,7 @@ tags: [trick]
 cost: 1
 rarity: N
 target: any
-desc: "弃置一名敌人最多2点护甲"
+desc: 弃置一名敌人至多 2 点护甲，然后你摸 1 张牌。（V1：design-v1 7.2 第 4 条；「或清除 1 个增益」待增益系统实装）
 abilities:
   - id: guohe_strip
     name: 过河拆桥
@@ -15,3 +15,4 @@ abilities:
     trigger: { when: play }
     do:
       - { do: remove_armor, target: chosen, amount: 2 }
+      - { do: draw, target: self, amount: 1 }

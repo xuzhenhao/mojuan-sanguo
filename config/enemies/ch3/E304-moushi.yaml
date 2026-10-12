@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第3章小怪：谋士（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E304
+name: 谋士
+chapter: 3
+tier: 小怪
+enabled: false
+hp: 6
+row: back
+flashMarksPerTurn: 0
+glyph: 谋
+intents:
+  - [闪]
+  - [杀, 杀]
+  - [锦囊:D001]
+desc: 意图 1 实为「给友军 +2 甲」（技能，此处以占位表示）；意图 3 把乐不思蜀塞给玩家

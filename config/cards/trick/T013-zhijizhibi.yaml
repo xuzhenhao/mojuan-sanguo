@@ -12,8 +12,9 @@ abilities:
   - id: zhiji_reveal
     name: 知己知彼
     desc: 查看一名敌人的下 2 个意图；摸 1 张牌。
-    note: 0 费摸牌牌，V1 需加每回合限 1（M4），第①步保持原行为不加 limit
+    note: 0 费摸牌牌，每回合限 1（M4）
     trigger: { when: play }
+    limit: { per: turn, times: 1 }
     do:
       - { do: reveal_intent, target: chosen, amount: 2 }
       - { do: draw, target: self, amount: 1 }

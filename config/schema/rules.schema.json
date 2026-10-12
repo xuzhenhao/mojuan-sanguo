@@ -211,6 +211,62 @@
         }
       },
       "additionalProperties": false
+    },
+    "presets": {
+      "type": "object",
+      "description": "自动对局 / 回归用的预设（不影响正式选将）",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "main",
+          "sub"
+        ],
+        "properties": {
+          "main": {
+            "type": "string"
+          },
+          "sub": {
+            "type": "string"
+          },
+          "deck": {
+            "type": "string",
+            "description": "覆盖起始牌组（decks/ 下的 id）"
+          },
+          "forceCombos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "强制启用的珠联（按名称，即使 enabled: false）"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "defaultHeroes": {
+      "type": "object",
+      "required": [
+        "main",
+        "sub"
+      ],
+      "properties": {
+        "main": {
+          "type": "string"
+        },
+        "sub": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "description": "未指定选将时的默认主将 / 副将"
+    },
+    "betweenBattleHeal": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "自动对局整章模拟：战间回复体力（验收口径：1）"
     }
   },
   "additionalProperties": false

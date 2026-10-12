@@ -4,7 +4,7 @@ id: T005
 name: 南蛮入侵
 type: 锦囊
 tags: [trick, aoe]
-cost: 2
+cost: 1 # V1：2 → 1
 rarity: R
 desc: "对所有敌人各造成1点伤害（视为杀；各目标可分别闪）"
 abilities:

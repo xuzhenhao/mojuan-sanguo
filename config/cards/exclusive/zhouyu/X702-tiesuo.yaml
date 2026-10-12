@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·周瑜：铁索连舟（V1） ─────────
+id: X702
+name: 铁索连舟
+type: 专属
+typeLabel: 专属·周瑜
+tags: [trick]
+target: none
+cost: 1
+rarity: R
+exclusiveHero: H07
+desc: 所有敌人进入连环状态；摸 1 张牌。
+abilities:
+  - id: tiesuo
+    name: 铁索连舟
+    desc: 所有敌人连环；摸 1。
+    trigger: { when: play }
+    do:
+      - { do: chain, target: all_enemies }
+      - { do: draw, target: self, amount: 1 }

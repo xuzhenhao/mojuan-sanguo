@@ -5,3 +5,10 @@ name: 化境
 rarity: E
 category: equip
 desc: "装备后摸2"
+abilities:
+  - id: e_w03
+    name: 化境
+    desc: 装备后摸 2。
+    trigger: { when: equip }
+    do:
+      - { do: draw, target: self, amount: 2 }

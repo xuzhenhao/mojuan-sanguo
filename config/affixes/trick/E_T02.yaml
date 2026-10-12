@@ -5,3 +5,10 @@ name: 余墨
 rarity: N
 category: trick
 desc: "结算后摸1"
+abilities:
+  - id: e_t02
+    name: 余墨
+    desc: 结算后摸 1。
+    trigger: { when: play }
+    do:
+      - { do: draw, target: self, amount: 1 }

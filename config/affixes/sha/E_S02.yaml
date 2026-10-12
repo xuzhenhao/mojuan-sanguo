@@ -5,3 +5,10 @@ name: 轻招
 rarity: N
 category: sha
 desc: "费用-1（最低0）"
+abilities:
+  - id: e_s02
+    name: 轻招
+    desc: 费用 -1。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: card_cost, amount: -1, scope: permanent }

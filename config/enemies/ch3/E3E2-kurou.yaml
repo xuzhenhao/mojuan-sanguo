@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第3章精英：苦肉周瑜影（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E3E2
+name: 苦肉周瑜影
+chapter: 3
+tier: 精英
+enabled: false
+hp: 12
+row: front
+flashMarksPerTurn: 0
+glyph: 瑜
+intents:
+  - ["杀[火]+", "杀[火]+"]
+desc: 自损 2 换「杀[火]+ ×2」（锋锐+烈焰，各 2 火伤）

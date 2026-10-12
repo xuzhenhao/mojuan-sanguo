@@ -6,9 +6,9 @@ rarity: R
 category: tao
 desc: "回复后获得2护甲"
 abilities:
-  - id: huichun
+  - id: e_p02
     name: 回春
-    desc: 回复后获得 2 护甲。
+    desc: 回复后获得 2 点护甲。
     trigger: { when: heal }
     do:
       - { do: armor, target: self, amount: 2 }

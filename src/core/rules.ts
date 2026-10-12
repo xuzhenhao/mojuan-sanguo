@@ -29,14 +29,14 @@ export const judgeRed = (c: CardInst) => isRed(c);
 export const lebuSkips = (c: CardInst) => c.suit !== 'H';
 
 /** 玩家杀的伤害：基础 1 + 牌面加成 + 词条 + 酒/傲骨/义勇 */
-export function playerShaDamage(c: CardInst, buffs: { jiu: number; aogu: number; yiyong: number }, bonus = 0) {
-  return 1 + bonus + (hasMod(c, 'E_S01') ? 1 : 0) + buffs.jiu + buffs.aogu + buffs.yiyong;
+export function playerShaDamage(c: CardInst, buffs: { jiu: number; aogu: number; yiyong: number }, bonus = 0, extra = 0) {
+  return 1 + bonus + extra + buffs.jiu + buffs.aogu + buffs.yiyong;
 }
 
 /** PRD 5.12.2：敌人被杀时自动消耗闪标记抵消（无影不可闪） */
-export function enemyDodges(e: Enemy, unblockable: boolean) {
-  if (e.marks > 0 && !unblockable) {
-    e.marks--;
+export function enemyDodges(e: Enemy, unblockable: boolean, need = 1) {
+  if (e.marks >= need && !unblockable) {
+    e.marks -= need;
     return true;
   }
   return false;
@@ -89,16 +89,23 @@ export function affixCat(c: CardInst): AffixDef['cat'] | null {
   if (d.tao) return 'tao';
   if (d.jiu) return 'jiu';
   if (d.slot) return 'equip';
-  if (d.type.includes('锦囊')) return 'trick';
+  if (d.trick || d.type.includes('锦囊')) return 'trick';
   return null;
 }
 
-export function affixPool(c: CardInst): AffixDef[] {
+/** 候选池；deck 传入时按 maxPerDeck 过滤（如锋锐：同牌组最多 2 张杀带锋锐） */
+export function affixPool(c: CardInst, deck: CardInst[] = []): AffixDef[] {
   const cat = affixCat(c);
   if (!cat) return [];
   const d = def(c);
   return AFFIXES.filter(
-    (a) => a.cat === cat && !c.mods.includes(a.id) && (!a.only || a.only === c.id) && (!a.slot || a.slot === d.slot) && !(a.mutex === 'fire' && d.fire),
+    (a) =>
+      a.cat === cat &&
+      !c.mods.includes(a.id) &&
+      (!a.only || a.only === c.id) &&
+      (!a.slot || a.slot === d.slot) &&
+      !(a.mutex === 'fire' && d.fire) &&
+      !(a.maxPerDeck != null && deck.filter((x) => x.mods.includes(a.id)).length >= a.maxPerDeck),
   );
 }
 

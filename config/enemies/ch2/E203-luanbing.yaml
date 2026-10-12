@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第2章小怪：洛阳乱兵（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E203
+name: 洛阳乱兵
+chapter: 2
+tier: 小怪
+enabled: false
+hp: 5
+row: front
+flashMarksPerTurn: 0
+glyph: 乱
+intents:
+  - [杀]
+  - [咒, 杀]
+  - [杀, 杀]

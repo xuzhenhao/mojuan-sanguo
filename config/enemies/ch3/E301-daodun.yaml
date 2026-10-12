@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第3章小怪：水军刀盾（PRD 现值原样迁移，未套 V1 系数，停用）─────────
+id: E301
+name: 水军刀盾
+chapter: 3
+tier: 小怪
+enabled: false
+hp: 7
+armorStart: 4
+row: front
+flashMarksPerTurn: 0
+glyph: 盾
+intents:
+  - [杀, 杀]
+  - [闪, 杀]
+desc: 开场 4 甲（特性）

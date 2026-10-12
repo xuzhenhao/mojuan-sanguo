@@ -1,7 +1,7 @@
 import type { HeroDef } from '../core/types';
 import { CONFIG, atomAmount, type Ability } from './config';
 
-/** 武将：来自 config/heroes/*.yaml（原型只实装关羽主将 + 赵云副将） */
+/** 武将：来自 config/heroes/*.yaml（V1：H01–H08 开局 8 将 + H09 关羽保留） */
 const skill = (a: Ability) => ({ name: a.name, desc: a.desc });
 export const HEROES: Record<string, HeroDef> = Object.fromEntries(
   Object.values(CONFIG.heroes).map((h) => [
@@ -10,8 +10,13 @@ export const HEROES: Record<string, HeroDef> = Object.fromEntries(
   ]),
 );
 
-/** PRD 7.4 珠联璧合 · 关羽+赵云「龙虎会」：config/heroes/H01-guanyu.yaml combos */
-const longhu = CONFIG.heroes.H01.combos!.find((c) => c.partner === 'H02')!;
+/** 开局名单（roster !== false） */
+export const ROSTER = Object.values(CONFIG.heroes)
+  .filter((h) => h.roster !== false)
+  .map((h) => h.id);
+
+/** PRD 7.4 珠联璧合 · 关羽+赵云「龙虎会」（V1 停用，仅回归预设使用）：config/heroes/H09-guanyu.yaml combos */
+const longhu = CONFIG.heroes.H09.combos!.find((c) => c.partner === 'H03')!;
 export const COMBO_LONGHU = {
   name: longhu.name,
   startArmor: atomAmount(

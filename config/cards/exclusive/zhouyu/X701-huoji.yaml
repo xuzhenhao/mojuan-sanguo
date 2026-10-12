@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·周瑜：火计（V1） ─────────
+id: X701
+name: 火计
+type: 专属
+typeLabel: 专属·周瑜
+tags: [trick, fire]
+target: any
+cost: 1
+rarity: R
+exclusiveHero: H07
+desc: 对一名敌人造成 1 点火焰伤害；目标处于连环状态时传导。
+abilities:
+  - id: huoji
+    name: 火计
+    desc: 造成 1 点火焰伤害（连环传导）。
+    trigger: { when: play }
+    do:
+      - { do: damage, target: chosen, amount: 1, element: fire }

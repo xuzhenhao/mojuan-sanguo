@@ -4,11 +4,11 @@ id: E103
 name: 黄巾咒师
 chapter: 1
 tier: 小怪
-hp: 5
+hp: 4
 row: back
-flashMarksPerTurn: 1
+flashMarksPerTurn: 0
 glyph: 咒
-intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）
+intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）· V1 定稿 en-final.json
   - [咒]
   - [杀, 杀]
-desc: "妖咒：意图「咒」随机弃你1张手牌；每回合补1枚闪标记"
+desc: "妖咒：意图「咒」随机弃你1张手牌"

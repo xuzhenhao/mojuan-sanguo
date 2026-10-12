@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { CONFIG } from '../src/data/config';
 import { card, mkGame } from './helpers';
 
+const M0 = { ...CONFIG.rules.mechanics };
+afterEach(() => Object.assign(CONFIG.rules.mechanics, M0));
+
 function setup(over = {}, seed = 1) {
+  CONFIG.rules.mechanics.judgeSource = 'deck'; // 预置判定牌；M1 签筒见 effects.test
   const r = mkGame(over, seed);
   r.g.startBattle();
   return r;
@@ -26,7 +31,7 @@ describe('回合与摸牌', () => {
 });
 
 describe('判定', () => {
-  it('从摸牌堆顶亮牌并进入弃牌堆', async () => {
+  it('judgeSource=deck：从摸牌堆顶亮牌并进入弃牌堆', async () => {
     const { g } = setup();
     const top = card('B001', 'H', 5);
     g.draw.push(top);
@@ -37,7 +42,7 @@ describe('判定', () => {
 });
 
 describe('敌人杀 → 闪响应', () => {
-  it('护主 ♥ 判定使杀无效', async () => {
+  it('护主红色判定使杀无效（V1：红色）', async () => {
     const { g } = setup();
     g.draw.push(card('B001', 'H', 9));
     expect(await g.enemySha(g.en[0], 1)).toBe('huzhu');
@@ -55,7 +60,7 @@ describe('敌人杀 → 闪响应', () => {
   it('不出闪：受 1 点伤害，先扣护甲', async () => {
     const { g } = setup();
     g.hand = g.hand.filter((c) => c.id !== 'B004');
-    g.effects.used.turn.set('sub:huzhu', 1);
+    g.effects.used.enemy_turn.set('sub:huzhu', 1);
     expect(await g.enemySha(g.en[0], 1)).toBe('hit');
     expect(g.p.armor).toBe(2);
     expect(g.p.hp).toBe(8);
@@ -67,7 +72,7 @@ describe('敌人杀 → 闪响应', () => {
     g.hand.push(s);
     g.en[0].marks = 1;
     await g.play(s, g.en[0]);
-    expect(g.en[0].hp).toBe(4);
+    expect(g.en[0].hp).toBe(g.en[0].max);
     expect(g.epiCount).toBe(0);
   });
   it('玩家杀命中 1 点并可触发灵光一闪写入词条', async () => {
@@ -76,7 +81,7 @@ describe('敌人杀 → 闪响应', () => {
     const s = card('B001');
     g.hand.push(s);
     await g.play(s, g.en[0]);
-    expect(g.en[0].hp).toBe(3);
+    expect(g.en[0].hp).toBe(g.en[0].max - 1);
     expect(g.epiCount).toBe(1);
     expect(s.mods.length).toBe(1);
   });

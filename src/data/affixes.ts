@@ -8,6 +8,7 @@ export const AFFIXES: AffixDef[] = CONFIG.affixes.map((a) => {
   if (a.mutex) d.mutex = a.mutex;
   if (a.only) d.only = a.only;
   if (a.slot) d.slot = SLOT[a.slot];
+  if (a.maxPerDeck) d.maxPerDeck = a.maxPerDeck;
   return d;
 });
 

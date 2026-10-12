@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·陆逊：谦冲（V1） ─────────
+id: X802
+name: 谦冲
+type: 专属
+typeLabel: 专属·陆逊
+tags: [trick]
+target: none
+cost: 0
+rarity: R
+exclusiveHero: H08
+desc: 获得 1 点护甲，摸 1 张牌（每回合限 1 次）。
+abilities:
+  - id: qianchong
+    name: 谦冲
+    desc: 1 甲，摸 1（每回合限 1）。
+    trigger: { when: play }
+    limit: { per: turn, times: 1 }
+    do:
+      - { do: armor, target: self, amount: 1 }
+      - { do: draw, target: self, amount: 1 }

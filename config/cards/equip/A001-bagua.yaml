@@ -7,13 +7,14 @@ typeLabel: 装备·防具
 slot: armor
 tags: [equip, 判定]
 cost: 1
-rarity: R
-desc: "你成为杀的目标时，可判定：红色则视为打出闪"
+rarity: E # V1：R → E
+desc: 当你成为【杀】的目标时，判定：若为红色，视为你打出了【闪】。（计入被动免伤配额：每个敌方回合与其他判定类防御共享 2 次）
 abilities:
   - id: bagua_judge
     name: 八卦
     desc: 成为杀的目标时判定，红色视为打出闪。
     trigger: { when: targeted_by_sha }
+    limit: { passiveQuota: true }
     do:
       - do: judge
         success: { color: red }

@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 专属·陆逊：连营策·陆（V1） ─────────
+id: X801
+name: 连营策·陆
+type: 专属
+typeLabel: 专属·陆逊
+tags: [trick]
+target: none
+cost: 1
+rarity: R
+exclusiveHero: H08
+desc: 摸 2 张牌；本回合你的手牌打空时，再摸 1 张。
+abilities:
+  - id: lianyingce
+    name: 连营策·陆
+    desc: 摸 2；本回合手牌打空时再摸 1。
+    trigger: { when: play }
+    do:
+      - { do: draw, target: self, amount: 2 }
+      - { do: apply_status, target: self, status: empty_draw }

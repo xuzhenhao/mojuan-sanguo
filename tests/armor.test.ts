@@ -34,9 +34,9 @@ describe('难度方案 D 第 1 轮：护甲保留上限', () => {
 
 describe('难度方案 D 第 1 轮：护甲牌数值', () => {
   it('数值表', () => {
-    expect(ARMOR).toEqual({ yiyidailao: 3, gushou: 3, jinchuangyao: 4, qijinqichu: 3, affixJiangu: 2, affixHuichun: 2 });
+    expect(ARMOR).toEqual({ yiyidailao: 3, gushou: 3, jinchuangyao: 4, qijinqichu: 3, affixJiangu: 1, affixHuichun: 2 });
     expect(CARDS.T012.desc).toContain('3');
-    expect(AFFIXES.find((a) => a.id === 'E_W01')!.d).toContain('2');
+    expect(AFFIXES.find((a) => a.id === 'E_W01')!.d).toContain('1');
     expect(AFFIXES.find((a) => a.id === 'E_P02')!.d).toContain('2');
   });
   it('以逸待劳 +3 护甲', async () => {
@@ -47,17 +47,17 @@ describe('难度方案 D 第 1 轮：护甲牌数值', () => {
     await g.play(c, null);
     expect(g.p.armor).toBe(3);
   });
-  it('坚固装备 +2 护甲；回春桃 +2 护甲', async () => {
+  it('坚固装备 +1 护甲（V1）；回春桃 +2 护甲', async () => {
     const { g } = setup();
     g.p.armor = 0;
     const eq = card('A001', 'S', 7, ['E_W01']);
     g.hand.push(eq);
     await g.play(eq, null);
-    expect(g.p.armor).toBe(2);
+    expect(g.p.armor).toBe(1);
     g.p.hp = 5;
     const t = card('B005', 'H', 7, ['E_P02']);
     g.hand.push(t);
     await g.play(t, null);
-    expect(g.p.armor).toBe(4);
+    expect(g.p.armor).toBe(3);
   });
 });

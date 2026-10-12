@@ -26,7 +26,7 @@ describe('伤害', () => {
   });
   it('杀基础 1 点；锋锐/酒/傲骨/义勇叠加', () => {
     expect(playerShaDamage(card('B001'), noBuff)).toBe(1);
-    expect(playerShaDamage(card('B001', 'S', 7, ['E_S01']), { jiu: 2, aogu: 1, yiyong: 1 })).toBe(6);
+    expect(playerShaDamage(card('B001', 'S', 7, ['E_S01']), { jiu: 2, aogu: 1, yiyong: 1 }, 0, 1)).toBe(6);
     expect(playerShaDamage(card('X004'), noBuff, 1)).toBe(2);
   });
 });
@@ -45,10 +45,10 @@ describe('敌人意图（无攻击力：伤害全部来自牌）', () => {
     expect(i.txt).toContain('杀[锋锐]');
   });
   it('意图循环、乐不思蜀跳过伤害、备闪/咒无伤害', () => {
-    const e = enemy('E102', { step: 2 });
-    expect(enemyIntent(e).acts).toEqual(['闪', '杀']);
-    expect(enemyIntent(e).dmg).toBe(1);
-    e.step = 3;
+    let e = enemy('E1E1', { step: 1 });
+    expect(enemyIntent(e).acts).toEqual(['闪', '杀', '杀']);
+    expect(enemyIntent(e).dmg).toBe(2);
+    e = enemy('E102', { step: 3 });
     expect(enemyIntent(e).acts).toEqual(['杀']);
     expect(enemyIntent(e, true).dmg).toBe(0);
     expect(enemyIntent(enemy('E103')).dmg).toBe(0);
@@ -66,6 +66,14 @@ describe('闪标记', () => {
     expect(enemyDodges(e, false)).toBe(true);
     expect(e.marks).toBe(0);
     expect(enemyDodges(e, false)).toBe(false);
+  });
+  it('无俦：需 2 枚标记，不足时不消耗', () => {
+    const e = enemy('E103', { marks: 1 });
+    expect(enemyDodges(e, false, 2)).toBe(false);
+    expect(e.marks).toBe(1);
+    e.marks = 2;
+    expect(enemyDodges(e, false, 2)).toBe(true);
+    expect(e.marks).toBe(0);
   });
 });
 
@@ -92,6 +100,11 @@ describe('灵光一闪', () => {
     expect(affixPool(card('B002')).map((a) => a.n)).not.toContain('烈焰');
     expect(affixPool(card('T001')).map((a) => a.n)).toContain('扩写');
     expect(affixPool(card('T012')).map((a) => a.n)).not.toContain('扩写');
+  });
+  it('锋锐 maxPerDeck=2：牌组已有 2 张锋锐杀时不再出现在候选里', () => {
+    const deck = [card('B001', 'S', 1, ['E_S01']), card('B001', 'S', 2, ['E_S01'])];
+    expect(affixPool(card('B001'), deck.slice(0, 1)).map((a) => a.id)).toContain('E_S01');
+    expect(affixPool(card('B001'), deck).map((a) => a.id)).not.toContain('E_S01');
   });
   it('三选一不重复；最多 2 条，满则替换最早', () => {
     const o = pick3(seeded(3), affixPool(card('B001')));

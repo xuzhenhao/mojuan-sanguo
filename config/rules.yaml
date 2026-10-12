@@ -7,7 +7,7 @@ minHandLimit: 2 # 手牌上限 = max(2, 当前体力)
 responseSeconds: 8 # 响应窗口秒数
 armorKeep: 2 # 玩家回合开始时护甲最多保留 2 点（V0.3）
 maxFlashMarks: 2 # 敌人闪标记上限
-starterDeck: prototype # decks/prototype.yaml
+starterDeck: hero # hero = 用主将配置里的 starterDeck；也可写 decks/ 下的 id
 
 # 敌人意图牌：杀 = 1 点；杀+ = 已进化「锋锐」的杀（2 点）
 enemyCards:
@@ -32,15 +32,30 @@ pendingValues:
   jinchuangyao: 4 # 金创药
   qijinqichu: 3 # 七进七出
 
-# 机制开关（数据驱动 ②引入；默认值 = 现行行为，第③步套 V1 时打开）
+# 机制开关（V1 数值，design-v1 第 7 节定稿）
 mechanics:
-  judgeSource: deck # deck = 从玩家摸牌堆判定（现行）；pool = 独立「天机签筒」（M1，52 张标准花色，红 50%）
-  passiveQuotaPerEnemyTurn: null # 被动免伤配额（M2）：每个敌方回合 limit.passiveQuota 能力合计最多生效几次；null = 不限（V1：2）
-  moying: false # 墨影（M3）：精英/Boss 在玩家满血时本回合多打出 1 张【杀】
-  zeroCostPerTurn: null # 0 费非响应牌每回合每种限几次（M4）；null = 不限（V1：1）
+  judgeSource: pool # V1 M1：独立「天机签筒」，52 张标准花色，红 50%（deck = 从玩家摸牌堆判定，旧行为）
+  passiveQuotaPerEnemyTurn: 2 # V1 M2：每个敌方回合 limit.passiveQuota 能力（护主、八卦阵…）合计最多生效 2 次；null = 不限
+  moying: false # 墨影（M3）：用户决定不加（design-v1 第 7 节），保留开关
+  zeroCostPerTurn: 1 # V1 M4：0 费非响应牌每回合每种限 1 次
 
 # 业务校验开关：第①步保持原型数值，第③步套 V1 时开启
 checks:
-  starterRedRatio: null # V1：0.5
-  zeroCostDrawNeedsLimit: false # V1：true（M4）
+  starterRedRatio: 0.5 # V1：开局名单武将（roster: true）起始牌组红色正好 50%
+  zeroCostDrawNeedsLimit: true # V1 M4：0 费且会摸牌的牌必须带 limit
   comboStartArmorMax: 3
+
+# 未指定选将时的默认组合（8 将全部免费，可任选主将 / 副将）
+defaultHeroes: { main: H03, sub: H04 }
+
+# 自动对局整章模拟：战间回复体力（用户确认的验收口径：战间各回 1 体力）
+betweenBattleHeal: 1
+
+# 回归预设：只用于自动对局对照，不影响正式选将
+presets:
+  legacy_guanyu_zhaoyun:
+    main: H09
+    sub: H03
+    deck: prototype
+    forceCombos: [龙虎会]
+    note: design-v1 第 7.1 节复核基线：关羽 + 赵云（V1 护主）+ 原型 19 张牌组 + 龙虎会原值（开场 3 甲、首杀摸 1）

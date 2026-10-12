@@ -5,3 +5,10 @@ name: 双响
 rarity: E
 category: sha
 desc: "可额外指定1名目标（伤害各算）"
+abilities:
+  - id: e_s06
+    name: 双响
+    desc: 额外指定 1 名目标。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: extra_targets, amount: 1, scope: permanent }

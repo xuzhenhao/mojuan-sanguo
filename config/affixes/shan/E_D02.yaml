@@ -5,3 +5,10 @@ name: 反震
 rarity: R
 category: shan
 desc: "抵消后对来源造成1伤害"
+abilities:
+  - id: e_d02
+    name: 反震
+    desc: 抵消后对来源造成 1 点伤害。
+    trigger: { when: dodged }
+    do:
+      - { do: damage, target: source, amount: 1 }

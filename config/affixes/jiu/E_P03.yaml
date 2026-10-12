@@ -5,3 +5,10 @@ name: 仙酿
 rarity: E
 category: jiu
 desc: "酒：杀伤害+1改为+2"
+abilities:
+  - id: e_p03
+    name: 仙酿
+    desc: 酒的加成 +1（共 +2）。
+    trigger: { when: static }
+    do:
+      - { do: modify, stat: jiu_bonus, amount: 1, scope: permanent }
