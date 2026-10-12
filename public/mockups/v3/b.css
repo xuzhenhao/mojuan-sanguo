@@ -1,0 +1,57 @@
+/* === 墨卷三国 · 金漆屏风 设计令牌 === */
+:root{--lac-0:#070302;--lac-1:#150a08;--lac-2:#22100b;--lac-3:#2a1410;--lac-4:#4a1d14;--gold-hi:#f4dc9a;--gold:#e9c877;--gold-mid:#b98a3c;--gold-lo:#8a6a2a;--gold-dk:#6e4a18;--paper:#f3ebd8;--paper-2:#efe3c6;--paper-3:#bfae88;--ink:#1a1a1a;--cinnabar:#a63d2f;--cinn-hi:#d4604c;--cinn-glow:#ff6b55;--jade:#4f9a7c;--jade-dk:#1d4a3a;--azure:#5b7c8a;--azure-hi:#86aab8;--silver:#cfd6d9;--f-qun:#7a6a58;--f-shu:#3f7a4f;--f-wei:#3c5a8a;--f-wu:#a63d2f}
+@font-face{font-family:Brush;src:url(fonts/brush.woff) format('woff')}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
+html,body{width:390px;height:844px;overflow:hidden;background:#000}
+body{font-family:"Noto Serif CJK SC",serif;color:var(--paper)}
+.app{position:relative;width:390px;height:844px;overflow:hidden}
+svg{width:100%;height:100%}.num{font-family:Georgia,serif;font-weight:700}.brush{font-family:Brush;font-weight:normal}
+.bg{position:absolute;inset:0;z-index:0}
+.top{position:absolute;top:10px;left:12px;right:12px;display:flex;align-items:center;gap:8px;z-index:5;font-size:14px}
+.tb{display:flex;align-items:center;gap:4px;padding:3px 10px;height:26px;border-radius:2px;background:linear-gradient(var(--lac-3),var(--lac-1));box-shadow:inset 0 0 0 1px var(--gold-lo)}
+.tb svg{width:16px;height:16px;fill:var(--gold)}.sp{flex:1}
+.capsule{width:87px;height:32px;border-radius:16px;border:1px dashed rgba(255,255,255,.25)}
+.title{position:absolute;top:52px;left:0;right:0;text-align:center;z-index:3}
+.title .t{display:inline-block;font-family:Brush;font-size:34px;color:var(--gold);text-shadow:0 2px 6px #000;padding:0 40px;background:radial-gradient(ellipse,rgba(74,29,20,.9),transparent 70%)}
+.title .t::before,.title .t::after{content:"";display:inline-block;width:40px;height:1px;background:linear-gradient(90deg,transparent,var(--gold));vertical-align:middle;margin:0 10px}
+.title .t::after{transform:scaleX(-1)}
+/* gold frame */
+.gf{position:relative;padding:4px;border-radius:4px;background:linear-gradient(145deg,var(--gold-hi),var(--gold-lo) 30%,var(--gold) 50%,var(--gold-dk) 75%,#d6b065);box-shadow:0 8px 16px rgba(0,0,0,.7)}
+.gf.sv{background:linear-gradient(145deg,#e7ecee,#6c7579 35%,#dfe5e8 55%,#4a5357)}
+.gf .w{position:relative;width:100%;height:100%;border-radius:2px;overflow:hidden;background:radial-gradient(ellipse at 50% 32%,#f6ecd2,var(--paper-3) 68%,#7e6c4c);box-shadow:inset 0 0 0 1px #2a1a08,inset 0 0 16px rgba(60,30,0,.6)}
+.gf .fig{position:absolute;left:-4%;bottom:-3%;width:108%;height:96%;fill:url(#inkfade);filter:url(#brush)}
+.gf .nm{position:absolute;left:3px;top:4px;writing-mode:vertical-rl;font-family:Brush;color:var(--ink);text-shadow:0 0 3px var(--paper-2)}
+.fac{position:absolute;right:4px;top:4px;width:20px;height:20px;border-radius:2px;color:#fff;font-family:Brush;font-size:14px;text-align:center;line-height:20px;box-shadow:0 0 0 1px var(--paper)}
+.fac.qun{background:var(--f-qun)}.fac.shu{background:var(--f-shu)}.fac.wei{background:var(--f-wei)}.fac.wu{background:var(--f-wu)}
+.beads{display:flex;justify-content:center;gap:2px}
+.bead{width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d6f0e0,var(--jade) 45%,var(--jade-dk));box-shadow:0 1px 1px rgba(0,0,0,.6);display:inline-block}
+.bead.e{background:radial-gradient(circle at 35% 30%,#777,#2a2a2a)}
+/* card */
+.card{position:relative;width:72px;height:104px;border-radius:5px;padding:3px;background:linear-gradient(145deg,var(--gold-hi),var(--gold-lo) 35%,var(--gold) 55%,var(--gold-dk));box-shadow:0 6px 12px rgba(0,0,0,.7)}
+.card.N{background:linear-gradient(145deg,#d9b38a,#6a4a2a 40%,#c49a6a 60%,#4a3018)}
+.card.R{background:linear-gradient(145deg,#e7ecee,#6c7579 35%,#dfe5e8 55%,#4a5357)}
+.card.L{background:linear-gradient(145deg,#c8f0dc,#1d4a3a 30%,#f4dc9a 50%,#1d4a3a 75%,#9ad4b8);box-shadow:0 0 18px 3px rgba(233,200,119,.6),0 6px 12px #000}
+.card .in{position:relative;width:100%;height:100%;border-radius:3px;background:linear-gradient(var(--paper),#ddcfae);overflow:hidden;box-shadow:inset 0 0 0 1px #2a1a08}
+.card .art{position:absolute;inset:4px 4px 26px;border-radius:2px;display:grid;place-items:center;box-shadow:inset 0 0 12px rgba(0,0,0,.6)}
+.card.atk .art{background:radial-gradient(circle at 50% 35%,var(--cinn-hi),#4a120a)}.card.def .art{background:radial-gradient(circle at 50% 35%,var(--azure-hi),#1c3640)}.card.heal .art{background:radial-gradient(circle at 50% 35%,#86c4a4,#123a2c)}.card.skill .art{background:radial-gradient(circle at 50% 35%,#a08c62,#2a2014)}
+.card .art svg{width:55%;height:55%;fill:var(--paper);filter:drop-shadow(0 2px 2px rgba(0,0,0,.6))}
+.card .cn{position:absolute;left:0;right:0;bottom:3px;text-align:center;font-family:Brush;font-size:20px;color:var(--ink);line-height:1}
+.card .c{position:absolute;left:2px;top:2px;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d6f0e0,#2d6e56);color:#fff;font-size:13px;text-align:center;line-height:22px;box-shadow:0 0 0 1px #2a1a08;z-index:2;text-shadow:0 1px 1px #000}
+.card .su{position:absolute;left:5px;top:28px;font-size:12px;line-height:12px;text-align:center;z-index:2;color:var(--paper);text-shadow:0 1px 2px #000}.card .su.r{color:#ffb3a3}
+.card .mo{position:absolute;left:-7px;bottom:-7px;width:26px;height:26px;transform:rotate(45deg);background:linear-gradient(135deg,#1a1a1a,#000);box-shadow:0 0 0 1.5px var(--gold),0 0 12px 3px rgba(233,200,119,.7);z-index:3}
+.card .mo span{display:block;transform:rotate(-45deg);text-align:center;line-height:26px;font-family:Brush;font-size:15px;color:var(--gold)}
+.card .rar{position:absolute;right:3px;top:3px;width:10px;height:10px;transform:rotate(45deg);z-index:2;box-shadow:0 0 0 1px #000}
+.card.N .rar{background:#c49a6a}.card.R .rar{background:#dfe5e8}.card.E .rar{background:var(--gold)}.card.L .rar{background:#9ad4b8;box-shadow:0 0 6px #9ad4b8}
+.card.big{width:104px;height:150px;padding:4px}.card.big .art{inset:5px 5px 34px}.card.big .cn{font-size:26px;bottom:5px}.card.big .c{width:28px;height:28px;line-height:28px;font-size:16px}.card.big .su{top:34px;font-size:14px;line-height:14px}.card.big .rar{width:12px;height:12px;right:5px;top:5px}
+.card.moc .in::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,230,160,.45) 50%,transparent 65%);background-size:250% 100%;animation:shine 2.4s infinite}
+@keyframes shine{from{background-position:120% 0}to{background-position:-120% 0}}
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:0 22px;border-radius:3px;font-family:Brush;font-size:22px;color:#fff3dc;text-shadow:0 2px 2px #000;background:linear-gradient(#c4513e,#7d2418);box-shadow:0 0 0 1.5px var(--gold),0 0 0 4px var(--lac-3),0 0 0 5px var(--gold-lo),0 6px 12px #000;cursor:pointer}
+.btn.sec{background:linear-gradient(#5a4a3a,#2a1f16)}.btn.ok{background:linear-gradient(var(--jade),var(--jade-dk))}.btn.sm{height:32px;font-size:17px;padding:0 12px}
+.btn svg{width:18px;height:18px;fill:var(--gold)}
+.btn .num{font-family:Georgia;font-size:16px}
+.price{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:2px;background:linear-gradient(var(--lac-3),var(--lac-0));box-shadow:0 0 0 1px var(--gold-lo);font-size:14px}.price svg{width:14px;height:14px;fill:var(--gold)}.price.no{color:#ff8a73}
+.seal{display:inline-block;background:radial-gradient(circle at 35% 30%,var(--cinn-hi),#7d2418);color:var(--paper);font-family:Brush;text-align:center;border-radius:3px;box-shadow:0 0 0 1.5px var(--paper),0 3px 6px #000}
+.panel{background:linear-gradient(rgba(42,20,16,.92),rgba(15,7,5,.95));box-shadow:0 0 0 1px var(--gold-lo),0 0 0 4px rgba(21,10,8,.9),0 0 0 5px rgba(138,106,42,.5),0 10px 24px #000;border-radius:3px}
+.bar{position:absolute;left:0;right:0;bottom:0;height:72px;padding:0 14px 14px;background:linear-gradient(#1a0c08,#0a0504);box-shadow:0 -1px 0 var(--gold-lo),0 -3px 0 var(--lac-3);display:flex;align-items:center;gap:12px;z-index:6}
+.ico{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4a4a,#0a0a0a);box-shadow:0 0 0 1.5px var(--gold-lo);display:inline-grid;place-items:center}.ico svg{width:15px;height:15px;fill:var(--gold)}
