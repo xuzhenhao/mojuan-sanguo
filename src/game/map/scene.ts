@@ -11,7 +11,7 @@ import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { Canvas2DLike, Rect, Vec2 } from '../../engine/types';
 import { BOSS_ID, walkedEdges, type MapNode, type NodeType } from '../../core/run/map';
 import type { FlowEvent } from '../flow';
-import type { MapRouteParams } from './route';
+import { isComingSoon, type MapRouteParams } from './route';
 import type { HudInfo, MapSession } from './session';
 
 type C2D = CanvasRenderingContext2D;
@@ -488,9 +488,50 @@ export class MapScene implements Scene {
   }
   /** 移动动画结束：core 走一步 + 写盘 → 路由到节点页 */
   private commit(id: string) {
+    const node = this.d.session.node(id)!;
+    if (isComingSoon(node.type)) {
+      // 营地/奇遇页未实现：走到该节点（写盘），弹「敬请期待」，留在地图
+      this.d.session.pass(id);
+      this.comingSoon(node);
+      this.scrollToCurrent();
+      return;
+    }
     const r = this.d.session.enter(id);
     this.log.push(`enter_node:${r.params.kind}`);
     this.d.go(r.event, r.params);
+  }
+
+  /** 营地/奇遇页未实现：弹「敬请期待」，不走节点、留在地图 */
+  comingSoon(n: MapNode) {
+    const { width: w, height: h } = this.ctx;
+    const rect = { x: w / 2 - 110, y: h / 2 - 50, w: 220, h: 100 };
+    this.log.push(`coming_soon:${n.type}`);
+    this.d.overlays.closeAll('detail');
+    this.d.overlays.push({
+      id: `detail:map:soon:${n.id}`,
+      kind: 'detail',
+      dismissOnTapOutside: true,
+      rect,
+      draw: (sf) => {
+        const c = sf.ctx as unknown as C2D;
+        c.fillStyle = '#2a0f0c';
+        c.fillRect(rect.x, rect.y, rect.w, rect.h);
+        c.strokeStyle = GOLD;
+        c.lineWidth = 2;
+        c.strokeRect(rect.x, rect.y, rect.w, rect.h);
+        c.textAlign = 'center';
+        c.fillStyle = GOLD_HI;
+        c.font = '24px Brush, serif';
+        c.fillText(`${TYPE_LABEL[n.type]} · 敬请期待`, w / 2, rect.y + 46);
+        c.fillStyle = PAPER;
+        c.font = '12px sans-serif';
+        c.fillText('点空白处返回地图', w / 2, rect.y + 76);
+      },
+      gesture: (_e, hd) => {
+        hd.close();
+        return true;
+      },
+    });
   }
 
   showDetail(n: MapNode, at: Vec2) {

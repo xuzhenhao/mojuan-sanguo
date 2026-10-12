@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MapScene, type MapSceneDeps } from '../src/game/map/scene';
 import { MapSession } from '../src/game/map/session';
 import { RUN_SAVE_KEY, loadRunSave, setRunSaveStore } from '../src/core/run/save';
-import { routeFor } from '../src/game/map/route';
+import { CHEST_PAGE, isComingSoon, routeFor } from '../src/game/map/route';
 import { MAP_CONFIG, poolsOf } from '../src/data/map';
 import { OverlayStack } from '../src/engine/modal';
 import { BakeCache, TextureBudget, AtlasManager, CANVAS2D_ATLASES } from '../src/engine/memory';
@@ -70,6 +70,13 @@ const surface = () => {
   const c = anyCtx();
   return { s: { name: 'main', ctx: c.ctx, canvas: {}, scale: 1, dirty: true } as unknown as Surface, calls: c.calls };
 };
+/** 测试辅助：走一步（营地/奇遇用 pass） */
+const walk = (session: MapSession) => {
+  const id = session.available[0];
+  const t = session.node(id)!.type;
+  if (t === 'REST' || t === 'EVENT') session.pass(id);
+  else session.enter(id);
+};
 const tick = (scene: MapScene, ms: number) => {
   for (let t = 0; t < ms; t += 16) scene.update(16);
 };
@@ -114,7 +121,7 @@ describe('P3 地图页', () => {
   });
   it('Boss：弹首领确认框；整备返回地图，出战才进入', async () => {
     const { scene, session, overlays, sent } = setup();
-    for (let i = 0; i < 8; i++) session.enter(session.available[0]);
+    for (let i = 0; i < 8; i++) walk(session);
     expect(session.available).toEqual([BOSS_ID]);
     scene.gesture({ type: 'tap', at: scene.screenPos(session.node(BOSS_ID)!) });
     expect(overlays.ids()).toEqual(['popup:boss-confirm']);
@@ -152,22 +159,49 @@ describe('P3 地图页', () => {
   });
   it('续玩：同种子从存档恢复 mapState', () => {
     const { session } = setup(11);
-    session.enter(session.available[0]);
+    walk(session);
     const again = new MapSession(11, 1, MAP_CONFIG, poolsOf(1));
     expect(again.state.current).toBe(session.state.current);
+  });
+});
+
+describe('营地/奇遇：敬请期待', () => {
+  it('点可走的营地/奇遇节点：头像走过去并写盘，弹敬请期待，不路由，留在地图；第 8 层营地之后仍可去 Boss', () => {
+    const { scene, session, overlays, sent, store } = setup();
+    for (let guard = 0; guard < 8; guard++) {
+      const soon = session.available.map((id) => session.node(id)!).find((x) => x.type === 'REST' || x.type === 'EVENT');
+      if (soon) {
+        scene.tapNode(soon);
+        tick(scene, 520);
+        expect(overlays.ids()).toEqual([`detail:map:soon:${soon.id}`]);
+        expect(sent).toHaveLength(0);
+        expect(session.state.current).toBe(soon.id);
+        expect(JSON.parse(store.m.get('mojuan.run.v1')!).mapState.current).toBe(soon.id);
+        overlays.gesture({ type: 'tap', at: { x: 5, y: 5 } });
+        expect(overlays.size).toBe(0);
+        expect(scene.log).toContain(`coming_soon:${soon.type}`);
+        if (soon.layer === 8) {
+          expect(session.available).toEqual([BOSS_ID]);
+          return;
+        }
+      } else walk(session);
+      sent.length = 0;
+    }
   });
 });
 
 describe('路由约定', () => {
   it('节点类型 → 页面', () => {
     const n = (type: 'SHOP' | 'CHEST' | 'REST' | 'EVENT') => ({ id: 'L2C0', layer: 2, col: 0, type });
+    expect(isComingSoon('REST') && isComingSoon('EVENT')).toBe(true);
+    expect(() => routeFor(1, n('REST'))).toThrow(/敬请期待/);
     expect(routeFor(1, n('SHOP'))).toEqual({
       event: { type: 'enter_node', node: 'shop' },
       params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'shop' },
     });
     expect(routeFor(1, n('CHEST')).event).toEqual({ type: 'enter_node', node: 'reward' });
     expect(routeFor(1, n('CHEST')).params.kind).toBe('chest');
-    expect(routeFor(1, n('REST')).params.kind).toBe('rest');
+    expect(routeFor(1, n('CHEST')).event).toEqual({ type: 'enter_node', node: CHEST_PAGE });
   });
   it('FlowMachine：地图 → 奖励（宝箱）→ 地图', () => {
     const f = new FlowMachine();

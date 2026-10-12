@@ -25,21 +25,29 @@ export interface BattleRouteParams extends Base {
 export interface ShopRouteParams extends Base {
   kind: 'shop';
 }
-/** 奖励页 params（地图直接进入的情况）：宝箱；营地/奇遇页（P4b）上线前也临时走奖励页 */
-export interface NodeRewardRouteParams extends Base {
-  kind: 'chest' | 'rest' | 'event';
+/** 宝箱 params（#83 合并前暂走 reward 页，kind:'chest'；#83 合并后切到 chest 页，见 CHEST_PAGE） */
+export interface ChestRouteParams extends Base {
+  kind: 'chest';
 }
-export type MapRouteParams = BattleRouteParams | ShopRouteParams | NodeRewardRouteParams;
+export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams;
 
-export const PAGE_OF: Record<NodeType, NodePage> = {
+/**
+ * 宝箱去哪个页面：#83（chest 页 + enter_node{node:'chest'} + chest_done）合并前为 'reward'。
+ * #83 合并后：改成 'chest'，并把 NodePage 换成 flow.ts 的定义。
+ */
+export const CHEST_PAGE: NodePage = 'reward';
+
+/** 节点类型 → 页面；null = 页面未实现，地图里弹「敬请期待」并留在地图（营地/奇遇不走任何奖励类页面，避免误发奖励） */
+export const PAGE_OF: Record<NodeType, NodePage | null> = {
   BATTLE: 'battle',
   ELITE: 'battle',
   BOSS: 'battle',
   SHOP: 'shop',
-  CHEST: 'reward',
-  REST: 'reward', // 占位：P4b 营地页未排期
-  EVENT: 'reward', // 占位：P4b 奇遇页未排期
+  CHEST: CHEST_PAGE,
+  REST: null,
+  EVENT: null,
 };
+export const isComingSoon = (t: NodeType) => PAGE_OF[t] === null;
 
 export function routeFor(
   chapter: number,
@@ -48,6 +56,7 @@ export function routeFor(
 ): { event: FlowEvent; params: MapRouteParams } {
   const base: Base = { from: 'map', chapter, nodeId: node.id, layer: node.layer };
   const page = PAGE_OF[node.type];
+  if (!page) throw new Error(`${node.type} 节点页面未实现（地图内弹「敬请期待」）`);
   const event: FlowEvent = { type: 'enter_node', node: page };
   if (node.type === 'BATTLE' || node.type === 'ELITE' || node.type === 'BOSS') {
     if (!enc) throw new Error(`战斗节点 ${node.id} 缺少组包`);
@@ -58,5 +67,5 @@ export function routeFor(
     };
   }
   if (node.type === 'SHOP') return { event, params: { ...base, kind: 'shop' } };
-  return { event, params: { ...base, kind: node.type === 'CHEST' ? 'chest' : node.type === 'REST' ? 'rest' : 'event' } };
+  return { event, params: { ...base, kind: 'chest' } };
 }

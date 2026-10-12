@@ -5,7 +5,7 @@
 import { availableNodes, generateMap, getNode, moveTo, type MapConfig, type MapNode, type MapState } from '../../core/run/map';
 import { drawEncounter, groupOf, newEncounterState, type EncounterPools, type EncounterState } from '../../core/run/encounters';
 import { loadRunSave, writeRunSave, type RunSave } from '../../core/run/save';
-import { routeFor } from './route';
+import { isComingSoon, routeFor } from './route';
 
 export interface HudInfo {
   hp: number;
@@ -69,10 +69,16 @@ export class MapSession {
   node(id: string): MapNode | undefined {
     return getNode(this.state, id);
   }
+  /** 营地/奇遇（页面未实现）：只走到节点并写盘，不路由（否则第 8 层固定营地会卡住去 Boss 的路） */
+  pass(id: string) {
+    this.state = moveTo(this.state, id);
+    this.save();
+  }
   /** 走到节点：抽组包（战斗类）→ 写盘 → 返回路由事件与参数 */
   enter(id: string) {
     const n = this.node(id);
     if (!n) throw new Error(`未知节点 ${id}`);
+    if (isComingSoon(n.type)) throw new Error(`${n.type} 节点用 pass()`);
     let enc: { encounterId: string; name: string; enemies: string[] } | undefined;
     let patch: Partial<MapNode> = {};
     if (n.type === 'BATTLE' || n.type === 'ELITE' || n.type === 'BOSS') {
