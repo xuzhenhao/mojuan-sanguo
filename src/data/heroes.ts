@@ -28,4 +28,10 @@ export const HEROES: Record<string, HeroDef> = {
 
 /** PRD 7.4 珠联璧合 · 关羽+赵云「龙虎会」：战斗开始 3 护甲；每场首次杀摸 1 */
 export const COMBO_LONGHU = { name: '龙虎会', startArmor: 3 };
-export const RULES = { lingPerTurn: 3, drawPerTurn: 3, firstTurnBonus: 2, minHandLimit: 2, responseSeconds: 8 };
+export const RULES = { lingPerTurn: 3, drawPerTurn: 3, firstTurnBonus: 2, minHandLimit: 2, responseSeconds: 8, armorKeep: 2 };
+
+/**
+ * 难度方案 D ②：护甲数值（按 1 点杀重新定价，见 docs/proposals/difficulty.md）。
+ * 固守 / 金创药 / 七进七出 尚未实装，数值先在此登记。
+ */
+export const ARMOR = { yiyidailao: 3, gushou: 3, jinchuangyao: 4, qijinqichu: 3, affixJiangu: 2, affixHuichun: 2 };
