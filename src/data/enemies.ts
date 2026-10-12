@@ -9,7 +9,18 @@ export const ENEMIES: Record<string, EnemyDef> = {
   E101: { name: '黄巾步卒', hp: 4, row: 'front', pat: [['杀', '杀'], ['杀'], ['杀', '杀', '杀']], flash: 0, g: '卒' },
   E102: { name: '黄巾弓手', hp: 3, row: 'back', pat: [['杀'], ['杀', '杀'], ['闪', '杀']], flash: 0, g: '弓' },
   E103: { name: '黄巾咒师', hp: 5, row: 'back', pat: [['咒'], ['杀', '杀']], flash: 1, g: '咒', skill: '妖咒：意图「咒」随机弃你1张手牌；每回合补1枚闪标记' },
-  E104: { name: '流民暴徒', hp: 6, row: 'front', pat: [['杀', '杀'], ['杀', '杀'], ['杀', '杀', '杀']], flash: 0, g: '暴' },
+  E104: {
+    name: '流民暴徒',
+    hp: 6,
+    row: 'front',
+    pat: [
+      ['杀', '杀'],
+      ['杀', '杀'],
+      ['杀', '杀', '杀'],
+    ],
+    flash: 0,
+    g: '暴',
+  },
   E1E1: {
     name: '张宝·墨影',
     hp: 15,

@@ -13,8 +13,16 @@ describe('难度 D 第 2 轮：敌人密度/血量（PRD 0.3 第 11 章）', () 
     expect(ENEMIES.E101.pat).toEqual([['杀', '杀'], ['杀'], ['杀', '杀', '杀']]);
     expect(ENEMIES.E102.pat).toEqual([['杀'], ['杀', '杀'], ['闪', '杀']]);
     expect(ENEMIES.E103.pat).toEqual([['咒'], ['杀', '杀']]);
-    expect(ENEMIES.E104.pat).toEqual([['杀', '杀'], ['杀', '杀'], ['杀', '杀', '杀']]);
-    expect(ENEMIES.E1E1.pat).toEqual([['杀+', '杀'], ['闪', '杀', '杀'], ['万箭', '杀+', '杀+']]);
+    expect(ENEMIES.E104.pat).toEqual([
+      ['杀', '杀'],
+      ['杀', '杀'],
+      ['杀', '杀', '杀'],
+    ]);
+    expect(ENEMIES.E1E1.pat).toEqual([
+      ['杀+', '杀'],
+      ['闪', '杀', '杀'],
+      ['万箭', '杀+', '杀+'],
+    ]);
   });
   it('每个敌人至少 1 个意图 ≥2 张杀', () => {
     for (const d of Object.values(ENEMIES)) expect(d.pat.some((a) => shaCount(a) >= 2)).toBe(true);
