@@ -16,7 +16,14 @@ describe('数据驱动 ①：YAML 配置与重构前 TS 数据逐字段一致', 
   it('cards', () => expect(plain(cards)).toEqual(legacy.cards));
   it('affixes（含顺序）', () => expect(plain(affixes)).toEqual(legacy.affixes));
   it('heroes / rules / armor', () => expect(plain(heroes)).toEqual(legacy.heroes));
-  it('enemies / battles', () => expect(plain(enemies)).toEqual(legacy.enemies));
+  it('enemies / battles（② 新增 tier / abilities 字段除外）', () => {
+    const e = plain(enemies);
+    for (const d of Object.values(e.ENEMIES) as Record<string, unknown>[]) {
+      delete d.tier;
+      delete d.abilities;
+    }
+    expect(e).toEqual(legacy.enemies);
+  });
 });
 
 describe('config:check 校验', () => {

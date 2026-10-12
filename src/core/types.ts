@@ -54,6 +54,8 @@ export interface EnemyDef {
   g: string;
   elite?: boolean;
   skill?: string;
+  tier?: string;
+  abilities?: import('../data/config').Ability[];
 }
 
 export interface EnemyCardDef {

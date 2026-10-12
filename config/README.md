@@ -22,4 +22,4 @@ npm run config:check   # JSON Schema 校验 + 业务校验（引用存在、意�
 
 VS Code 安装 YAML 插件（Red Hat）后，靠每个文件第一行的 `# yaml-language-server: $schema=...` 就有自动补全和中文悬浮说明。
 
-> 现状（数据驱动重构第 ① 步）：数值与原型完全一致。引擎目前只读取数值和文本，DSL 里的 `abilities` 要到第 ② 步才由引擎执行，参见 issue #12。
+> 现状（数据驱动 ②）：卡牌、武将技、珠联、装备、敌人特技都由引擎从 `abilities` 执行（`src/core/effects.ts`：事件总线 + 原子解释器）。`rules.yaml` 的 `mechanics` 管新机制开关：签筒、被动配额、墨影、0 费限次。现在默认值保持原型行为，第③步再打开。

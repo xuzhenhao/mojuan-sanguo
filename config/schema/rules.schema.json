@@ -15,7 +15,8 @@
     "enemyCards",
     "epiphany",
     "rarityWeight",
-    "checks"
+    "checks",
+    "mechanics"
   ],
   "properties": {
     "lingPerTurn": {
@@ -167,6 +168,46 @@
             "integer",
             "null"
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "mechanics": {
+      "type": "object",
+      "description": "机制开关（默认保持现行行为）",
+      "required": [
+        "judgeSource",
+        "passiveQuotaPerEnemyTurn",
+        "moying",
+        "zeroCostPerTurn"
+      ],
+      "properties": {
+        "judgeSource": {
+          "enum": [
+            "deck",
+            "pool"
+          ],
+          "description": "判定来源：deck=玩家摸牌堆；pool=独立天机签筒（52 张标准花色）"
+        },
+        "passiveQuotaPerEnemyTurn": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "被动免伤配额，null=不限"
+        },
+        "moying": {
+          "type": "boolean",
+          "description": "墨影：精英/Boss 在玩家满血时多出 1 张杀"
+        },
+        "zeroCostPerTurn": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "0 费非响应牌每回合每种限次，null=不限"
         }
       },
       "additionalProperties": false

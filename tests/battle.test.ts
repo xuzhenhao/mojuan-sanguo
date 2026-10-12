@@ -55,7 +55,7 @@ describe('敌人杀 → 闪响应', () => {
   it('不出闪：受 1 点伤害，先扣护甲', async () => {
     const { g } = setup();
     g.hand = g.hand.filter((c) => c.id !== 'B004');
-    g.huzhuUsed = true;
+    g.effects.used.turn.set('sub:huzhu', 1);
     expect(await g.enemySha(g.en[0], 1)).toBe('hit');
     expect(g.p.armor).toBe(2);
     expect(g.p.hp).toBe(8);

@@ -25,7 +25,7 @@ mainSkills:
     limit: { per: turn, times: 1 }
     do:
       - { do: discard, target: self, amount: 1, from: { color: red } }
-      - { do: apply_status, target: self, status: next_sha_bonus, duration: 1 }
+      - { do: apply_status, target: self, status: aogu, duration: 1 }
 
 subSkill:
   id: zhuwei

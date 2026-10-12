@@ -13,4 +13,4 @@ abilities:
     desc: 本回合下一张杀伤害 +1（不可叠加）。
     trigger: { when: play }
     do:
-      - { do: apply_status, target: self, status: next_sha_bonus, duration: 1 }
+      - { do: apply_status, target: self, status: jiu, duration: 1 }

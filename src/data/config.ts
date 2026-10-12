@@ -75,6 +75,7 @@ export interface ConfigBundle {
     epiphany: { baseRate: number; maxPerBattle: number; pityPlays: number };
     rarityWeight: Record<'N' | 'R' | 'E' | 'L', number>;
     pendingValues?: Record<string, number>;
+    mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };
   cards: Record<string, CardCfg>;
   affixes: AffixCfg[];
