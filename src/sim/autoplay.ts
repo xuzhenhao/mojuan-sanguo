@@ -2,7 +2,7 @@
  * 自动试玩统计（issue #3）：直接驱动 src/core 的 Game 纯逻辑 + 简单贪心 AI，
  * 批量统计剩余体力分布、回合数、战败率与各防御层抵消量（护主/八卦/闪/护甲/桃）。
  */
-import { Game, type BattleIO } from '../core/battle';
+import { betweenBattleHeal, Game, type BattleIO } from '../core/battle';
 import { seeded } from '../core/rng';
 import { def, isRed, isShaPlay } from '../core/rules';
 import { BATTLES } from '../data/enemies';
@@ -243,12 +243,11 @@ export async function runChapter(seed: number, h0: HeroOpts = {}) {
   const h = resolveHeroes(h0);
   const res: GameStats[] = [];
   let hp: number | undefined;
-  const heal = CONFIG.rules.betweenBattleHeal ?? 0;
   for (let i = 0; i < BATTLES.length; i++) {
     const r = await runBattle({ ...h, battleIdx: i, seed: seed * 31 + i, hp });
     res.push(r);
     if (!r.win) return { clear: false, res, hpAtLast: i === BATTLES.length - 1 ? r.hpStart : null };
-    hp = Math.min(r.maxHp, r.hpEnd + heal);
+    hp = betweenBattleHeal(r.hpEnd, r.maxHp);
   }
   return { clear: true, res, hpAtLast: res[res.length - 1].hpStart };
 }
