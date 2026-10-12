@@ -8,6 +8,7 @@ import type { BattleKind } from '../../data/economy';
 import type { FlowEvent } from '../flow';
 import { EconomySession } from '../economy/session';
 import { RewardScene } from './reward';
+import { ShopScene } from './shop';
 import type { Env } from './p4-kit';
 
 export interface P4Deps {
@@ -37,6 +38,10 @@ export function registerP4(d: P4Deps) {
   engine.scenes.register(
     'reward',
     () => new RewardScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'reward_done' }), defaultKind: kind }),
+  );
+  engine.scenes.register(
+    'shop',
+    () => new ShopScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'shop_done' }) }),
   );
   return econ;
 }
