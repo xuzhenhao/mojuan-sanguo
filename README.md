@@ -11,6 +11,8 @@
 ```bash
 npm install
 npm run dev      # 本地开发 http://localhost:5173/mojuan-sanguo/
+npm run dev:debug   # DOM 调试版（可玩原型）/mojuan-sanguo/debug.html，不进发布包
+# Canvas 发布入口支持 ?webgl=0 关闭 WebGL 水墨叠加层
 npm test         # vitest 单元测试
 npm run lint     # ESLint + Prettier 检查
 npm run build    # 产物输出到 dist/

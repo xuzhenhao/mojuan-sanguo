@@ -1,9 +1,12 @@
+/** DOM 调试版入口：只在 `vite build --mode debug` 中构建，不进发布包（size-check 用下面的标记校验）。 */
+export const DEBUG_DOM_BUILD_MARKER = '__MOJUAN_DEBUG_DOM__';
+console.info(DEBUG_DOM_BUILD_MARKER);
 import './style.css';
-import { Game, type BattleIO } from '../../core/battle';
-import { seeded } from '../../core/rng';
-import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../core/rules';
-import { BATTLES } from '../../data/enemies';
-import type { AffixDef, CardInst } from '../../core/types';
+import { Game, type BattleIO } from '../../../core/battle';
+import { seeded } from '../../../core/rng';
+import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
+import { BATTLES } from '../../../data/enemies';
+import type { AffixDef, CardInst } from '../../../core/types';
 import { nextSkillStep, skillButtons, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
