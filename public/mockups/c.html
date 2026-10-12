@@ -1,0 +1,90 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>战斗页 C·青绿山水</title><style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:390px;height:844px;overflow:hidden}
+body{font-family:"Noto Serif CJK SC","Songti SC",serif;margin:0 auto}
+.app{position:relative;width:390px;height:844px;display:flex;flex-direction:column;overflow:hidden}
+.top{display:flex;gap:6px;align-items:center;padding:12px 12px 6px;font-size:12px}.sp{flex:1}.chip,.res{padding:3px 8px}
+.field{position:relative;flex:1;padding:4px 10px}.row{display:flex;justify-content:center;gap:8px;margin:8px 0;position:relative}.rowtag{position:absolute;left:0;top:30px;font-size:11px;writing-mode:vertical-rl}
+.back{transform:scale(.88);opacity:.92}
+.enemy{position:relative;width:88px;text-align:center;padding:24px 4px 6px;cursor:pointer;transition:.2s}
+.intent{position:absolute;top:-6px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;padding:2px 6px}
+.por{width:52px;height:52px;margin:auto;display:grid;place-items:center;font-size:24px}.nm{font-size:12px;margin-top:3px}
+.hp{height:5px;margin:3px 6px}.hp i{display:block;height:100%}.enemy small{font-size:10px}.armor{position:absolute;right:2px;top:20px;font-size:10px;padding:1px 3px}
+.judge{position:absolute;right:10px;bottom:4px;display:flex;align-items:center;gap:6px;font-size:10px}.jt{writing-mode:vertical-rl;font-size:11px}
+.jcard{width:34px;height:48px;display:grid;place-items:center;font-size:14px;line-height:1}.jcard b{font-size:12px}
+.heroes{display:flex;align-items:flex-end;gap:10px;padding:6px 12px}.vice{text-align:center;font-size:11px}
+.hpor{width:56px;height:56px;display:grid;place-items:center;font-size:16px;margin:auto}.hpor.big{width:78px;height:78px;font-size:22px}
+.main{flex:1;display:flex;gap:10px;align-items:center}.stats{font-size:12px;line-height:1.7}.hearts b{letter-spacing:1px}.hearts s{text-decoration:none;opacity:.25}.line{display:flex;gap:8px}.arm,.ord{padding:1px 8px}.hn em{font-style:normal;font-size:11px}
+.hand{padding:8px 0 14px}.cards{display:flex;gap:6px;overflow-x:auto;padding:14px 10px 6px;scrollbar-width:none}
+.card{position:relative;flex:0 0 66px;height:96px;padding:20px 4px 4px;text-align:center;cursor:pointer;transition:.18s}
+.card.sel{transform:translateY(-14px)}.cost{position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;font-size:11px;display:grid;place-items:center}
+.suit{position:absolute;right:4px;top:3px;font-size:11px;font-weight:bold}.cn{font-size:15px;font-weight:bold}.cd2{font-size:9px;margin-top:6px;line-height:1.3}
+.mo{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;font-size:12px;display:grid;place-items:center}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 12px 0;font-size:12px}.btn{padding:6px 12px;cursor:pointer;display:inline-block}.end{margin-left:auto}
+body.targeting .front .enemy{transform:translateY(-3px)}body.targeting .back .enemy{opacity:.35}
+.enemy.hit{animation:sh .35s}@keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.mask{position:absolute;inset:0;display:none;align-items:flex-end;z-index:5}.mask.on{display:flex}
+.sheet{width:100%;padding:16px 16px 22px;margin-bottom:150px}.rt{font-size:16px;font-weight:bold}.rq{font-size:13px;margin:6px 0}.rc{font-size:12px;margin:8px 0}
+.timer{height:4px}.timer i{display:block;height:100%;width:62%}.rb{display:flex;gap:10px}
+body.responding .hand{position:relative;z-index:6}body.responding .card{opacity:.3}body.responding .card:nth-child(2),body.responding .card:nth-child(3){opacity:1;transform:translateY(-10px)}
+.tip{position:absolute;left:12px;top:48px;font-size:10px;opacity:.6}.toggle{position:absolute;right:10px;top:44px;font-size:11px;padding:3px 8px;z-index:7}
+
+body{background:#E7EDE6;color:#24363b}.app{background:linear-gradient(#dfe9e4 0,#f1efe2 45%,#e9e4d2 100%)}
+.field{background:radial-gradient(ellipse 120% 40% at 50% 8%,rgba(91,124,138,.35),transparent 70%)}
+.chip{background:rgba(91,124,138,.15);border-radius:12px}.res{color:#3d6b5a}
+.por,.hpor{border-radius:50% 50% 45% 55%;background:linear-gradient(160deg,#7fa59b,#3d5f66);color:#f3ebd8}
+.back .por{filter:blur(.4px) saturate(.6);opacity:.8}
+.intent{background:#f6f3e8;border-radius:10px;border:1px solid #5B7C8A}.intent.atk{color:#A63D2F}.intent.deadly{background:#A63D2F;color:#fff}.intent.def{color:#2f6b6b}
+.lethal .por{outline:2px dashed #A63D2F;outline-offset:3px}.hp{background:#cfd8d0;border-radius:3px}.hp i{background:#3d6b5a;border-radius:3px}.armor{background:#5B7C8A;color:#fff;border-radius:6px}
+.jcard{background:#fffdf5;border:1px solid #5B7C8A;border-radius:8px}.red{color:#A63D2F}.black{color:#24363b}
+.hearts b{color:#A63D2F}.arm{background:#5B7C8A;color:#fff;border-radius:10px}.ord{background:#3d6b5a;color:#fff;border-radius:10px}
+.hand{background:linear-gradient(transparent,rgba(91,124,138,.25))}
+.cards{justify-content:center;overflow:visible}.card{flex:0 0 58px;margin:0 -6px;background:#fffdf5;border:1px solid #5B7C8A;border-radius:10px;box-shadow:0 4px 10px rgba(36,54,59,.2)}
+.card:nth-child(1){transform:rotate(-12deg) translateY(10px)}.card:nth-child(2){transform:rotate(-7deg) translateY(4px)}.card:nth-child(3){transform:rotate(-2deg)}.card:nth-child(4){transform:rotate(2deg)}.card:nth-child(5){transform:rotate(7deg) translateY(4px)}.card:nth-child(6){transform:rotate(12deg) translateY(10px)}
+.card.sel{transform:translateY(-18px) scale(1.08)!important;z-index:2;box-shadow:0 0 0 2px #3d6b5a}
+.cost{background:#3d6b5a;color:#fff}.mo{background:#24363b;color:#f3ebd8;border-radius:50%}
+.btn{background:#f6f3e8;border:1px solid #5B7C8A;border-radius:16px}.end{background:#3d6b5a;color:#fff}
+body.targeting .front .enemy .por{box-shadow:0 0 0 4px rgba(61,107,90,.5)}
+.mask{background:rgba(36,54,59,.35)}.sheet{background:#fffdf5;border-radius:18px 18px 0 0;margin:0 8px 150px}.timer{background:#cfd8d0;border-radius:2px}.timer i{background:#5B7C8A}.ok{background:#3d6b5a;color:#fff}</style></head><body>
+<div class="app">
+<header class="top"><span class="chip">章一·长坂</span><span class="chip">第3回合</span><span class="sp"></span><span class="res">铜钱 128</span><span class="res">将魂 6</span><span class="chip">⚙</span></header>
+<section class="field">
+ <div class="row back"><span class="rowtag">后排</span>
+  <div class="enemy" data-t><div class="intent buff">鼓 +2力</div><div class="por">弓</div><div class="nm">曹营弓手</div><div class="hp"><i style="width:60%"></i></div><small>6/10</small></div>
+  <div class="enemy" data-t><div class="intent atk">箭 4×2</div><div class="por">弩</div><div class="nm">虎豹骑弩</div><div class="hp"><i style="width:100%"></i></div><small>9/9</small></div>
+ </div>
+ <div class="row front"><span class="rowtag">前排</span>
+  <div class="enemy" data-t><div class="intent atk">杀 6</div><div class="por">卒</div><div class="nm">青州兵</div><div class="hp"><i style="width:70%"></i></div><small>7/10</small><span class="armor">盾3</span></div>
+  <div class="enemy lethal" data-t><div class="intent atk deadly">杀 12 致命</div><div class="por">将</div><div class="nm">张郃</div><div class="hp"><i style="width:85%"></i></div><small>34/40</small></div>
+  <div class="enemy" data-t><div class="intent def">守 +5</div><div class="por">卒</div><div class="nm">青州兵</div><div class="hp"><i style="width:40%"></i></div><small>4/10</small></div>
+ </div>
+ <div class="judge"><div class="jt">判定</div><div class="jcard red">♥<b>7</b></div><div class="jdesc">【乐不思蜀】<br>红桃→生效失败</div></div>
+</section>
+<section class="heroes">
+ <div class="vice"><div class="hpor">刘备</div><div class="hn">副·仁德</div><div class="cd">技 2/2</div></div>
+ <div class="main"><div class="hpor big">赵云</div><div class="stats"><div class="hn">主将·赵云 <em>龙胆</em></div>
+  <div class="hearts">体力 <b>❤❤❤❤</b><s>❤</s> 4/5</div>
+  <div class="line"><span class="arm">护甲 5</span><span class="ord">军令 <b>3</b>/3</span></div></div></div>
+</section>
+<section class="hand">
+ <div class="cards">
+  <div class="card" data-c><span class="cost">1</span><span class="suit black">♠A</span><div class="cn">杀</div><div class="cd2">造成6伤害</div></div>
+  <div class="card" data-c><span class="cost">1</span><span class="suit red">♥K</span><div class="cn">闪</div><div class="cd2">抵消一次杀</div><span class="mo">墨</span></div>
+  <div class="card" data-c><span class="cost">2</span><span class="suit black">♣9</span><div class="cn">龙胆突</div><div class="cd2">杀/闪互转<br>伤害8</div><span class="mo">墨</span></div>
+  <div class="card" data-c><span class="cost">0</span><span class="suit red">♦3</span><div class="cn">桃</div><div class="cd2">回复1体力</div></div>
+  <div class="card" data-c><span class="cost">1</span><span class="suit black">♠Q</span><div class="cn">无懈可击</div><div class="cd2">抵消锦囊</div></div>
+  <div class="card" data-c><span class="cost">2</span><span class="suit red">♥5</span><div class="cn">藤甲</div><div class="cd2">护甲+7</div></div>
+ </div>
+ <div class="bar"><span class="btn">丹药×2</span><span class="pile">牌堆 14</span><span class="btn end">结束回合</span><span class="pile">弃 6</span></div>
+</section>
+<div class="mask" id="resp"><div class="sheet"><div class="rt">响应窗口</div><div class="rq">张郃 对你使用【杀】(12) — 请出【闪】</div><div class="timer"><i></i></div><div class="rc">合法手牌：<b>闪 ♥K</b> · <b>龙胆突 ♣9</b>（龙胆）</div><div class="rb"><span class="btn ok">出闪</span><span class="btn">不出（受12伤害）</span></div></div></div>
+<div class="tip" id="tip">点卡牌→点目标；点「响应」查看弹层</div><span class="btn toggle" id="tg">响应</span>
+</div>
+<script>
+const cs=[...document.querySelectorAll('[data-c]')],es=[...document.querySelectorAll('[data-t]')],tip=document.getElementById('tip'),r=document.getElementById('resp');
+cs.forEach(c=>c.onclick=e=>{e.stopPropagation();const on=!c.classList.contains('sel');cs.forEach(x=>x.classList.remove('sel'));document.body.classList.toggle('targeting',on);if(on){c.classList.add('sel');tip.textContent='选择目标：前排高亮，后排不可选';}});
+es.forEach(x=>x.onclick=e=>{e.stopPropagation();if(!document.body.classList.contains('targeting'))return;if(x.closest('.back')){tip.textContent='非法目标';return}x.classList.add('hit');setTimeout(()=>x.classList.remove('hit'),400);tip.textContent='命中 '+x.querySelector('.nm').textContent;cs.forEach(c=>c.classList.remove('sel'));document.body.classList.remove('targeting')});
+document.body.onclick=()=>{cs.forEach(c=>c.classList.remove('sel'));document.body.classList.remove('targeting')};
+document.getElementById('tg').onclick=e=>{e.stopPropagation();r.classList.toggle('on');document.body.classList.toggle('responding')};
+r.onclick=e=>{e.stopPropagation();if(e.target===r||e.target.classList.contains('btn')){r.classList.remove('on');document.body.classList.remove('responding')}};
+if(location.hash==='#resp'){r.classList.add('on');document.body.classList.add('responding')}
+</script></body></html>
