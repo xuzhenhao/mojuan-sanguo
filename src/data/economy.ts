@@ -118,7 +118,7 @@ export const ECONOMY = {
   /** 14.2 价格随机浮动 ±10%，取整到 5（删牌、刷新不浮动） */
   priceJitter: 0.1,
   priceRound: 5,
-  /** 14.2 指定售价（不浮动）：T002 顺手牵羊 40。售价配置由组长 PR 加到卡牌配置后改为读配置 */
+  /** 过渡兜底：#70 合入后卡牌配置有 shopPrice，届时删除本项与 cardPrice（改读 rules.shop.cardPrice） */
   fixedCardPrice: { T002: 40 } as Record<string, number>,
   /** 10.7 删牌服务：50，本局每用一次 +25 */
   removeBase: 50,

@@ -8,12 +8,15 @@ import type { GestureEvent } from '../../engine/input';
 import type { OverlayHandle, OverlayStack } from '../../engine/modal';
 import type { Surface } from '../../engine/surfaces';
 import type { Rect, Vec2 } from '../../engine/types';
-import { def, enemyIntent, RANK_CH, SUIT_CH } from '../../core/rules';
-import type { CardInst, Enemy } from '../../core/types';
+import { def, enemyIntent, RANK_CH } from '../../core/rules';
+import type { CardInst, Enemy, Suit } from '../../core/types';
+import { ACT_ICON, ACT_LABEL, icons } from './icons';
+import { numFont } from './numfont';
 import { AFFIXES } from '../../data/affixes';
 import type { Ability } from '../../data/config';
-import { C, ext, frame, text, wrap } from './theme';
+import { C, ext, frame, text, textWidth, wrap } from './theme';
 
+export const INTENT_ROW = 26;
 export const DETAIL = { w: 180, maxH: 200, pad: 12, titlePx: 24, bodyPx: 13, lineH: 19.5, gap: 12 } as const;
 export const TITLE_FONT = `${DETAIL.titlePx}px "Ma Shan Zheng", "MaShanZheng", "STKaiti", "KaiTi", serif`;
 export const BODY_FONT = `${DETAIL.bodyPx}px "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC", sans-serif`;
@@ -22,10 +25,11 @@ export interface DetailContent {
   title: string;
   /** 右上角：费用（数字） */
   cost?: number;
-  /** 右上角：花色点数，如 ♣9 */
-  suit?: string;
-  /** 红色花色 */
-  red?: boolean;
+  /** 右上角：花色（印章矢量图标）+ 点数（数字字体） */
+  suit?: Suit;
+  rank?: number;
+  /** 意图图标行（敌人）：动作 → 印章图标 + 张数 */
+  intents?: { act: string; n: number }[];
   /** 副标题（类型、技能类别） */
   sub?: string;
   lines: string[];
@@ -38,19 +42,21 @@ export function cardDetail(c: CardInst): DetailContent {
     const a = AFFIXES.find((x) => x.id === id);
     if (a) lines.push(`墨·${a.n}：${a.d}`);
   }
-  return { title: d.name, cost: d.cost, suit: `${SUIT_CH[c.suit]}${RANK_CH[c.rank] ?? c.rank}`, red: c.suit === 'H' || c.suit === 'D', sub: d.type, lines };
+  return { title: d.name, cost: d.cost, suit: c.suit, rank: c.rank, sub: d.type, lines };
 }
 
 export function enemyDetail(e: Enemy): DetailContent {
   const it = enemyIntent(e);
   const lines = [
     `体力 ${Math.max(0, e.hp)}/${e.max}${e.armor ? ` · 护甲 ${e.armor}` : ''}${e.marks ? ` · 闪标记 ${e.marks}` : ''}`,
-    `意图：${it.txt || '无'}${it.dmg ? `（${it.dmg} 伤）` : ''}`,
+    `本回合意图${it.dmg ? `：共 ${it.dmg} 点伤害` : ''}`,
   ];
   for (const t of it.tip.split('｜')[0].split('；')) if (t) lines.push(`· ${t}`);
+  const cnt = new Map<string, number>();
+  for (const a of it.acts) cnt.set(a, (cnt.get(a) ?? 0) + 1);
   if (e.skill) lines.push(e.skill);
   for (const a of e.abilities ?? []) if (a.desc && !e.skill?.includes(a.name)) lines.push(`${a.name}：${a.desc}`);
-  return { title: e.name, sub: `${e.row === 'front' ? '前排' : '后排'}${e.elite ? ' · 精英' : ''}`, lines };
+  return { title: e.name, sub: `${e.row === 'front' ? '前排' : '后排'}${e.elite ? ' · 精英' : ''}`, lines, intents: [...cnt].map(([act, n]) => ({ act, n })) };
 }
 
 export function skillDetail(a: Pick<Ability, 'name' | 'desc' | 'kind'>, owner?: string): DetailContent {
@@ -73,7 +79,7 @@ export function layoutDetail(ctx: Surface['ctx'], c: DetailContent) {
   const inner = DETAIL.w - DETAIL.pad * 2;
   ctx.font = BODY_FONT;
   let lines = c.lines.flatMap((l) => wrap(ctx, l, inner, DETAIL.bodyPx));
-  const head = DETAIL.pad + DETAIL.titlePx + (c.sub ? 18 : 6);
+  const head = DETAIL.pad + DETAIL.titlePx + (c.sub ? 18 : 6) + (c.intents?.length ? INTENT_ROW : 0);
   const maxLines = Math.floor((DETAIL.maxH - head - DETAIL.pad) / DETAIL.lineH);
   if (lines.length > maxLines) lines = [...lines.slice(0, maxLines - 1), lines[maxLines - 1].slice(0, -1) + '…'];
   return { lines, h: Math.min(DETAIL.maxH, head + lines.length * DETAIL.lineH + DETAIL.pad) };
@@ -87,14 +93,16 @@ export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[
   frame(g, { x: r.x + 3, y: r.y + 3, w: r.w - 6, h: r.h - 6 }, 'rgba(217,180,106,.35)', 1);
   let y = r.y + DETAIL.pad + DETAIL.titlePx - 4;
   text(g, c.title, r.x + DETAIL.pad, y, TITLE_FONT, C.gold);
-  // 右上：费用珠 + 花色
+  // 右上：费用珠 + 花色（矢量印章图标）+ 点数（数字字体）
+  const nf = numFont();
   let rx = r.x + r.w - DETAIL.pad;
   if (c.suit) {
-    g.font = BODY_FONT;
-    const x = ext(g);
-    const w = x.measureText ? x.measureText(c.suit).width : c.suit.length * 8;
-    rx -= w;
-    text(g, c.suit, rx, y - 4, BODY_FONT, c.red ? '#e0605a' : C.paper);
+    const rk = RANK_CH[c.rank ?? 0] ?? String(c.rank);
+    const red = c.suit === 'H' || c.suit === 'D';
+    rx -= nf.measure(g, rk, 15);
+    nf.draw(g, rk, rx, y - 4, 15, red ? '#e0605a' : C.paper);
+    rx -= 16;
+    icons().draw(g, `suit_${c.suit}`, { x: rx, y: y - 17, w: 14, h: 14 });
     rx -= 8;
   }
   if (c.cost != null) {
@@ -106,11 +114,29 @@ export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[
       x.arc(cx, y - 9, 10, 0, Math.PI * 2);
       x.fill();
     } else g.fillRect(cx - 9, y - 18, 18, 18);
-    text(g, String(c.cost), cx - 4, y - 4, `bold 13px sans-serif`, C.paper);
+    const cs = String(c.cost);
+    nf.draw(g, cs, cx - nf.measure(g, cs, 14) / 2, y - 4, 14, C.paper);
   }
   if (c.sub) {
     y += 18;
     text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT, 'rgba(243,235,216,.6)');
+  }
+  if (c.intents?.length) {
+    // 意图行：印章图标 + 名称 + ×N（不用 emoji）
+    let ix = r.x + DETAIL.pad;
+    const iy = y + 8;
+    for (const { act, n } of c.intents) {
+      const id = ACT_ICON[act];
+      if (id) icons().draw(g, id, { x: ix, y: iy, w: 18, h: 18 });
+      ix += 21;
+      const lab = ACT_LABEL[act] ?? act;
+      text(g, lab, ix, iy + 14, BODY_FONT, C.paper);
+      g.font = BODY_FONT;
+      ix += textWidth(g, lab, DETAIL.bodyPx) + 2;
+      if (n > 1) ix += nf.draw(g, `×${n}`, ix, iy + 14, 13, C.gold);
+      ix += 8;
+    }
+    y += INTENT_ROW;
   }
   y += 6;
   for (const l of lines) {

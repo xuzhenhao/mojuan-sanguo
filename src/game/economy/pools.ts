@@ -21,7 +21,7 @@ export function weighted<T>(rng: Rng, items: readonly T[], w: (t: T) => number):
   return items[items.length - 1];
 }
 
-type CardCfgX = CardCfg & { exclusiveHero?: string; faction?: string; rewardWeight?: number; suits?: string[]; price?: number };
+type CardCfgX = CardCfg & { exclusiveHero?: string; faction?: string; rewardWeight?: number; suits?: string[]; shopPrice?: number };
 const cfg = (id: string) => CONFIG.cards[id] as CardCfgX;
 
 /** 主将势力 */
@@ -39,6 +39,7 @@ export function cardPool(inv: Pick<Inventory, 'main' | 'sub'>, kind: 'any' | 'co
       if (c.faction) return kind !== 'common' && c.faction === fac;
       return kind !== 'hero';
     })
+    .filter((c) => (c.rewardWeight ?? 1) > 0) // rewardWeight 0 = 不进奖励池（#70 字段）
     .map((c) => ({ id: c.id, rarity: c.rarity as Rarity, weight: (c.rewardWeight ?? 1) * (c.faction ? ECONOMY.factionMul : 1) }));
 }
 
@@ -120,9 +121,18 @@ export function applyMods(p: number, inv: Pick<Inventory, 'relics' | 'destiny'>)
   return k === 1 ? p : Math.round((p * k) / ECONOMY.priceRound) * ECONOMY.priceRound;
 }
 
-/** 卡牌售价：固定价（T002 40，读卡牌配置 price，没有则读 ECONOMY.fixedCardPrice）优先，否则按稀有度浮动 */
+/** 稀有度基础价：读 rules.shop.cardPrice（#70），未合入前回退 ECONOMY.cardPrice */
+export function rarityPrice(r: Rarity): number {
+  const rules = CONFIG.rules as { shop?: { cardPrice?: Partial<Record<Rarity, number>> } };
+  return rules.shop?.cardPrice?.[r] ?? ECONOMY.cardPrice[r] ?? ECONOMY.cardPrice.N;
+}
+
+/**
+ * 卡牌售价：卡牌配置 shopPrice（#70，T002 = 40）为定价、不浮动；否则按稀有度基础价 ±10%。
+ * 过渡：#70 合入前 T002 没有 shopPrice，用 ECONOMY.fixedCardPrice 兜底；合入后删除该兜底。
+ */
 export function cardPrice(rng: Rng, id: string, inv: Pick<Inventory, 'relics' | 'destiny'>): number {
-  const fixed = cfg(id).price ?? ECONOMY.fixedCardPrice[id];
+  const fixed = cfg(id).shopPrice ?? ECONOMY.fixedCardPrice[id];
   if (fixed !== undefined) return applyMods(fixed, inv);
-  return jitter(rng, ECONOMY.cardPrice[cfg(id).rarity as Rarity] ?? ECONOMY.cardPrice.N, inv);
+  return jitter(rng, rarityPrice(cfg(id).rarity as Rarity), inv);
 }
