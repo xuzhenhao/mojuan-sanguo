@@ -23,6 +23,9 @@ import {
 } from './rules';
 import type { AffixDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, Slot } from './types';
 
+/** 战间回复后的体力（core 与自动试玩共用同一规则，#56） */
+export const betweenBattleHeal = (hp: number, maxHp: number) => Math.min(maxHp, hp + (CONFIG.rules.betweenBattleHeal ?? 0));
+
 /** 平台适配层需实现的 IO（Web DOM / 微信小游戏 Canvas 各自实现） */
 export interface BattleIO {
   log(t: string): void;
@@ -688,7 +691,11 @@ export class Game {
     }
     return false;
   }
+  /** 战间回复（V1：rules.betweenBattleHeal = 1）：只在胜利后进入下一场时生效，不超过体力上限 */
   nextBattle() {
+    const healed = betweenBattleHeal(this.p.hp, this.p.maxHp);
+    if (healed > this.p.hp) this.log(`战间休整：回复 ${healed - this.p.hp} 点体力`);
+    this.p.hp = healed;
     this.battleIdx++;
     this.startBattle();
   }
