@@ -8,6 +8,7 @@
  */
 import type { BattleIO, Game } from '../core/battle';
 import { CARDS } from '../data/cards';
+import { CONFIG } from '../data/config';
 import type { CardInst, JudgeEvent } from '../core/types';
 
 const SUITS = ['S', 'H', 'C', 'D'];
@@ -58,6 +59,7 @@ export function checkSnapshot(g: Game): string[] {
     if (!e.name) out.push(`enemy ${e.uid}: 缺少名称`);
     for (const c of e.judge) out.push(...checkCard(c, `enemy ${e.name}.judge`));
   }
+  if (g.hand.length > CONFIG.rules.handHardCap) out.push(`hand: ${g.hand.length} 张超过硬上限 ${CONFIG.rules.handHardCap}`);
   if (!Number.isFinite(g.p.hp) || !Number.isFinite(g.p.maxHp)) out.push('player: hp 非数字');
   return out;
 }
@@ -101,6 +103,15 @@ export function withContract(io: BattleIO, getGame: () => Game | undefined, rep:
       add(checkCard(c, 'epiphany'));
       for (const o of opts) if (!o?.n || !o?.d) add(['epiphany: 词条缺少名称/描述']);
       return io.epiphany(c, opts, reroll);
+    },
+    handOverflow(ev) {
+      hit('handOverflow');
+      if (ev?.type !== 'discard' || ev.reason !== 'hand_overflow') add(['handOverflow: 事件 type/reason 非法']);
+      add(checkCard(ev?.card, 'handOverflow'));
+      const g = getGame();
+      if (g && g.hand.length > ev.cap) add([`handOverflow: 手牌 ${g.hand.length} 超过硬上限 ${ev.cap}`]);
+      if (g && !g.discard.includes(ev.card)) add(['handOverflow: 弃置的牌不在弃牌堆']);
+      io.handOverflow?.(ev);
     },
     onBattleEnd(w) {
       hit('battleEnd');

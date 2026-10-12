@@ -27,6 +27,15 @@ import type { AffixDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, Slot }
 /** 战间回复：amount 默认取 rules.map.betweenBattleHeal（游戏，H5 = 0，PRD §10.4）；模拟传 rules.sim.baselineBetweenBattleHeal */
 export const betweenBattleHeal = (hp: number, maxHp: number, amount: number = CONFIG.rules.map.betweenBattleHeal) => Math.min(maxHp, hp + Math.max(0, amount));
 
+/** 手满弃置事件（PRD §5.4：reason = hand_overflow，不触发任何弃置时/弃牌后效果） */
+export interface HandOverflowEvent {
+  type: 'discard';
+  reason: 'hand_overflow';
+  card: CardInst;
+  /** 当前硬上限（rules.handHardCap） */
+  cap: number;
+}
+
 /** 平台适配层需实现的 IO（Web DOM / 微信小游戏 Canvas 各自实现） */
 export interface BattleIO {
   log(t: string): void;
@@ -38,6 +47,8 @@ export interface BattleIO {
   respond(text: string, legal: (c: CardInst) => boolean, pass: string, timed: boolean): Promise<CardInst | null>;
   /** 灵光一闪三选一：reroll 可调用一次（看广告刷新） */
   epiphany(c: CardInst, options: AffixDef[], reroll: () => AffixDef[]): Promise<AffixDef | null>;
+  /** 手满弃置（PRD §5.4）：新摸到的牌因手牌达到硬上限直接进弃牌堆；可选，表现层用来提示「手满，弃置」 */
+  handOverflow?(ev: HandOverflowEvent): void;
   hurt?(): void;
   enemyHit?(e: Enemy): void;
   onBattleEnd(win: boolean): void;
@@ -195,8 +206,20 @@ export class Game {
         this.discard = [];
         this.log('弃牌堆洗入摸牌堆');
       }
-      this.hand.push(this.draw.pop()!);
+      this.addToHand(this.draw.pop()!);
     }
+  }
+  /** 所有进手牌的路径都必须走这里：手牌已达硬上限时直接进弃牌堆（PRD §5.4），不触发弃置类效果 */
+  addToHand(c: CardInst): boolean {
+    const cap = CONFIG.rules.handHardCap;
+    if (this.hand.length >= cap) {
+      this.discard.push(c);
+      this.log(`手满，弃置：${def(c)?.name ?? c.id}`);
+      this.io.handOverflow?.({ type: 'discard', reason: 'hand_overflow', card: c, cap });
+      return false;
+    }
+    this.hand.push(c);
+    return true;
   }
   toDiscard(c: CardInst) {
     this.hand = this.hand.filter((x) => x !== c);

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
+<!-- 《墨卷三国》印章图标 ui_node_boss（node）· 2x 56×56，四周 4px 留给烘焙阴影；内容 48×48 -->
+<defs><filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/><feOffset dy="1.2"/><feComponentTransfer><feFuncA type="linear" slope=".85"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="1.6" xChannelSelector="R" yChannelSelector="G"/></filter><style>.st{stroke:#F3EBD8;fill:none}.ac{fill:#F4DC9A}.ac2{fill:#4A0E08;stroke:#4A0E08}</style></defs>
+<g filter="url(#sh)">
+<g filter="url(#rough)"><circle cx="28" cy="28" r="23" fill="#4A0E08"/><circle cx="28" cy="28" r="22" fill="none" stroke="#E9C877" stroke-width="1.8"/></g>
+<g transform="translate(28 28) scale(0.78) translate(-28 -28)" fill="#F3EBD8" stroke="#000" stroke-width="0" paint-order="stroke" stroke-linejoin="round"><path d="M14 22 C14 13 21 9 28 9 C35 9 42 13 42 22 C42 29 38 31 38 35 V42 H18 V35 C18 31 14 29 14 22 Z M21 20 a4 4 0 1 0 0.01 0 Z M35 20 a4 4 0 1 0 0.01 0 Z" fill-rule="evenodd"/><path d="M23 42 V36 M28 42 V35 M33 42 V36" stroke-width="2" class="ac2"/></g>
+</g></svg>
