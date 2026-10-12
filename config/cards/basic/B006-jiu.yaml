@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 基本：酒 ─────────
+id: B006
+name: 酒
+type: 基本
+tags: [jiu]
+cost: 1
+rarity: R
+desc: "本回合下一张杀伤害+1（不可叠加）；濒死时视为桃"
+abilities:
+  - id: jiu_buff
+    name: 酒
+    desc: 本回合下一张杀伤害 +1（不可叠加）。
+    trigger: { when: play }
+    do:
+      - { do: apply_status, target: self, status: next_sha_bonus, duration: 1 }

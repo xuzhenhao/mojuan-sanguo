@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：贯虹 ─────────
+id: E_W02
+name: 贯虹
+rarity: R
+category: equip
+slot: weapon
+desc: "武器：攻击范围+1"

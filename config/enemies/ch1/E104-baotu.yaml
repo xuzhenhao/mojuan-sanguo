@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第一章小怪：流民暴徒 ─────────
+id: E104
+name: 流民暴徒
+chapter: 1
+tier: 小怪
+hp: 6
+row: front
+flashMarksPerTurn: 0
+glyph: 暴
+intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）
+  - [杀, 杀]
+  - [杀, 杀]
+  - [杀, 杀, 杀]

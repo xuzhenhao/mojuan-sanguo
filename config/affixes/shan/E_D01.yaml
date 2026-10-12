@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：余韵 ─────────
+id: E_D01
+name: 余韵
+rarity: N
+category: shan
+desc: "抵消后摸1"

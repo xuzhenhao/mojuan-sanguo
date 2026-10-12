@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊：无中生有 ─────────
+id: T001
+name: 无中生有
+type: 锦囊
+tags: [trick]
+cost: 1
+rarity: N
+desc: "摸2张牌"
+abilities:
+  - id: wuzhong_draw
+    name: 无中生有
+    desc: 摸 2 张牌。
+    trigger: { when: play }
+    do:
+      - { do: draw, target: self, amount: 2 }

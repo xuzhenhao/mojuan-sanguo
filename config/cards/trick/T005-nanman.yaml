@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊：南蛮入侵 ─────────
+id: T005
+name: 南蛮入侵
+type: 锦囊
+tags: [trick, aoe]
+cost: 2
+rarity: R
+desc: "对所有敌人各造成1点伤害（视为杀；各目标可分别闪）"
+abilities:
+  - id: nanman_aoe
+    name: 南蛮入侵
+    desc: 对所有敌人各造成 1 点伤害（视为杀）。
+    trigger: { when: play }
+    do:
+      - { do: damage, target: all_enemies, amount: 1, asSha: true }

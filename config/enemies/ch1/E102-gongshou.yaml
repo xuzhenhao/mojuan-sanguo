@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第一章小怪：黄巾弓手 ─────────
+id: E102
+name: 黄巾弓手
+chapter: 1
+tier: 小怪
+hp: 3
+row: back
+flashMarksPerTurn: 0
+glyph: 弓
+intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）
+  - [杀]
+  - [杀, 杀]
+  - [闪, 杀]

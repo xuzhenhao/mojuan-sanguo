@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：仙酿 ─────────
+id: E_P03
+name: 仙酿
+rarity: E
+category: jiu
+desc: "酒：杀伤害+1改为+2"

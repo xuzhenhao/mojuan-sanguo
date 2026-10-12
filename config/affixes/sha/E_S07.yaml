@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：破甲 ─────────
+id: E_S07
+name: 破甲
+rarity: E
+category: sha
+desc: "先弃目标2护甲再结算"

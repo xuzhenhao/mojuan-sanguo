@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../../schema/card.schema.json
+# ───────── 锦囊·蜀：义勇 ─────────
+id: SH01
+name: 义勇
+type: 势力
+typeLabel: 锦囊·蜀
+tags: [trick]
+cost: 1
+rarity: R
+faction: 蜀
+desc: "本回合下一张杀伤害+1，且无视距离"
+abilities:
+  - id: yiyong_buff
+    name: 义勇
+    desc: 本回合下一张杀伤害 +1，且无视距离。
+    trigger: { when: play }
+    do:
+      - { do: apply_status, target: self, status: yiyong, duration: 1 }

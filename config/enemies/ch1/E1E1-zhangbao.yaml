@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../schema/enemy.schema.json
+# ───────── 第一章精英：张宝·墨影 ─────────
+id: E1E1
+name: 张宝·墨影
+chapter: 1
+tier: 精英
+hp: 15
+row: front
+flashMarksPerTurn: 0
+glyph: 宝
+cardMods:
+  杀+: [E_S01]            # 已灵光一闪「锋锐」：这张杀打 2 点
+intents:                  # 循环：每行是一个回合打出的牌（单回合 ≤3 张）
+  - [杀+, 杀]
+  - [闪, 杀, 杀]
+  - [万箭, 杀+, 杀+]
+desc: "黄天庇佑：回合开始若有后排友军，护甲+1｜其【杀】已灵光一闪「锋锐」：伤害+1"
+abilities:
+  - id: huangtian
+    name: 黄天庇佑
+    kind: 被动
+    desc: 回合开始时若有后排友军，张宝获得 1 点护甲。
+    trigger: { when: enemy_turn_start }
+    if:
+      - { type: has_back_row_ally }
+    do:
+      - { do: armor, target: self, amount: 1 }

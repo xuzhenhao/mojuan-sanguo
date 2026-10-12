@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 基本：火杀 ─────────
+id: B002
+name: 火杀
+type: 基本
+tags: [sha, fire]
+cost: 1
+rarity: R
+target: range
+desc: "对攻击范围内一名敌人造成1点火属性伤害（视为杀）"
+abilities:
+  - id: huosha_hit
+    name: 火杀
+    desc: 造成 1 点火属性伤害。
+    trigger: { when: play }
+    do:
+      - { do: damage, target: chosen, amount: 1, element: fire, asSha: true }

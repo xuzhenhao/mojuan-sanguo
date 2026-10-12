@@ -10,10 +10,18 @@
     "test": "vitest run",
     "lint": "eslint . && prettier --check \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
     "format": "prettier --write \"src/**/*.{ts,css}\" \"tests/**/*.ts\" \"scripts/**/*.ts\"",
-    "autoplay": "tsx scripts/autoplay.ts"
+    "autoplay": "tsx scripts/autoplay.ts",
+    "config:check": "tsx scripts/build-config.ts --check",
+    "config:build": "tsx scripts/build-config.ts",
+    "predev": "npm run config:build",
+    "prebuild": "npm run config:build",
+    "pretest": "npm run config:build",
+    "preautoplay": "npm run config:build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "ajv": "^8.20.0",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
@@ -22,6 +30,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.1",
     "vite": "^8.3.4",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "yaml": "^2.9.1"
   }
 }

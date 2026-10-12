@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：锋锐 ─────────
+id: E_S01
+name: 锋锐
+rarity: N
+category: sha
+desc: "伤害+1"

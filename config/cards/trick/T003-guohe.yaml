@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊：过河拆桥 ─────────
+id: T003
+name: 过河拆桥
+type: 锦囊
+tags: [trick]
+cost: 1
+rarity: N
+target: any
+desc: "弃置一名敌人最多2点护甲"
+abilities:
+  - id: guohe_strip
+    name: 过河拆桥
+    desc: 弃置目标最多 2 点护甲。
+    trigger: { when: play }
+    do:
+      - { do: remove_armor, target: chosen, amount: 2 }

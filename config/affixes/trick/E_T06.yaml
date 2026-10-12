@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：天启 ─────────
+id: E_T06
+name: 天启
+rarity: L
+category: trick
+desc: "打出时获得1军令"

@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：无影 ─────────
+id: E_S08
+name: 无影
+rarity: L
+category: sha
+desc: "不可闪"

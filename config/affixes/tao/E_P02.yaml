@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：回春 ─────────
+id: E_P02
+name: 回春
+rarity: R
+category: tao
+desc: "回复后获得2护甲"
+abilities:
+  - id: huichun
+    name: 回春
+    desc: 回复后获得 2 护甲。
+    trigger: { when: heal }
+    do:
+      - { do: armor, target: self, amount: 2 }

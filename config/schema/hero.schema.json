@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hero.schema.json",
+  "title": "武将配置（一名武将一个文件：heroes/<拼音>.yaml）",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "faction",
+    "hp",
+    "role",
+    "mainSkills",
+    "subSkill"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^H[0-9]{2}$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "faction": {
+      "enum": [
+        "蜀",
+        "魏",
+        "吴",
+        "群"
+      ]
+    },
+    "hp": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 10
+    },
+    "role": {
+      "type": "string",
+      "description": "玩法定位（展示 + 策划）"
+    },
+    "unlock": {
+      "type": "string",
+      "description": "解锁条件，如 初始 / 将魂80"
+    },
+    "budget": {
+      "type": "object",
+      "description": "价值预算：主将合计目标 22±1.5 点/场",
+      "properties": {
+        "hp": {
+          "type": "number"
+        },
+        "main": {
+          "type": "number"
+        },
+        "sub": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        }
+      }
+    },
+    "mainSkills": {
+      "type": "array",
+      "items": {
+        "$ref": "effect.schema.json#/$defs/ability"
+      },
+      "minItems": 1,
+      "maxItems": 3
+    },
+    "subSkill": {
+      "$ref": "effect.schema.json#/$defs/ability"
+    },
+    "starterDeck": {
+      "type": "array",
+      "description": "起始牌组：card=卡牌 id，suit/rank 花色点数。红色比例需 = 50%（校验脚本检查）。数据驱动重构第①步可省略（原型共用 decks/ 下的牌组），第③步改回必填",
+      "items": {
+        "type": "object",
+        "required": [
+          "card",
+          "suit",
+          "rank"
+        ],
+        "properties": {
+          "card": {
+            "type": "string"
+          },
+          "suit": {
+            "enum": [
+              "S",
+              "H",
+              "C",
+              "D"
+            ]
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 13
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 10,
+      "maxItems": 12
+    },
+    "exclusiveCards": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "combos": {
+      "type": "array",
+      "description": "珠联璧合（本武将为主将时）",
+      "items": {
+        "type": "object",
+        "required": [
+          "partner",
+          "name",
+          "abilities"
+        ],
+        "properties": {
+          "partner": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          },
+          "abilities": {
+            "type": "array",
+            "items": {
+              "$ref": "effect.schema.json#/$defs/ability"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

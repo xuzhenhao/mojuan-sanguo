@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../schema/affix.schema.json
+# ───────── 词条：坚固 ─────────
+id: E_W01
+name: 坚固
+rarity: N
+category: equip
+desc: "装备后获得2护甲"
+abilities:
+  - id: jiangu
+    name: 坚固
+    desc: 装备后获得 2 护甲。
+    trigger: { when: equip }
+    do:
+      - { do: armor, target: self, amount: 2 }
