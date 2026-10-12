@@ -27,6 +27,9 @@ import type { AffixDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, Slot }
 /** 战间回复：amount 默认取 rules.map.betweenBattleHeal（游戏，H5 = 0，PRD §10.4）；模拟传 rules.sim.baselineBetweenBattleHeal */
 export const betweenBattleHeal = (hp: number, maxHp: number, amount: number = CONFIG.rules.map.betweenBattleHeal) => Math.min(maxHp, hp + Math.max(0, amount));
 
+/** 响应决策点类型 */
+export type RespondKind = 'shan' | 'tao' | 'wuxie';
+
 /** 手满弃置事件（PRD §5.4：reason = hand_overflow，不触发任何弃置时/弃牌后效果） */
 export interface HandOverflowEvent {
   type: 'discard';
@@ -43,8 +46,11 @@ export interface BattleIO {
   sleep(ms: number): Promise<void>;
   /** 判定事件：ev.card 是完整判定牌数据（签筒的签没有卡牌定义，不得按 id 查牌库） */
   showJudge(ev: JudgeEvent): Promise<void>;
-  /** 响应窗口：返回打出的牌或 null（放弃/超时） */
-  respond(text: string, legal: (c: CardInst) => boolean, pass: string, timed: boolean): Promise<CardInst | null>;
+  /**
+   * 响应窗口：返回打出的牌或 null（放弃/超时）。
+   * kind：决策点类型（shan = 被杀出闪；tao = 濒死求桃/酒；wuxie = 敌方锦囊出无懈可击），旧实现可忽略。
+   */
+  respond(text: string, legal: (c: CardInst) => boolean, pass: string, timed: boolean, kind?: RespondKind): Promise<CardInst | null>;
   /** 灵光一闪三选一：reroll 可调用一次（看广告刷新） */
   epiphany(c: CardInst, options: AffixDef[], reroll: () => AffixDef[]): Promise<AffixDef | null>;
   /** 手满弃置（PRD §5.4）：新摸到的牌因手牌达到硬上限直接进弃牌堆；可选，表现层用来提示「手满，弃置」 */
@@ -298,12 +304,13 @@ export class Game {
   checkPlay(c: CardInst): string | null {
     const d = def(c);
     if (d.shan && !c.asSha) return '闪只能在响应窗口打出';
+    if (d.wuxie && !c.asSha) return '无懈可击只能在响应窗口打出';
     if (c.asSha && !this.canAsSha(c)) return '此牌不能当杀使用';
     if (this.costOf(c) > this.p.ling) return '军令不足';
     if (d.tao && !c.asSha && this.p.hp >= this.p.maxHp) return '体力已满';
     if (d.needRed && !c.asSha && !this.hand.some((x) => x !== c && isRed(x))) return `${d.name}需另一张红色牌`;
     const zl = CONFIG.rules.mechanics.zeroCostPerTurn;
-    if (zl != null && !d.shan && this.costOf(c) === 0 && (this.zeroCostPlays.get(c.id) ?? 0) >= zl) return `0 费牌每回合限 ${zl} 次`;
+    if (zl != null && !d.shan && !d.response && this.costOf(c) === 0 && (this.zeroCostPlays.get(c.id) ?? 0) >= zl) return `0 费牌每回合限 ${zl} 次`;
     const own = this.effects.cardSources(c, false).find((s) => s.ab.trigger.when === 'play' && !c.asSha);
     if (own && this.effects.remaining(own) <= 0) return '本回合已使用过';
     return null;
@@ -317,7 +324,7 @@ export class Game {
     const p = this.p;
     const cost = this.costOf(c);
     p.ling -= cost;
-    if (cost === 0 && !d.shan) this.zeroCostPlays.set(c.id, (this.zeroCostPlays.get(c.id) ?? 0) + 1);
+    if (cost === 0 && !d.shan && !d.response) this.zeroCostPlays.set(c.id, (this.zeroCostPlays.get(c.id) ?? 0) + 1);
     if (isShaPlay(c) && d.cost + this.effects.cardStat(c, 'card_cost') > 0) this.effects.stat('sha_cost', true);
     if (isShaPlay(c)) p.lianShan = 0;
     const wasSha = !!c.asSha;
@@ -615,6 +622,8 @@ export class Game {
         } else if (k.t === '咒' && !skipAtk && this.hand.length) {
           if (this.effects.stat('immune_curse') > 0) {
             this.log(`谦逊：${e.name}的妖咒无效`);
+          } else if (await this.wuxieWindow('妖咒', e)) {
+            this.log(`${e.name}的妖咒被无懈可击抵消`);
           } else {
             const c = this.hand[rndInt(this.rng, this.hand.length)];
             this.toDiscard(c);
@@ -636,6 +645,25 @@ export class Game {
     });
     if (!this.over) this.playerTurn();
   }
+  /**
+   * 锦囊 → 无懈可击决策点（PRD 5.9.2）：敌方锦囊对你生效前，若手里有无懈可击，询问是否打出。
+   * 返回 true = 该锦囊被抵消。手里没有合法牌时不开窗口。
+   * 未实装：敌人「无懈标记」与再无懈连锁（MVP 最多 2 次）——敌人侧尚无配置。
+   */
+  async wuxieWindow(trick: string, from: Enemy | null): Promise<boolean> {
+    const legal = (c: CardInst) => !!def(c)?.wuxie;
+    if (!this.hand.some(legal)) return false;
+    const who = from ? `${from.name} ` : '';
+    const used = await this.io.respond(`${who}对你使用【${trick}】，可打出【无懈可击】使其无效`, legal, '不出无懈', true, 'wuxie');
+    if (!used || !this.hand.includes(used) || !legal(used)) return false;
+    this.toDiscard(used);
+    const r = await this.effects.emit('targeted_by_trick', this.effects.cardSources(used, false), { source: from ?? undefined });
+    if (!r.negatedBy) return false;
+    this.log(`你打出【${def(used).name}】，【${trick}】无效`);
+    this.io.update();
+    await this.checkEmpty();
+    return true;
+  }
   /** 敌人出杀 → 护主 → 八卦阵（被动免伤配额）→ 玩家闪响应窗口（含龙胆/倾国转化） */
   async enemySha(e: Enemy, n: number, mod?: string): Promise<string> {
     this.log(`${e.name}对你出【杀】${mod ? '[' + mod + ']' : ''}（${n}点）`);
@@ -649,7 +677,7 @@ export class Game {
     let used: CardInst | null = null;
     if (shans.length) {
       const real = shans.find((c) => def(c).shan);
-      used = this.settings.autoShan ? (real ?? shans[0]) : await this.io.respond(`${e.name} 对你使用【杀】，伤害 ${n}`, legal, '不出闪', true);
+      used = this.settings.autoShan ? (real ?? shans[0]) : await this.io.respond(`${e.name} 对你使用【杀】，伤害 ${n}`, legal, '不出闪', true, 'shan');
     }
     if (used) {
       const conv = !def(used).shan ? this.effects.convertFor(used, 'B004') : undefined;
@@ -695,7 +723,7 @@ export class Game {
     const ok = (c: CardInst) => !!(def(c).tao || def(c).jiu);
     while (this.p.hp <= 0) {
       if (!this.hand.some(ok)) break;
-      const c = await this.io.respond(`濒死！体力 ${this.p.hp}，可用【桃】或【酒】自救`, ok, '放弃', false);
+      const c = await this.io.respond(`濒死！体力 ${this.p.hp}，可用【桃】或【酒】自救`, ok, '放弃', false, 'tao');
       if (!c) break;
       this.toDiscard(c);
       this.heal(1 + (def(c).tao ? this.effects.cardStat(c, 'heal_amount') : 0));

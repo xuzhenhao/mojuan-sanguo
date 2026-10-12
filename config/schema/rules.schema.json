@@ -277,6 +277,49 @@
       "additionalProperties": false,
       "description": "未指定选将时的默认主将 / 副将"
     },
+    "shop": {
+      "type": "object",
+      "description": "商店（PRD 14.2）",
+      "required": [
+        "cardPrice"
+      ],
+      "properties": {
+        "cardPrice": {
+          "type": "object",
+          "description": "卡牌按稀有度的基础价（浮动前）；卡牌可用 shopPrice 单独覆盖",
+          "required": [
+            "N",
+            "R",
+            "E",
+            "L"
+          ],
+          "properties": {
+            "N": {
+              "type": "integer",
+              "minimum": 0,
+              "multipleOf": 5
+            },
+            "R": {
+              "type": "integer",
+              "minimum": 0,
+              "multipleOf": 5
+            },
+            "E": {
+              "type": "integer",
+              "minimum": 0,
+              "multipleOf": 5
+            },
+            "L": {
+              "type": "integer",
+              "minimum": 0,
+              "multipleOf": 5
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "sim": {
       "type": "object",
       "required": [

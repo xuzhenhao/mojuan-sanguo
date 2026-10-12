@@ -5,7 +5,7 @@
 import './style.css';
 import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
-import { FlowMachine, viewOf, type FlowEvent, type Page } from '../../game/flow';
+import { FlowMachine, PAGES, viewOf, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
@@ -26,7 +26,7 @@ const engine = new Engine(platform, {}, cfg);
 const run = new RunSession();
 const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : null));
 const send = (e: FlowEvent) => void router.send(e);
-const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
+const pages: Page[] = PAGES;
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
 // P1 点将（#43）：出征 → core 新建局 → FlowMachine start_run → 地图
 const query = platform.launchQuery();
