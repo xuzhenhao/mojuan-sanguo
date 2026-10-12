@@ -13,6 +13,7 @@ import { initialState } from '../../game/select/model';
 import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { createMapScene } from '../../game/map';
+import { registerP4 } from '../../game/scenes/p4-register';
 import { createWebPlatform } from './platform';
 import brushUrl from '../../../public/mockups/v3/fonts/brush.woff?url';
 
@@ -62,6 +63,8 @@ engine.scenes.register('map', () =>
     () => run.params?.seed,
   ),
 );
+// P4 奖励 / 集市 / 宝箱（#45）：替换占位页
+const economy = registerP4({ engine, query, safe: () => platform.systemInfo().safeArea, send, run });
 const router = new Router(flow, engine.scenes);
 // P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
 engine.scenes.register(
@@ -100,4 +103,4 @@ if (q && pages.includes(q)) {
 if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
 else void router.start();
 engine.start();
-(window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router, run };
+(window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router, run, economy };
