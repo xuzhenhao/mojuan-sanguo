@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from '../src/engine/engine';
-import { BATTLE_BAKE_PLAN, GL_FX_BYTES, TEXT_CACHE_BYTES } from '../src/engine/budget-plan';
+import { BATTLE_BAKE_FULL, BATTLE_BAKE_TYPICAL, type BakePlan, GL_FX_BYTES, TEXT_CACHE_BYTES } from '../src/engine/budget-plan';
 import { AtlasManager, bakeSize, CANVAS2D_ATLASES, MB, TextureBudget, tierScale } from '../src/engine/memory';
 import { DEFAULT_RENDER_CONFIG } from '../src/engine/settings';
 import { fakePlatform } from './engine-fakes';
 
 /** 复算战斗页峰值（390×844 @2x），返回 MB 分项 */
-function battlePeak(o: { webgl: boolean; half?: boolean }) {
+function battlePeak(o: { webgl: boolean; half?: boolean; plan?: BakePlan }) {
   const f = fakePlatform({ webgl: o.webgl, query: o.half === false ? { half: '0' } : {} });
   const e = new Engine(f.p, {}, DEFAULT_RENDER_CONFIG);
   e.atlases.enterScene('battle');
   let i = 0;
   let peak = 0;
-  for (const b of BATTLE_BAKE_PLAN)
+  for (const b of o.plan ?? BATTLE_BAKE_FULL)
     for (let k = 0; k < b.count; k++) {
       const { w, h } = bakeSize(b.wDp, b.hDp, e.bakeScale);
       e.bakes.get(
@@ -30,7 +30,8 @@ function battlePeak(o: { webgl: boolean; half?: boolean }) {
   const r = e.budget.report();
   peak = Math.max(peak, r.used + (e.atlases.isBaked('generals_battle') ? 768 * 768 * 4 : 0));
   const by = Object.fromEntries(r.categories.map((c) => [c.category, +(c.used / MB).toFixed(2)]));
-  return { e, total: +(r.used / MB).toFixed(2), peak: +(peak / MB).toFixed(2), by };
+  const bake = +((r.categories.find((c) => c.category === 'bake')?.used ?? 0) / MB).toFixed(2);
+  return { e, bake, total: +(r.used / MB).toFixed(2), peak: +(peak / MB).toFixed(2), by };
 }
 
 describe('2D 路径分辨率分级（render-spec §12.5）', () => {
@@ -84,16 +85,33 @@ describe('2D 路径分辨率分级（render-spec §12.5）', () => {
     expect(e.atlases.isLoaded('generals_select')).toBe(true);
   });
 
-  it('战斗页峰值：WebGL 关/开 均 ≤50MB 且低于 45MB 告警线；关半尺寸会超标', () => {
+  it('预算判定用满载口径（LRU 打满，手牌 10/敌人 5 满编）：WebGL 关/开 ×1.5 ≤50MB，峰值 ≤45MB；关半尺寸超标', () => {
     const off = battlePeak({ webgl: false });
     const on = battlePeak({ webgl: true });
     const full = battlePeak({ webgl: false, half: false });
-    // 稳态 ×1.5 浏览器开销仍 ≤50MB；峰值（立绘源图烘焙前在内存）≤45MB 告警线
+    const tOff = battlePeak({ webgl: false, plan: BATTLE_BAKE_TYPICAL });
+    const tOn = battlePeak({ webgl: true, plan: BATTLE_BAKE_TYPICAL });
+    if (process.env.PRINT_BUDGET)
+      console.log(
+        JSON.stringify({
+          tOff: [tOff.bake, tOff.total, tOff.peak],
+          tOn: [tOn.bake, tOn.total, tOn.peak],
+          off: [off.bake, off.total, off.peak],
+          on: [on.bake, on.total, on.peak],
+          half0: full.total,
+        }),
+      );
+    // 满载：LRU 上限打满的烘焙缓存 （手牌 10）≈ render-spec §12.2
+    expect(off.bake).toBeGreaterThanOrEqual(2.3);
+    expect(off.bake).toBeLessThanOrEqual(2.8);
     expect(off.total * 1.5).toBeLessThanOrEqual(50);
     expect(on.total * 1.5).toBeLessThanOrEqual(50);
     expect(off.peak).toBeLessThanOrEqual(45);
     expect(on.peak).toBeLessThanOrEqual(45);
     expect(on.total).toBeGreaterThan(off.total);
+    // 典型组合只用于稳态展示，必然不高于满载
+    expect(tOff.total).toBeLessThanOrEqual(off.total);
+    expect(tOn.total).toBeLessThanOrEqual(on.total);
     expect(full.total).toBeGreaterThan(off.total + 15);
   });
 });

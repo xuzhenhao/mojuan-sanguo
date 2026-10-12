@@ -151,7 +151,11 @@ export class Engine {
   frame(dt: number) {
     this.gestures.tick(this.platform.now());
     this.scenes.update(dt);
-    if (this.overlays.animating()) this.surfaces.main.dirty = true; // 弹层动画/倒计时：每帧重绘 main
+    this.overlays.update(dt);
+    // 弹层出帧：短动画整层重绘 main；倒计时只局部重绘（render-spec §12：空闲/等待时不整层重绘）
+    const anim = this.overlays.animating();
+    if (anim === 'full') this.surfaces.main.dirty = true;
+    const mainFull = this.surfaces.main.dirty;
     for (const s of Object.values(this.surfaces)) {
       if (!s.dirty) continue;
       const k = this.dpr * s.scale;
@@ -159,6 +163,12 @@ export class Engine {
       if (this.scenes.current) this.scenes.draw(s.name, s, dt);
       this.hooks.draw?.(s.name, s, dt);
       if (s.name === 'main') this.overlays.draw(s, dt);
+    }
+    if (anim === 'tick' && !mainFull) {
+      const m = this.surfaces.main;
+      m.ctx.setTransform(this.dpr * m.scale, 0, 0, this.dpr * m.scale, 0, 0);
+      this.overlays.tick(m);
+      m.dirty = true; // 只为触发合成（3 次 drawImage），不整层重绘
     }
     this.compositor.compose(this.surfaces);
     const tfx = this.scenes.transitionFx;
@@ -169,7 +179,7 @@ export class Engine {
     return (
       this.gestures.active ||
       this.scenes.animating() ||
-      this.overlays.animating() ||
+      !!this.overlays.animating() ||
       !!this.hooks.animating?.() ||
       (this.overlay ? WebGLOverlay.needsFrame(this.fx) : false)
     );

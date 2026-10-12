@@ -49,8 +49,13 @@ checks:
 # 未指定选将时的默认组合（8 将全部免费，可任选主将 / 副将）
 defaultHeroes: { main: H03, sub: H04 }
 
-# 自动对局整章模拟：战间回复体力（用户确认的验收口径：战间各回 1 体力）
-betweenBattleHeal: 1
+# 战间回复体力，拆成两项（PRD 0.5.4 §10.4；design-v1 §12.2）
+# sim：3 战回归基线口径（自动对局 / bstat），战间各回 1 体力，模拟营地/丹药等回复
+sim:
+  baselineBetweenBattleHeal: 1
+# map：真实游戏与正式地图流程，H5 不加战后回复（回复由营地、丹药、桃提供）
+map:
+  betweenBattleHeal: 0
 
 # 商店卡牌基础价（PRD 14.2，浮动前；卡牌 shopPrice 可单独覆盖）
 shop:

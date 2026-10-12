@@ -63,23 +63,52 @@ export function text(c: Ctx2DLike, s: string, x: number, y: number, font: string
   c.fillText?.(s, x, y);
 }
 
-/** 估算文字宽度（无 measureText 时：CJK 按字号、ASCII 按半字号） */
+/** 文字宽度：优先 measureText（按 font+文本缓存）；无 measureText 时按字号估算 */
+const widthCache = new Map<string, number>();
 export function textWidth(c: Ctx2DLike, s: string, px: number) {
   const m = ext(c).measureText;
-  if (m) return m.call(c, s).width;
+  if (m) {
+    const k = `${c.font}|${s}`;
+    let w = widthCache.get(k);
+    if (w == null) {
+      w = m.call(c, s).width;
+      if (widthCache.size > 2000) widthCache.clear();
+      widthCache.set(k, w);
+    }
+    return w;
+  }
   let w = 0;
   for (const ch of s) w += ch.charCodeAt(0) > 0x2e80 ? px : px * 0.55;
   return w;
 }
 
-/** 按宽度折行（逐字，中文无空格） */
+/** 水平居中绘制（measureText 定宽） */
+export function textCenter(c: Ctx2DLike, s: string, cx: number, y: number, font: string, color: string, px: number) {
+  c.font = font;
+  text(c, s, cx - textWidth(c, s, px) / 2, y, font, color);
+}
+
+/** 避头：不能出现在行首的标点；避尾：不能出现在行尾的标点 */
+export const NO_LINE_START = new Set('）)」』】》〉，。、；：！？…—·%'.split(''));
+export const NO_LINE_END = new Set('（(「『【《〈'.split(''));
+
+/** 按宽度折行（逐字，中文无空格），带标点避头尾：行首标点挂到上一行末（悬挂），行尾开括号移到下一行 */
 export function wrap(c: Ctx2DLike, s: string, maxW: number, px: number): string[] {
   const out: string[] = [];
   let cur = '';
   for (const ch of s) {
     if (cur && textWidth(c, cur + ch, px) > maxW) {
+      if (NO_LINE_START.has(ch)) {
+        cur += ch; // 悬挂标点：允许略超行宽
+        continue;
+      }
+      let carry = '';
+      while (cur.length > 1 && NO_LINE_END.has(cur[cur.length - 1])) {
+        carry = cur[cur.length - 1] + carry;
+        cur = cur.slice(0, -1);
+      }
       out.push(cur);
-      cur = ch;
+      cur = carry + ch;
     } else cur += ch;
   }
   if (cur) out.push(cur);

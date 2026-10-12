@@ -24,7 +24,8 @@ import {
 import type { AffixDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, Slot } from './types';
 
 /** 战间回复后的体力（core 与自动试玩共用同一规则，#56） */
-export const betweenBattleHeal = (hp: number, maxHp: number) => Math.min(maxHp, hp + (CONFIG.rules.betweenBattleHeal ?? 0));
+/** 战间回复：amount 默认取 rules.map.betweenBattleHeal（游戏，H5 = 0，PRD §10.4）；模拟传 rules.sim.baselineBetweenBattleHeal */
+export const betweenBattleHeal = (hp: number, maxHp: number, amount: number = CONFIG.rules.map.betweenBattleHeal) => Math.min(maxHp, hp + Math.max(0, amount));
 
 /** 响应决策点类型 */
 export type RespondKind = 'shan' | 'tao' | 'wuxie';
@@ -719,9 +720,9 @@ export class Game {
     }
     return false;
   }
-  /** 战间回复（V1：rules.betweenBattleHeal = 1）：只在胜利后进入下一场时生效，不超过体力上限 */
-  nextBattle() {
-    const healed = betweenBattleHeal(this.p.hp, this.p.maxHp);
+  /** 战间回复：默认 rules.map.betweenBattleHeal（H5 = 0，不回血）；只在胜利后进入下一场时生效，不超过体力上限 */
+  nextBattle(heal: number = CONFIG.rules.map.betweenBattleHeal) {
+    const healed = betweenBattleHeal(this.p.hp, this.p.maxHp, heal);
     if (healed > this.p.hp) this.log(`战间休整：回复 ${healed - this.p.hp} 点体力`);
     this.p.hp = healed;
     this.battleIdx++;
