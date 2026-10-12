@@ -238,7 +238,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   };
 }
 
-/** 整章：依次打完所有战斗，体力继承；战间回复 rules.betweenBattleHeal（V1：1） */
+/** 整章：依次打完所有战斗，体力继承；战间回复 rules.sim.baselineBetweenBattleHeal（3 战基线口径：1） */
 export async function runChapter(seed: number, h0: HeroOpts = {}) {
   const h = resolveHeroes(h0);
   const res: GameStats[] = [];
@@ -247,7 +247,7 @@ export async function runChapter(seed: number, h0: HeroOpts = {}) {
     const r = await runBattle({ ...h, battleIdx: i, seed: seed * 31 + i, hp });
     res.push(r);
     if (!r.win) return { clear: false, res, hpAtLast: i === BATTLES.length - 1 ? r.hpStart : null };
-    hp = betweenBattleHeal(r.hpEnd, r.maxHp);
+    hp = betweenBattleHeal(r.hpEnd, r.maxHp, CONFIG.rules.sim.baselineBetweenBattleHeal);
   }
   return { clear: true, res, hpAtLast: res[res.length - 1].hpStart };
 }
@@ -350,7 +350,7 @@ export function report(title: string, per: { idx: number; s: Summary }[], ch: { 
     );
   L.push(
     '',
-    `## 整章（${ch.n} 局，体力继承，战间回 ${CONFIG.rules.betweenBattleHeal ?? 0}）`,
+    `## 整章（${ch.n} 局，体力继承，战间回 ${CONFIG.rules.sim.baselineBetweenBattleHeal}）`,
     '',
     `- 通关率 ${pct(ch.clear, ch.n)}`,
     `- 到达最后一战时体力中位数 ${f(quantile(ch.hpAtLast, 0.5))}（样本 ${ch.hpAtLast.length}）`,
