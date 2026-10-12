@@ -91,11 +91,11 @@ export interface ConfigBundle {
     rarityWeight: Record<'N' | 'R' | 'E' | 'L', number>;
     pendingValues?: Record<string, number>;
     defaultHeroes: { main: string; sub: string };
+    shop?: { cardPrice: Record<'N' | 'R' | 'E' | 'L', number> };
     /** 3 战回归基线（自动对局 / bstat）专用 */
     sim: { baselineBetweenBattleHeal: number };
     /** 真实游戏 / 正式地图 */
     map: { betweenBattleHeal: number };
-    shop?: { cardPrice: Record<'N' | 'R' | 'E' | 'L', number> };
     presets?: Record<string, { main: string; sub: string; deck?: string; forceCombos?: string[] }>;
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };

@@ -8,6 +8,9 @@ type: 锦囊
 tags: [trick]
 cost: 1
 rarity: N
+# design-v1.md 11.2：不进任何起始牌组；进通用奖励池，N 档等权；商店价 40
+rewardWeight: 1
+shopPrice: 40
 target: any
 desc: 无视距离。弃置一名敌人 1 枚闪标记；若其没有闪标记，改为弃置其至多 3 点护甲。然后你摸 1 张牌。
 abilities:
