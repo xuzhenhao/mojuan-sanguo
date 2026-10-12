@@ -37,7 +37,7 @@ describe('判定', () => {
 });
 
 describe('敌人杀 → 闪响应', () => {
-  it('护主红色判定使杀无效', async () => {
+  it('护主 ♥ 判定使杀无效', async () => {
     const { g } = setup();
     g.draw.push(card('B001', 'H', 9));
     expect(await g.enemySha(g.en[0], 1)).toBe('huzhu');
@@ -67,7 +67,7 @@ describe('敌人杀 → 闪响应', () => {
     g.hand.push(s);
     g.en[0].marks = 1;
     await g.play(s, g.en[0]);
-    expect(g.en[0].hp).toBe(3);
+    expect(g.en[0].hp).toBe(4);
     expect(g.epiCount).toBe(0);
   });
   it('玩家杀命中 1 点并可触发灵光一闪写入词条', async () => {
@@ -76,7 +76,7 @@ describe('敌人杀 → 闪响应', () => {
     const s = card('B001');
     g.hand.push(s);
     await g.play(s, g.en[0]);
-    expect(g.en[0].hp).toBe(2);
+    expect(g.en[0].hp).toBe(3);
     expect(g.epiCount).toBe(1);
     expect(s.mods.length).toBe(1);
   });

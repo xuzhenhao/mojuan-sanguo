@@ -442,8 +442,9 @@ export class Game {
     if (!this.huzhuUsed) {
       this.huzhuUsed = true;
       const r = await this.judge('副将·护主');
-      if (judgeRed(r)) {
-        this.log('护主：红色，此杀无效');
+      // PRD 0.3 7.3：护主仅 ♥ 生效（原为红色）
+      if (r.suit === 'H') {
+        this.log('护主：♥，此杀无效');
         return 'huzhu';
       }
     }

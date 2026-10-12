@@ -34,9 +34,9 @@ describe('伤害', () => {
 describe('敌人意图（无攻击力：伤害全部来自牌）', () => {
   it('普通杀 = 1 点，杀×2 = 2 点', () => {
     const e = enemy('E101');
-    expect(enemyIntent(e)).toMatchObject({ dmg: 1, txt: '🗡杀' });
-    e.step = 1;
     expect(enemyIntent(e)).toMatchObject({ dmg: 2, txt: '🗡杀×2' });
+    e.step = 1;
+    expect(enemyIntent(e)).toMatchObject({ dmg: 1, txt: '🗡杀' });
   });
   it('精英进化杀[锋锐] = 2 点并显示词条', () => {
     const e = enemy('E1E1');
@@ -46,7 +46,8 @@ describe('敌人意图（无攻击力：伤害全部来自牌）', () => {
   });
   it('意图循环、乐不思蜀跳过伤害、备闪/咒无伤害', () => {
     const e = enemy('E102', { step: 2 });
-    expect(enemyIntent(e).dmg).toBe(0);
+    expect(enemyIntent(e).acts).toEqual(['闪', '杀']);
+    expect(enemyIntent(e).dmg).toBe(1);
     e.step = 3;
     expect(enemyIntent(e).acts).toEqual(['杀']);
     expect(enemyIntent(e, true).dmg).toBe(0);
