@@ -7,7 +7,8 @@ import { CONFIG } from './config';
  */
 export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
   Object.values(CONFIG.enemies).map((e) => {
-    const d: EnemyDef = { name: e.name, hp: e.hp, row: e.row, pat: e.intents as EnemyAct[][], flash: e.flashMarksPerTurn ?? 0, g: e.glyph };
+    const d: EnemyDef = { name: e.name, hp: e.hp, row: e.row, pat: e.intents as EnemyAct[][], flash: e.flashMarksPerTurn ?? 0, g: e.glyph, tier: e.tier };
+    if (e.abilities) d.abilities = e.abilities;
     if (e.tier !== '小怪') d.elite = true;
     if (e.desc) d.skill = e.desc;
     return [e.id, d];

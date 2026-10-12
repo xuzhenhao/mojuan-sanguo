@@ -32,6 +32,13 @@ pendingValues:
   jinchuangyao: 4 # 金创药
   qijinqichu: 3 # 七进七出
 
+# 机制开关（数据驱动 ②引入；默认值 = 现行行为，第③步套 V1 时打开）
+mechanics:
+  judgeSource: deck # deck = 从玩家摸牌堆判定（现行）；pool = 独立「天机签筒」（M1，52 张标准花色，红 50%）
+  passiveQuotaPerEnemyTurn: null # 被动免伤配额（M2）：每个敌方回合 limit.passiveQuota 能力合计最多生效几次；null = 不限（V1：2）
+  moying: false # 墨影（M3）：精英/Boss 在玩家满血时本回合多打出 1 张【杀】
+  zeroCostPerTurn: null # 0 费非响应牌每回合每种限几次（M4）；null = 不限（V1：1）
+
 # 业务校验开关：第①步保持原型数值，第③步套 V1 时开启
 checks:
   starterRedRatio: null # V1：0.5

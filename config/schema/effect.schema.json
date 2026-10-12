@@ -6,31 +6,102 @@
   "$defs": {
     "target": {
       "description": "作用对象。self=自己(主将)；chosen=打出时选择的目标；source=伤害/杀的来源；all_enemies=全体敌人；front_row/back_row=前/后排；random_enemy=随机敌人；ally_of_source=来源的随机友军；current_sha=正在结算的那张杀",
-      "enum": ["self", "chosen", "source", "all_enemies", "front_row", "back_row", "random_enemy", "ally_of_source", "current_sha"]
+      "enum": [
+        "self",
+        "chosen",
+        "source",
+        "all_enemies",
+        "front_row",
+        "back_row",
+        "random_enemy",
+        "ally_of_source",
+        "current_sha"
+      ]
     },
     "cardFilter": {
       "type": "object",
       "description": "牌筛选器，所有字段同时满足",
       "properties": {
-        "card": { "type": "string", "description": "卡牌 id，如 B001" },
-        "tag": { "type": "string", "description": "卡牌标签，如 sha(杀类)、shan(闪类)、trick(锦囊)" },
-        "color": { "enum": ["red", "black"] },
-        "suit": { "type": "array", "items": { "enum": ["S", "H", "C", "D"] } },
-        "zone": { "enum": ["hand", "equip", "deck", "discard"], "default": "hand" }
+        "card": {
+          "type": "string",
+          "description": "卡牌 id，如 B001"
+        },
+        "tag": {
+          "type": "string",
+          "description": "卡牌标签，如 sha(杀类)、shan(闪类)、trick(锦囊)"
+        },
+        "color": {
+          "enum": [
+            "red",
+            "black"
+          ]
+        },
+        "suit": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "S",
+              "H",
+              "C",
+              "D"
+            ]
+          }
+        },
+        "zone": {
+          "enum": [
+            "hand",
+            "equip",
+            "deck",
+            "discard"
+          ],
+          "default": "hand"
+        }
       },
       "additionalProperties": false
     },
     "trigger": {
       "type": "object",
-      "required": ["when"],
+      "required": [
+        "when"
+      ],
       "properties": {
         "when": {
           "description": "触发时机（注意：键名不用 on，YAML 1.1 会把 on 解析成布尔 true）。static=锁定改规则（无需事件）；play=打出本牌时；equip=装备进入装备区时",
-          "enum": ["static", "play", "equip", "battle_start", "turn_start", "turn_end", "enemy_turn_start", "enemy_turn_end",
-                   "targeted_by_sha", "sha_resolved", "deal_damage", "damaged", "kill", "hand_empty", "heal", "dying", "judge_shown", "card_converted", "active"]
+          "enum": [
+            "static",
+            "play",
+            "equip",
+            "battle_start",
+            "turn_start",
+            "turn_end",
+            "enemy_turn_start",
+            "enemy_turn_end",
+            "targeted_by_sha",
+            "sha_resolved",
+            "deal_damage",
+            "damaged",
+            "kill",
+            "hand_empty",
+            "heal",
+            "dying",
+            "judge_shown",
+            "card_converted",
+            "active"
+          ]
         },
-        "filter": { "$ref": "#/$defs/cardFilter", "description": "仅当触发事件涉及的牌满足筛选时" },
-        "who": { "enum": ["owner", "main_hero", "any_enemy"], "default": "owner", "description": "谁的事件。副将技用 main_hero" }
+        "filter": {
+          "$ref": "#/$defs/cardFilter",
+          "description": "仅当触发事件涉及的牌满足筛选时"
+        },
+        "who": {
+          "enum": [
+            "owner",
+            "main_hero",
+            "any_enemy"
+          ],
+          "default": "owner",
+          "description": "谁的事件。副将技用 main_hero"
+        }
       },
       "additionalProperties": false
     },
@@ -38,67 +109,265 @@
       "type": "object",
       "description": "限次。passiveQuota=true 表示该效果计入「被动免伤配额」(每个敌方回合共享，默认 2 次)",
       "properties": {
-        "per": { "enum": ["turn", "enemy_turn", "battle", "run"] },
-        "times": { "type": "integer", "minimum": 1 },
-        "everyNTurns": { "type": "integer", "minimum": 2 },
-        "passiveQuota": { "type": "boolean", "default": false }
+        "per": {
+          "enum": [
+            "turn",
+            "enemy_turn",
+            "battle",
+            "run"
+          ]
+        },
+        "times": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "everyNTurns": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "passiveQuota": {
+          "type": "boolean",
+          "default": false
+        }
       },
       "additionalProperties": false
     },
     "condition": {
       "type": "object",
       "description": "条件原子（填一个 type）",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": { "enum": ["hp_full", "hp_at_least", "hp_lost", "hand_less_than_hp", "hand_count_at_least", "sha_index_in_turn_at_least",
-                            "target_has_status", "target_armor_zero", "partner_is", "partner_faction_is", "has_back_row_ally", "ling_left_at_least", "chapter_is"] },
-        "value": { "type": ["integer", "string"] },
-        "status": { "type": "string" },
-        "not": { "type": "boolean", "default": false }
+        "type": {
+          "enum": [
+            "hp_full",
+            "hp_at_least",
+            "hp_lost",
+            "hand_less_than_hp",
+            "hand_count_at_least",
+            "sha_index_in_turn_at_least",
+            "target_has_status",
+            "target_armor_zero",
+            "partner_is",
+            "partner_faction_is",
+            "has_back_row_ally",
+            "ling_left_at_least",
+            "chapter_is"
+          ]
+        },
+        "value": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "not": {
+          "type": "boolean",
+          "default": false
+        }
       },
       "additionalProperties": false
     },
     "action": {
       "type": "object",
       "description": "效果原子（填一个 do）",
-      "required": ["do"],
+      "required": [
+        "do"
+      ],
       "properties": {
-        "do": { "enum": ["damage", "lose_hp", "heal", "armor", "remove_armor", "draw", "discard", "gain_ling", "negate_sha",
-                         "judge", "apply_status", "modify", "convert", "redirect_sha", "remove_flash_mark", "add_enemy_acts", "summon", "chain", "reveal_intent"] },
-        "target": { "$ref": "#/$defs/target" },
-        "amount": { "type": "integer", "description": "数值（伤害/摸牌/护甲/回复…）" },
-        "element": { "enum": ["normal", "fire", "thunder"], "default": "normal" },
-        "asSha": { "type": "boolean", "description": "视为杀（走闪响应、闪标记）" },
-        "undodgeable": { "type": "boolean", "description": "不可闪" },
-        "success": { "description": "judge 用：签面成功条件", "type": "object",
-                     "properties": { "color": { "enum": ["red", "black"] }, "suit": { "type": "array", "items": { "enum": ["S","H","C","D"] } }, "rankRange": { "type": "array", "items": { "type": "integer" } }, "not": { "type": "boolean" } } },
-        "then": { "type": "array", "items": { "$ref": "#/$defs/action" } },
-        "else": { "type": "array", "items": { "$ref": "#/$defs/action" } },
-        "status": { "type": "string", "description": "apply_status 的状态 id（见 statuses/*.yaml），如 chain、lebu、next_sha_bonus" },
-        "duration": { "type": "integer", "description": "持续回合数" },
-        "stat": { "type": "string", "description": "modify 的属性，如 sha_damage、sha_cost、hand_limit、draw_per_turn、ling_per_turn、flash_marks_to_dodge" },
-        "scope": { "enum": ["next_sha", "this_turn", "battle", "permanent"] },
-        "from": { "$ref": "#/$defs/cardFilter", "description": "convert：被转化的牌" },
-        "as": { "type": "string", "description": "convert：当作哪张牌（id）" },
-        "acts": { "type": "array", "items": { "type": "string" }, "description": "add_enemy_acts：追加的意图牌，如 [\"杀\"]" },
-        "enemy": { "type": "string", "description": "summon：敌人 id" }
+        "do": {
+          "enum": [
+            "damage",
+            "lose_hp",
+            "heal",
+            "armor",
+            "remove_armor",
+            "draw",
+            "discard",
+            "gain_ling",
+            "negate_sha",
+            "judge",
+            "apply_status",
+            "modify",
+            "convert",
+            "redirect_sha",
+            "remove_flash_mark",
+            "add_enemy_acts",
+            "summon",
+            "chain",
+            "reveal_intent"
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "amount": {
+          "type": "integer",
+          "description": "数值（伤害/摸牌/护甲/回复…）"
+        },
+        "element": {
+          "enum": [
+            "normal",
+            "fire",
+            "thunder"
+          ],
+          "default": "normal"
+        },
+        "asSha": {
+          "type": "boolean",
+          "description": "视为杀（走闪响应、闪标记）"
+        },
+        "undodgeable": {
+          "type": "boolean",
+          "description": "不可闪"
+        },
+        "success": {
+          "description": "judge 用：签面成功条件",
+          "type": "object",
+          "properties": {
+            "color": {
+              "enum": [
+                "red",
+                "black"
+              ]
+            },
+            "suit": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "S",
+                  "H",
+                  "C",
+                  "D"
+                ]
+              }
+            },
+            "rankRange": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "not": {
+              "type": "boolean"
+            }
+          }
+        },
+        "then": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "else": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "apply_status 的状态 id：jiu（酒：下一张杀+1）、aogu（傲骨：下一张杀+1）、yiyong（义勇：下一张杀+1 且无视距离）、lebu（乐不思蜀：置入判定区）"
+        },
+        "duration": {
+          "type": "integer",
+          "description": "持续回合数"
+        },
+        "stat": {
+          "type": "string",
+          "description": "modify 的属性，如 sha_damage、sha_cost、hand_limit、draw_per_turn、ling_per_turn、flash_marks_to_dodge"
+        },
+        "scope": {
+          "enum": [
+            "next_sha",
+            "this_turn",
+            "battle",
+            "permanent"
+          ]
+        },
+        "from": {
+          "$ref": "#/$defs/cardFilter",
+          "description": "convert：被转化的牌"
+        },
+        "as": {
+          "type": "string",
+          "description": "convert：当作哪张牌（id）"
+        },
+        "acts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "add_enemy_acts：追加的意图牌，如 [\"杀\"]"
+        },
+        "enemy": {
+          "type": "string",
+          "description": "summon：敌人 id"
+        }
       },
       "additionalProperties": false
     },
     "ability": {
       "type": "object",
-      "required": ["id", "name", "desc", "trigger", "do"],
+      "required": [
+        "id",
+        "name",
+        "desc",
+        "trigger",
+        "do"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string", "description": "显示名" },
-        "kind": { "enum": ["锁定技", "主动技", "响应技", "被动"], "description": "技能类型（展示用）" },
-        "desc": { "type": "string", "description": "玩家可见规则文本（中文）" },
-        "note": { "type": "string", "description": "策划备注：价值计算、设计意图（不显示给玩家）" },
-        "value": { "type": "number", "description": "价值模型估算（点/场），供平衡表汇总" },
-        "trigger": { "$ref": "#/$defs/trigger" },
-        "limit": { "$ref": "#/$defs/limit" },
-        "if": { "type": "array", "items": { "$ref": "#/$defs/condition" } },
-        "do": { "type": "array", "items": { "$ref": "#/$defs/action" }, "minItems": 1 }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "显示名"
+        },
+        "kind": {
+          "enum": [
+            "锁定技",
+            "主动技",
+            "响应技",
+            "被动"
+          ],
+          "description": "技能类型（展示用）"
+        },
+        "desc": {
+          "type": "string",
+          "description": "玩家可见规则文本（中文）"
+        },
+        "note": {
+          "type": "string",
+          "description": "策划备注：价值计算、设计意图（不显示给玩家）"
+        },
+        "value": {
+          "type": "number",
+          "description": "价值模型估算（点/场），供平衡表汇总"
+        },
+        "trigger": {
+          "$ref": "#/$defs/trigger"
+        },
+        "limit": {
+          "$ref": "#/$defs/limit"
+        },
+        "if": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "do": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          },
+          "minItems": 1
+        }
       },
       "additionalProperties": false
     }
