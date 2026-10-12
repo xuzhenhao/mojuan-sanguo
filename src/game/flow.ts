@@ -33,6 +33,8 @@ export function viewOf(g: Pick<Game, 'over' | 'isLast' | 'battleIdx' | 'p'>): Ru
   return { battleOver: g.over, alive: g.p.hp > 0, isLast: g.isLast, battleIdx: g.battleIdx };
 }
 
+const abandon = () => 'result' as const;
+
 const TABLE: Record<Page, Partial<Record<FlowEvent['type'], (e: FlowEvent, v: RunStateView | null) => Page>>> = {
   select: { start_run: () => 'map' },
   map: { enter_node: (e) => (e as { node: 'battle' | 'shop' | 'chest' }).node },

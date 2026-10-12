@@ -104,3 +104,10 @@ export function createWebPlatform(root: HTMLElement): Platform {
     warn: (m, d) => console.warn(m, d ?? ''),
   };
 }
+
+/** 调试状态栏（WebGL/dpr/纹理内存）：正式入口默认隐藏；`?debug=1` 或部署路径含 /debug/ 时显示（#79） */
+export function showStatusBar(query: Record<string, string>, pathname: string): boolean {
+  if (query.debug === '1') return true;
+  if (query.debug === '0') return false;
+  return /\/debug(\/|$)/.test(pathname);
+}
