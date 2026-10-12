@@ -91,7 +91,16 @@ describe('2D 路径分辨率分级（render-spec §12.5）', () => {
     const full = battlePeak({ webgl: false, half: false });
     const tOff = battlePeak({ webgl: false, plan: BATTLE_BAKE_TYPICAL });
     const tOn = battlePeak({ webgl: true, plan: BATTLE_BAKE_TYPICAL });
-    if (process.env.PRINT_BUDGET) console.log(JSON.stringify({ tOff: [tOff.bake, tOff.total, tOff.peak], tOn: [tOn.bake, tOn.total, tOn.peak], off: [off.bake, off.total, off.peak], on: [on.bake, on.total, on.peak], half0: full.total }));
+    if (process.env.PRINT_BUDGET)
+      console.log(
+        JSON.stringify({
+          tOff: [tOff.bake, tOff.total, tOff.peak],
+          tOn: [tOn.bake, tOn.total, tOn.peak],
+          off: [off.bake, off.total, off.peak],
+          on: [on.bake, on.total, on.peak],
+          half0: full.total,
+        }),
+      );
     // 满载：LRU 上限打满的烘焙缓存 ≈ render-spec §12.2 的 2.77MB
     expect(off.bake).toBeGreaterThanOrEqual(2.4);
     expect(off.bake).toBeLessThanOrEqual(2.8);
