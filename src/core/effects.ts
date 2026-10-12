@@ -254,6 +254,7 @@ const COND: Record<string, Cond> = {
   partner_is: (g, c) => g.sub.id === c.value,
   partner_faction_is: (g, c) => g.sub.faction === c.value,
   turn_is: (g, c) => g.turn === Number(c.value),
+  target_flash_marks_at_least: (_g, c, ctx) => (ctx.chosen?.marks ?? 0) >= Number(c.value),
   alive_enemies_at_least: (g, c) => g.alive().length >= Number(c.value),
   has_skill: (g, c) => [...CONFIG.heroes[g.main.id].mainSkills, CONFIG.heroes[g.sub.id].subSkill].some((a) => a.id === c.value),
 };
@@ -339,12 +340,16 @@ export class Effects {
     }
     if (l?.passiveQuota) this.quotaUsed++;
   }
-  ready(s: Source, ctx: Ctx) {
+  /** if 条件全部满足（not / negate 取反） */
+  condsOk(s: Source, ctx: Ctx) {
+    for (const c of s.ab.if ?? []) if (COND[c.type](this.g, c, ctx) === !!(c.not || c.negate)) return false;
+    return true;
+  }
+  ready(s: Source, ctx: Ctx, conds?: boolean) {
     if (this.remaining(s) <= 0) return false;
     const q = CONFIG.rules.mechanics.passiveQuotaPerEnemyTurn;
     if (s.ab.limit?.passiveQuota && q != null && this.quotaUsed >= q) return false;
-    for (const c of s.ab.if ?? []) if (COND[c.type](this.g, c, ctx) === !!c.not) return false;
-    return true;
+    return conds ?? this.condsOk(s, ctx);
   }
 
   async runAtom(a: Action, ctx: Ctx, src: Source) {
@@ -355,10 +360,12 @@ export class Effects {
 
   /** 触发事件：按顺序执行所有匹配的能力；返回 ctx（含 negatedBy 等结果） */
   async emit(when: When, sources: Source[], ctx: Ctx = {}, eventCard?: CardInst): Promise<Ctx> {
+    // 打出牌（play）时，本牌各 ability 的 if 条件在结算前一次性求值（顺手牵羊：去掉闪标记后不再去护甲）
+    const snap = when === 'play' ? new Map(sources.map((s) => [s, this.condsOk(s, ctx)])) : null;
     for (const s of sources) {
       if (s.ab.trigger.when !== when) continue;
       if (!cardMatches(eventCard ?? ctx.card, s.ab.trigger.filter, ctx.element)) continue;
-      if (!this.ready(s, ctx)) continue;
+      if (!this.ready(s, ctx, snap?.get(s))) continue;
       this.consume(s);
       const local: Ctx = { ...ctx, owner: s.owner ?? ctx.owner, card: s.card ?? ctx.card };
       for (const a of s.ab.do) {

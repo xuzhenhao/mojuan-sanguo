@@ -4,7 +4,7 @@
 id: H08
 name: 陆逊
 faction: 吴
-hp: 7
+hp: 9
 role: 零费连击：手牌打空就补，一回合打很多张
 unlock: 初始（全部免费）
 roster: true
@@ -13,27 +13,23 @@ mainSkills:
   - id: lianying
     name: 连营
     kind: 锁定技
-    desc: 回合结束时，若你的手牌不多于 1 张，摸牌至 2 张。
-    note: V1 定稿（用户确认）：原「手牌打空时摸 2（每回合 2 次）」改为回合结束补牌，不依赖主动打空
-    trigger: { when: turn_end }
-    if:
-      - { type: hand_count_at_most, value: 1 }
+    desc: 你的手牌打空时摸 2 张牌（每回合限 2 次）。
+    trigger: { when: hand_empty }
+    limit: { per: turn, times: 2 }
     do:
-      - { do: draw, target: self, upTo: 2 }
+      - { do: draw, target: self, amount: 2 }
   - id: qianxun
     name: 谦逊
     kind: 锁定技
-    desc: 你不会被「咒」弃牌，不会成为乐不思蜀/兵粮寸断的目标；首回合 +1 军令。
+    desc: 你不会被「咒」弃牌，不会成为乐不思蜀/兵粮寸断的目标；每回合 +1 军令。
     trigger: { when: static }
     do:
       - { do: modify, stat: immune_curse, amount: 1, scope: battle }
   - id: qianxun_ling
     name: 谦逊
     kind: 锁定技
-    desc: 首回合 +1 军令。
+    desc: 每回合开始时 +1 军令。
     trigger: { when: turn_start }
-    if:
-      - { type: turn_is, value: 1 }
     do:
       - { do: gain_ling, target: self, amount: 1 }
 

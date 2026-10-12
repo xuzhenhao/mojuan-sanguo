@@ -4,7 +4,7 @@
 id: H03
 name: 赵云
 faction: 蜀
-hp: 8
+hp: 7
 role: 攻防转换：杀闪互转，每次转换都过牌
 unlock: 初始（全部免费）
 roster: true
@@ -21,9 +21,9 @@ mainSkills:
   - id: chongzhen
     name: 冲阵
     kind: 锁定技
-    desc: 每回合前 2 次通过【龙胆】转换的牌结算后，你摸 1 张牌。
+    desc: 每回合首次通过【龙胆】转换的牌结算后，你摸 1 张牌。
     trigger: { when: card_converted }
-    limit: { per: turn, times: 2 }
+    limit: { per: turn, times: 1 }
     do:
       - { do: draw, target: self, amount: 1 }
 

@@ -67,7 +67,7 @@
       ],
       "properties": {
         "when": {
-          "description": "触发时机（注意：键名不用 on，YAML 1.1 会把 on 解析成布尔 true）。static=锁定改规则（无需事件）；play=打出本牌时；equip=装备进入装备区时；dodged=你用闪（或当闪的牌）抵消一张杀后",
+          "description": "触发时机（注意：键名不用 on，YAML 1.1 会把 on 解析成布尔 true）。static=锁定改规则（无需事件）；play=打出本牌时；equip=装备进入装备区时；dodged=你用闪（或当闪的牌）抵消一张杀后；damaged=你受到伤害（失去体力）后，护甲完全吸收不触发",
           "enum": [
             "static",
             "play",
@@ -162,9 +162,10 @@
             "has_skill",
             "target_chained",
             "not_main_hero_turn",
-            "alive_enemies_at_least"
+            "alive_enemies_at_least",
+            "target_flash_marks_at_least"
           ],
-          "description": "turn_is=当前是第 value 回合；hand_over_limit=手牌数超过上限；has_skill=主将或副将拥有 id 为 value 的技能；target_chained=目标处于连环；alive_enemies_at_least=存活敌人数 ≥ value"
+          "description": "turn_is=当前是第 value 回合；hand_over_limit=手牌数超过上限；has_skill=主将或副将拥有 id 为 value 的技能；target_chained=目标处于连环；alive_enemies_at_least=存活敌人数 ≥ value；target_flash_marks_at_least=目标闪标记数 ≥ value"
         },
         "value": {
           "type": [
@@ -178,6 +179,11 @@
         "not": {
           "type": "boolean",
           "default": false
+        },
+        "negate": {
+          "type": "boolean",
+          "default": false,
+          "description": "取反（与 not 等价）"
         }
       },
       "additionalProperties": false

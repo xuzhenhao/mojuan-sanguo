@@ -22,8 +22,8 @@ describe('V1 第 1 章敌人表（v1-sim/en-final.json）', () => {
       ['杀', '杀'],
     ]);
     expect(ENEMIES.E1E1.pat).toEqual([
-      ['杀+', '杀'],
-      ['闪', '杀', '杀'],
+      ['杀+', '杀', '杀'],
+      ['闪', '杀+', '杀'],
       ['万箭', '杀+', '杀'],
     ]);
     expect(ENEMIES.E103.flash).toBe(0);

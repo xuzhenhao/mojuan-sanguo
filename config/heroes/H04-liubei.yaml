@@ -4,7 +4,7 @@
 id: H04
 name: 刘备
 faction: 蜀
-hp: 8
+hp: 7
 role: 仁政续航：存牌换甲，回复强，输出慢
 unlock: 初始（全部免费）
 roster: true
@@ -59,15 +59,15 @@ exclusiveCards: [X401]
 combos:
   - partner: H03
     name: 长坂护主
-    value: 2.1
-    note: 「护主额外对杀+生效」：现行护主本就对杀+生效，此半句无实际效果，待数值策划确认
+    value: 0.8
+    note: design-v1 9.5 第 2 条定稿：战斗开始 1 甲；删除「护主额外对杀+生效」半句（护主本就对所有杀生效）
     abilities:
       - id: changban
         name: 长坂护主
-        desc: 战斗开始时获得 2 点护甲。
+        desc: 战斗开始时获得 1 点护甲。
         trigger: { when: battle_start }
         do:
-          - { do: armor, target: self, amount: 2 }
+          - { do: armor, target: self, amount: 1 }
   - partner: H06
     name: 煮酒论英雄
     value: 2
