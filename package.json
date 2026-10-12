@@ -17,7 +17,7 @@
     "prebuild": "npm run config:build",
     "pretest": "npm run config:build",
     "preautoplay": "npm run config:build",
-    "dev:debug": "vite --mode debug --open /mojuan-sanguo/debug/debug.html",
+    "dev:debug": "vite --mode debug --open /mojuan-sanguo/debug.html",
     "build:debug": "tsc && vite build --mode debug",
     "size-check": "tsx scripts/size-check.ts",
     "prebuild:debug": "npm run config:build"

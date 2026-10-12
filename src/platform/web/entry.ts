@@ -1,6 +1,6 @@
 /**
  * H5 发布入口：Canvas 引擎 + 页面流程框架（B 金漆屏风 6 个页面先用占位场景）。
- * 可玩的 DOM 原型在调试版：/mojuan-sanguo/debug/（`npm run dev:debug`）。
+ * 可玩的 DOM 版部署在 Pages 根目录 /mojuan-sanguo/，本 Canvas 版在 /mojuan-sanguo/next/（P5 #46 对调）。
  */
 import './style.css';
 import { Engine } from '../../engine/engine';

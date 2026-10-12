@@ -5,3 +5,4 @@ dist/
 coverage/
 src/data/generated/
 dist-debug/
+_site/

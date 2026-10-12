@@ -2,7 +2,7 @@
 
 > 状态：已评审；关键取舍均已拍板（第 8 节）。仅文档，不含代码改动。
 > 硬约束：**同一份 TypeScript 同时产出 H5 与微信小游戏**；**不使用游戏引擎**，以 Canvas 2D 绘制为主。
-> v0.6 变更（P0，#32）：新增 §4.13 场景与页面流程框架；纹理内存对齐 render-spec §12（战斗峰值 22.4MB 压缩 / 35.7MB 无压缩；45MB 告警；1.5x 烘焙；LRU 上限；按场景加载图集；无 mipmap；特效 7 个 shader，纹理 0.63MB）；Pages 同时部署发布版（根目录）和调试版（`/debug/`）。
+> v0.6 变更（P0，#32）：新增 §4.13 场景与页面流程框架；纹理内存对齐 render-spec §12（战斗峰值 22.4MB 压缩 / 35.7MB 无压缩；45MB 告警；1.5x 烘焙；LRU 上限；按场景加载图集；无 mipmap；特效 7 个 shader，纹理 0.63MB）；Pages 同时部署 DOM 可玩版（根目录）和 Canvas 新版（`/next/`），P5（#46）对调。
 > v0.5 变更（P0，#32）：【已决定 2026-10-12】WebGL 改为**可选叠加层**：关闭时由 3 块 2D 画布**直接合成到上屏 2D 画布**，画面完整可玩，只是没有特效。开关：配置 + URL `?webgl=0|1`。自动降级延后到微信上线前。纹理内存预算 **≤50MB**（§4.7.1），取代 106MB 的假设；与 render-spec 的冲突待对齐。
 > v0.4 变更：【已决定 2026-10-12】原第 8 节 9 项待拍板全部定案（见第 8 节）；新增 4.12 WebGL 水墨层（只走 WebGL，降级以后再做）；**先做 H5、以 H5 验收**，微信只保留接口。
 > v0.3 变更：【已决定 2026-10-12】战斗页采用 **B 金漆屏风**，**单一皮肤、不做可切换皮肤**；render-spec 已随 PR #20 合入 main。
@@ -539,11 +539,12 @@ export interface ErrorReport { message: string; stack?: string; version: string;
 
 ### 4.10 构建工具链（需求 9）
 
-> **部署（v0.6）**：GitHub Pages 一次部署产出两个入口：
-> - 发布版（Canvas 引擎）：https://xuzhenhao.github.io/mojuan-sanguo/
-> - 调试版（DOM 可玩原型，测试用）：https://xuzhenhao.github.io/mojuan-sanguo/debug/
+> **部署（v0.6，用户验收决定）**：GitHub Pages 一次部署产出两个入口：
+> - 根目录 = **DOM 可玩版**（当前对外试玩）：https://xuzhenhao.github.io/mojuan-sanguo/
+> - `/next/` = **Canvas 新版**（引擎 + 页面流程）：https://xuzhenhao.github.io/mojuan-sanguo/next/
 >
-> `pages.yml` 依次执行 `build` → **`size-check`（只检查 dist/，此时还没合入调试版）** → `build:debug`（base 为 `/mojuan-sanguo/debug/`，不复制 public/）→ 拷到 `dist/debug/`，并把 `debug.html` 改名为 `index.html`。CI 同样跑 size-check 和 build:debug。
+> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/next/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/`，带 public/mockups）→ 组装 `_site/`：DOM 版放根目录（`debug.html` 改名为 `index.html`），Canvas 版放 `next/`。CI 同样跑 size-check 和 build:debug。
+> **P5 对调入口（#46）**：Canvas 版到根目录，DOM 版移到 `/debug/`；只需改 `vite.config.ts` 的两个 base 和 `pages.yml` 的组装步骤。
 
 ```mermaid
 flowchart LR
@@ -732,7 +733,7 @@ export interface GLCompositor {
 
 | 阶段 | 内容 | 产出 / 验收 |
 |---|---|---|
-| P0 地基（约 1 周，#32） | `Platform` 接口 + web 实现 + wechat 接口占位；引擎骨架：主循环（空闲停帧）、3 块 2D 离屏 + **2D 直接合成**、**可选 WebGL 叠加层**（开关：配置 + `?webgl=0|1`）、手势（单指/点按/420ms 长按/8dp 拖拽）、**纹理内存记账（50MB 预算 / 45MB 告警、LRU 烘焙缓存、按场景加载图集）**；**场景管理 + 弹层栈 + 页面流程状态机 + 6 个占位页面**；Pages 发布版（根目录）+ 调试版（/debug/）；Vite h5/debug 两种模式（DOM 版只在 debug）；ESLint 分层；size-check 与 CI | H5 发布入口能跑 Canvas 骨架 + 触控回显；`?webgl=0` 路径有测试；发布包不含 DOM 版 |
+| P0 地基（约 1 周，#32） | `Platform` 接口 + web 实现 + wechat 接口占位；引擎骨架：主循环（空闲停帧）、3 块 2D 离屏 + **2D 直接合成**、**可选 WebGL 叠加层**（开关：配置 + `?webgl=0|1`）、手势（单指/点按/420ms 长按/8dp 拖拽）、**纹理内存记账（50MB 预算 / 45MB 告警、LRU 烘焙缓存、按场景加载图集）**；**场景管理 + 弹层栈 + 页面流程状态机 + 6 个占位页面**；Pages：DOM 可玩版（根目录）+ Canvas 新版（/next/），P5 #46 对调；Vite h5/debug 两种模式（DOM 版只在 debug）；ESLint 分层；size-check 与 CI | H5 发布入口能跑 Canvas 骨架 + 触控回显；`?webgl=0` 路径有测试；发布包不含 DOM 版 |
 | P1 逻辑重构（已决定，2–3 周，最高优先） | ①先建黄金回放和 autoplay 基线；②RngStreams；③BattleEvent + 结构化日志；④ResolutionStack，ATOMS 全部改同步，judge/respond/epiphany 改成栈帧 + Decision；⑤删除 `BattleIO.sleep/update` 和所有 `await`；⑥`BattleLogic.submit` 成为唯一入口 | core 内零 Promise、零平台依赖；回放哈希一致 |
 | P2 渲染与输入（1–2 周，可与 P1 并行） | 场景树 + 16 个逻辑层（画在 3 块 2D 离屏上）、对象烘焙缓存、降帧、图集、字体、安全区、命中测试、手势、自动降 DPR | H5 中端设备 60fps；Chrome CPU 4× 降速下可用 |
 | P3 表现队列与水墨（2 周） | Tween/Timeline/粒子；B 方向全部动画剧本；倍速/跳过；**WebGL 13 项特效**（render-spec §11，待对齐）+ `fx_webgl` 分包；画质分档 | GPU ≤4ms/帧；战斗可完整演出、可跳过 |

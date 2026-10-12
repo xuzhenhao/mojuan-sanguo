@@ -7,7 +7,7 @@ import globals from 'globals';
 const layer = (patterns) => ({ 'no-restricted-imports': ['error', { patterns }] });
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-debug', 'node_modules'] },
+  { ignores: ['dist', 'dist-debug', '_site', 'node_modules'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,
