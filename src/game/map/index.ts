@@ -13,12 +13,29 @@ import { MapSession, type HudInfo } from './session';
 let session: MapSession | null = null;
 
 export function mapSession(engine: Engine, chapter = 1, seed?: number): MapSession {
-  const store = engine.platform.storage;
   const q = engine.platform.launchQuery().seed;
-  const saved = MapSession.load(store);
-  const runSeed = seed ?? (q != null && q !== '' ? Number(q) >>> 0 : (saved?.runSeed ?? Math.floor(engine.platform.now() * 1000) >>> 0));
-  if (!session || session.runSeed !== runSeed || session.chapter !== chapter)
-    session = new MapSession(runSeed, chapter, MAP_CONFIG, poolsOf(chapter), store, saved);
+  const runSeed = seed ?? (q != null && q !== '' ? Number(q) >>> 0 : (MapSession.savedSeed() ?? Math.floor(engine.platform.now() * 1000) >>> 0));
+  if (!session || session.runSeed !== runSeed || session.chapter !== chapter) {
+    const d = CONFIG.rules.defaultHeroes;
+    session = new MapSession(runSeed, chapter, MAP_CONFIG, poolsOf(chapter), undefined, () => {
+      const h = defaultHud();
+      return {
+        schema: 1,
+        version: '0.2.0',
+        configVersion: 'dev',
+        heroMain: d.main,
+        heroSub: d.sub,
+        hp: h.hp,
+        maxHp: h.maxHp,
+        gold: h.gold,
+        deck: [],
+        relics: [],
+        potions: [],
+        battleState: null,
+        battleStartSnapshot: null,
+      };
+    });
+  }
   return session;
 }
 /** 新建局时调用（点将出征），丢弃旧地图 */

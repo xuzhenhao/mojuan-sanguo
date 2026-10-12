@@ -4,10 +4,8 @@
  */
 import { availableNodes, generateMap, getNode, moveTo, type MapConfig, type MapNode, type MapState } from '../../core/run/map';
 import { drawEncounter, groupOf, newEncounterState, type EncounterPools, type EncounterState } from '../../core/run/encounters';
-import type { StorageAdapter } from '../../platform/types';
+import { loadRunSave, writeRunSave, type RunSave } from '../../core/run/save';
 import { routeFor } from './route';
-
-export const MAP_SAVE_KEY = 'mojuan.run.map';
 
 export interface HudInfo {
   hp: number;
@@ -17,12 +15,24 @@ export interface HudInfo {
   hero: string;
 }
 
-export interface MapSaveSlice {
-  runSeed: number;
-  chapter: number;
-  mapState: MapState;
-  encounters: EncounterState;
-}
+/** 局状态未统一前，没有 RunSave 时用这些字段新建一份（地图页直达 / 调试） */
+export type RunSaveBase = Omit<RunSave, 'runSeed' | 'chapter' | 'mapState' | 'encounters' | 'nodePath' | 'timestamp'>;
+
+const DEFAULT_BASE = (): RunSaveBase => ({
+  schema: 1,
+  version: '0.2.0',
+  configVersion: 'dev',
+  heroMain: '',
+  heroSub: '',
+  hp: 0,
+  maxHp: 0,
+  gold: 0,
+  deck: [],
+  relics: [],
+  potions: [],
+  battleState: null,
+  battleStartSnapshot: null,
+});
 
 export class MapSession {
   state: MapState;
@@ -32,30 +42,32 @@ export class MapSession {
     readonly chapter: number,
     readonly cfg: MapConfig,
     readonly pools: EncounterPools,
-    private storage: StorageAdapter | null = null,
-    restore?: MapSaveSlice | null,
+    /** 存档写入：null = 不落盘（测试） */
+    private persist: { load(): RunSave | null; write(s: RunSave): void } | null = { load: loadRunSave, write: writeRunSave },
+    private base: () => RunSaveBase = DEFAULT_BASE,
+    private now: () => number = () => Date.now(),
   ) {
-    const ok = restore && restore.runSeed === runSeed && restore.chapter === chapter;
-    this.state = ok ? restore.mapState : generateMap(runSeed, chapter, cfg);
-    this.enc = ok ? restore.encounters : newEncounterState();
+    const saved = persist?.load();
+    const ok = saved && saved.runSeed === runSeed && saved.chapter === chapter;
+    this.state = ok ? saved.mapState : generateMap(runSeed, chapter, cfg);
+    this.enc = ok ? saved.encounters : newEncounterState();
   }
-  static load(storage: StorageAdapter | null): MapSaveSlice | null {
-    try {
-      const raw = storage?.get(MAP_SAVE_KEY);
-      return raw ? (JSON.parse(raw) as MapSaveSlice) : null;
-    } catch {
-      return null;
-    }
+  /** 存档里的局种子（续玩用） */
+  static savedSeed(load: () => RunSave | null = loadRunSave): number | null {
+    return load()?.runSeed ?? null;
+  }
+  /** 地图状态并进 RunSave（mojuan.run.v1）：已有同局存档则只更新 mapState / encounters / nodePath */
+  save() {
+    const prev = this.persist?.load();
+    const same = prev && prev.runSeed === this.runSeed && prev.chapter === this.chapter;
+    const head = same ? prev : { ...this.base(), runSeed: this.runSeed, chapter: this.chapter };
+    this.persist?.write({ ...head, mapState: this.state, encounters: this.enc, nodePath: [...this.state.visited], timestamp: this.now() } as RunSave);
   }
   get available() {
     return availableNodes(this.state);
   }
   node(id: string): MapNode | undefined {
     return getNode(this.state, id);
-  }
-  save() {
-    const slice: MapSaveSlice = { runSeed: this.runSeed, chapter: this.chapter, mapState: this.state, encounters: this.enc };
-    this.storage?.set(MAP_SAVE_KEY, JSON.stringify(slice));
   }
   /** 走到节点：抽组包（战斗类）→ 写盘 → 返回路由事件与参数 */
   enter(id: string) {

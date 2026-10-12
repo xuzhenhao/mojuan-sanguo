@@ -1,11 +1,23 @@
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { loadConfig } from '../scripts/config-lib';
 import { availableNodes, BOSS_ID, generateMap, getNode, mapSeedOf, moveTo, violations, walkedEdges, type MapState } from '../src/core/run/map';
 import { drawEncounter, newEncounterState, type EncounterState } from '../src/core/run/encounters';
-import { autosaveAfterBattle, enterBattle, resumeRun, VERSION_DIALOG_TEXT, type RunSave } from '../src/core/run/save';
+import {
+  autosaveAfterBattle,
+  clearRunSave,
+  enterBattle,
+  hasRunSave,
+  loadRunSave,
+  resumeRun,
+  RUN_SAVE_KEY,
+  setRunSaveStore,
+  VERSION_DIALOG_TEXT,
+  writeRunSave,
+  type RunSave,
+} from '../src/core/run/save';
 import { MAP_CONFIG, poolsOf } from '../src/data/map';
 import { seeded } from '../src/core/rng';
 
@@ -68,27 +80,49 @@ describe('地图生成（PRD 10.1–10.4）', () => {
       if (!m.relaxed) expect(violations(m.nodes, m.edges, cfg)).toEqual([]);
     }
   });
-  it('每局均值（随机走）接近 PRD 参照：普通战 3.8、精英 0.72、奇遇 0.9、商店 0.5、宝箱 0.35', () => {
-    const N = 1500;
+  it('单条路线期望（随机走，以实测为准，已与总策划确认）：普通战 3.6、精英 0.70、奇遇 1.2、集市 0.76、宝箱 0.48、营地 0.28 + 第 8 层固定营地 1', () => {
+    const N = 2000;
     const sum: Record<string, number> = {};
+    let rest8 = 0;
     const r = seeded(99);
     for (let i = 0; i < N; i++) {
       const { s, seen } = randomWalk(generateMap(i, 1, cfg), r);
       expect(walkedEdges(s).length).toBe(8);
       for (const id of seen) {
         const n = getNode(s, id)!;
+        if (n.layer === 8) rest8 += n.type === 'REST' ? 1 : 0;
         if (n.layer >= 8) continue;
         sum[n.type] = (sum[n.type] ?? 0) + 1;
       }
     }
     const avg = (t: string) => (sum[t] ?? 0) / N;
-    expect(avg('BATTLE')).toBeGreaterThan(3.3);
-    expect(avg('BATTLE')).toBeLessThan(4.1);
-    expect(Math.abs(avg('ELITE') - 0.72)).toBeLessThan(0.15);
-    expect(Math.abs(avg('EVENT') - 0.9)).toBeLessThan(0.4);
-    expect(Math.abs(avg('SHOP') - 0.5)).toBeLessThan(0.35);
-    expect(Math.abs(avg('CHEST') - 0.35)).toBeLessThan(0.2);
-    expect(avg('REST')).toBeLessThan(1.0);
+    const ref: Record<string, [number, number]> = {
+      BATTLE: [3.6, 0.12],
+      ELITE: [0.7, 0.08],
+      EVENT: [1.2, 0.1],
+      SHOP: [0.76, 0.08],
+      CHEST: [0.48, 0.06],
+      REST: [0.28, 0.05],
+    };
+    for (const [t, [m, tol]] of Object.entries(ref)) expect(Math.abs(avg(t) - m), `${t} 均值 ${avg(t)}`).toBeLessThan(tol);
+    expect(rest8 / N).toBe(1);
+  });
+  it('noConsecutive 查每条连线两端（含第 7→8 层）：连到第 8 层固定营地的第 7 层节点不能是 REST', () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const m = generateMap(seed, 1, cfg);
+      const by = new Map(m.nodes.map((n) => [n.id, n]));
+      for (const [a, b] of m.edges) {
+        const A = by.get(a)!;
+        const B = by.get(b)!;
+        if (['ELITE', 'REST', 'SHOP'].includes(A.type)) expect(B.type, `${a}→${b}`).not.toBe(A.type);
+        if (B.layer === 8) expect(A.type).not.toBe('REST');
+      }
+    }
+    // 反例：手工把一个连到第 8 层的第 7 层节点改成 REST，校验应报约束 2
+    const m = generateMap(1, 1, cfg);
+    const l7 = m.edges.find(([, b]) => getNode(m, b)!.layer === 8)![0];
+    const bad = m.nodes.map((n) => (n.id === l7 ? { ...n, type: 'REST' as const } : n));
+    expect(violations(bad, m.edges, cfg, { relaxSiblings: true })).toContain(2);
   });
   it('只能沿连线向下走，不能回头或跳层', () => {
     const m = generateMap(5, 1, cfg);
@@ -212,5 +246,61 @@ describe('配置校验：map / pools / icon 枚举', () => {
   it('map.weights 缺类型则失败', () => {
     const errs = withEdit('rules.yaml', (s) => s.replace('CHEST: 10 }', '}'));
     expect(errs.length).toBeGreaterThan(0);
+  });
+});
+
+describe('RunSave 存储读写（mojuan.run.v1）', () => {
+  const mem = () => {
+    const m = new Map<string, string>();
+    return { m, get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) };
+  };
+  const save = (): RunSave => ({
+    schema: 1,
+    version: '0.2.0',
+    configVersion: 'c1',
+    runSeed: 3,
+    chapter: 1,
+    heroMain: 'H03',
+    heroSub: 'H04',
+    nodePath: [],
+    hp: 7,
+    maxHp: 7,
+    gold: 0,
+    deck: [],
+    relics: [],
+    potions: [],
+    mapState: generateMap(3, 1, cfg),
+    encounters: newEncounterState(),
+    battleState: null,
+    battleStartSnapshot: null,
+    timestamp: 0,
+  });
+  afterEach(() => setRunSaveStore(undefined));
+  it('写 / 读 / 清', () => {
+    const st = mem();
+    setRunSaveStore(st);
+    expect(RUN_SAVE_KEY).toBe('mojuan.run.v1');
+    expect(hasRunSave()).toBe(false);
+    expect(loadRunSave()).toBeNull();
+    writeRunSave(save());
+    expect(hasRunSave()).toBe(true);
+    expect(loadRunSave()).toEqual(save());
+    clearRunSave();
+    expect(hasRunSave()).toBe(false);
+    expect(st.m.size).toBe(0);
+  });
+  it('损坏数据返回 null', () => {
+    const st = mem();
+    setRunSaveStore(st);
+    st.set(RUN_SAVE_KEY, '{not json');
+    expect(loadRunSave()).toBeNull();
+    expect(hasRunSave()).toBe(false);
+    st.set(RUN_SAVE_KEY, JSON.stringify({ schema: 1, runSeed: 'x' }));
+    expect(loadRunSave()).toBeNull();
+  });
+  it('无存储（node 无 localStorage）时安全', () => {
+    setRunSaveStore(null);
+    expect(() => writeRunSave(save())).not.toThrow();
+    expect(loadRunSave()).toBeNull();
   });
 });

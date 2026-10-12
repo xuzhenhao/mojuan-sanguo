@@ -71,3 +71,67 @@ export function resumeRun(s: RunSave, currentConfigVersion: string): ResumeResul
     save: { ...s, ...clone(snap), configVersion: currentConfigVersion, battleState: null, battleStartSnapshot: clone(snap) },
   };
 }
+
+// ───────── 存储读写（可注入；默认 localStorage） ─────────
+export const RUN_SAVE_KEY = 'mojuan.run.v1';
+
+/** 最小 KV 存储接口（与 platform StorageAdapter 兼容） */
+export interface RunSaveStore {
+  get(key: string): string | null;
+  set(key: string, v: string): void;
+  remove(key: string): void;
+}
+
+function defaultStore(): RunSaveStore | null {
+  const ls = (globalThis as { localStorage?: Storage }).localStorage;
+  if (!ls) return null;
+  return { get: (k) => ls.getItem(k), set: (k, v) => ls.setItem(k, v), remove: (k) => ls.removeItem(k) };
+}
+let injected: RunSaveStore | null | undefined;
+/** 注入存储层（测试用内存 mock；微信端注入 wx 存储）。传 undefined 恢复默认 localStorage */
+export function setRunSaveStore(s: RunSaveStore | null | undefined): void {
+  injected = s;
+}
+const store = (): RunSaveStore | null => (injected === undefined ? defaultStore() : injected);
+
+/** 结构校验：字段缺失或类型不对视为损坏 */
+export function isRunSave(x: unknown): x is RunSave {
+  const s = x as RunSave;
+  return (
+    !!s &&
+    typeof s === 'object' &&
+    s.schema === 1 &&
+    typeof s.configVersion === 'string' &&
+    typeof s.runSeed === 'number' &&
+    typeof s.chapter === 'number' &&
+    typeof s.hp === 'number' &&
+    typeof s.maxHp === 'number' &&
+    typeof s.gold === 'number' &&
+    Array.isArray(s.deck) &&
+    !!s.mapState &&
+    Array.isArray(s.mapState.nodes) &&
+    Array.isArray(s.mapState.edges) &&
+    Array.isArray(s.mapState.visited) &&
+    !!s.encounters
+  );
+}
+export function hasRunSave(): boolean {
+  return loadRunSave() !== null;
+}
+/** 读档；无存档、JSON 损坏或结构不符返回 null */
+export function loadRunSave(): RunSave | null {
+  try {
+    const raw = store()?.get(RUN_SAVE_KEY);
+    if (!raw) return null;
+    const s: unknown = JSON.parse(raw);
+    return isRunSave(s) ? s : null;
+  } catch {
+    return null;
+  }
+}
+export function writeRunSave(s: RunSave): void {
+  store()?.set(RUN_SAVE_KEY, JSON.stringify(s));
+}
+export function clearRunSave(): void {
+  store()?.remove(RUN_SAVE_KEY);
+}
