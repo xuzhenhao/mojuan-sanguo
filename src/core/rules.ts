@@ -7,7 +7,7 @@ import type { Rng } from './rng';
 
 /** 纯函数规则集：不依赖 DOM / 平台，可直接单测 */
 export const def = (c: CardInst) => CARDS[c.id];
-export const isRed = (c: CardInst) => c.suit === 'H' || c.suit === 'D';
+export const isRed = (c: Pick<CardInst, 'suit'>) => c.suit === 'H' || c.suit === 'D';
 export const hasMod = (c: CardInst | undefined, id: string) => !!c && c.mods.includes(id);
 export const isShaPlay = (c: CardInst) => !!c.asSha || !!def(c).sha;
 export const SUIT_CH = { S: '♠', H: '♥', C: '♣', D: '♦' } as const;
@@ -25,8 +25,8 @@ export function applyDamage(t: { hp: number; armor: number }, n: number) {
 }
 
 /** 判定结果（PRD 5.10）：返回该判定是否“生效” */
-export const judgeRed = (c: CardInst) => isRed(c);
-export const lebuSkips = (c: CardInst) => c.suit !== 'H';
+export const judgeRed = (c: Pick<CardInst, 'suit'>) => isRed(c);
+export const lebuSkips = (c: Pick<CardInst, 'suit'>) => c.suit !== 'H';
 
 /** 玩家杀的伤害：基础 1 + 牌面加成 + 词条 + 酒/傲骨/义勇 */
 export function playerShaDamage(c: CardInst, buffs: { jiu: number; aogu: number; yiyong: number }, bonus = 0, extra = 0) {

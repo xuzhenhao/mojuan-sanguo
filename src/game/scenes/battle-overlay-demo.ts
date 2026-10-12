@@ -13,10 +13,12 @@ import type { OverlayStack } from '../../engine/modal';
 import type { Scene, SceneContext } from '../../engine/scene';
 import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { Rect, Vec2 } from '../../engine/types';
-import { cardDetail, enemyDetail, LongPressDetail, skillDetail, type DetailContent } from '../overlays/detail';
+import { BODY_FONT, cardDetail, enemyDetail, LongPressDetail, skillDetail, type DetailContent } from '../overlays/detail';
 import { makeRespond, type ResponseLayout } from '../overlays/response';
 import { C, frame, inside, text } from '../overlays/theme';
-import { def, RANK_CH, SUIT_CH } from '../../core/rules';
+import { def, RANK_CH } from '../../core/rules';
+import { icons } from '../overlays/icons';
+import { numFont } from '../overlays/numfont';
 
 export interface DemoEnv {
   overlays: OverlayStack;
@@ -162,14 +164,19 @@ export class BattleOverlayDemoScene implements Scene {
       g.fillRect(r.x, r.y, r.w, r.h);
       frame(g, r, C.goldDeep, 1.5);
       text(g, e.name.split('·')[0], r.x + 8, r.y + 28, `20px "Ma Shan Zheng", "STKaiti", serif`, C.paper);
-      text(g, `${Math.max(0, e.hp)}/${e.max}${e.armor ? ` 甲${e.armor}` : ''}`, r.x + 8, r.y + r.h - 10, '12px sans-serif', C.paper);
+      numFont().draw(g, `${Math.max(0, e.hp)}/${e.max}`, r.x + 8, r.y + r.h - 10, 13, C.paper);
+      if (e.armor) {
+        icons().draw(g, 'armor', { x: r.x + r.w - 24, y: r.y + r.h - 24, w: 16, h: 16 });
+        numFont().draw(g, String(e.armor), r.x + r.w - 6 - 16 - 10, r.y + r.h - 10, 13, C.paper);
+      }
     });
     const hr = this.heroRect();
     g.fillStyle = '#e9dcc0';
     g.fillRect(hr.x, hr.y, hr.w, hr.h);
     frame(g, hr, C.gold, 2);
     text(g, this.g.main.name, hr.x + 10, hr.y + 34, `28px "Ma Shan Zheng", "STKaiti", serif`, C.ink);
-    text(g, `体力 ${this.g.p.hp}/${this.g.p.maxHp}`, hr.x + 10, hr.y + hr.h - 12, '13px sans-serif', C.ink);
+    icons().draw(g, 'ui_hp', { x: hr.x + 10, y: hr.y + hr.h - 26, w: 16, h: 16 });
+    numFont().draw(g, `${this.g.p.hp}/${this.g.p.maxHp}`, hr.x + 30, hr.y + hr.h - 12, 15, C.ink);
     const n = this.g.hand.length;
     this.g.hand.forEach((c, i) => {
       const r = this.cardRect(i, n);
@@ -178,7 +185,8 @@ export class BattleOverlayDemoScene implements Scene {
       g.fillRect(r.x, r.y, r.w, r.h);
       frame(g, r, C.goldDeep, 1.5);
       const red = c.suit === 'H' || c.suit === 'D';
-      text(g, `${SUIT_CH[c.suit]}${RANK_CH[c.rank]}`, r.x + 6, r.y + 34, 'bold 13px sans-serif', red ? '#ff8a80' : C.paper);
+      numFont().draw(g, RANK_CH[c.rank], r.x + 6, r.y + 40, 14, red ? '#ff8a80' : C.paper);
+      icons().draw(g, `suit_${c.suit}`, { x: r.x + 6, y: r.y + 44, w: 13, h: 13 }, red ? '#ff8a80' : C.paper);
       text(g, d.name, r.x + 14, r.y + r.h - 14, `20px "Ma Shan Zheng", "STKaiti", serif`, C.paper);
     });
     const b = this.button();
@@ -186,7 +194,7 @@ export class BattleOverlayDemoScene implements Scene {
     g.fillRect(b.x, b.y, b.w, b.h);
     frame(g, b, C.gold, 1.5);
     text(g, '敌人出杀', b.x + 30, b.y + 32, `22px "Ma Shan Zheng", "STKaiti", serif`, C.paper);
-    text(g, this.last, 20, h - 92 - 120 - 8, '12px sans-serif', 'rgba(243,235,216,.7)');
+    text(g, this.last, 20, h - 92 - 120 - 8, BODY_FONT, 'rgba(243,235,216,.7)');
     this.lp.draw(s);
   }
 

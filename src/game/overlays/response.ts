@@ -11,12 +11,15 @@ import type { GestureEvent } from '../../engine/input';
 import type { OverlayHandle, OverlayStack } from '../../engine/modal';
 import type { Surface } from '../../engine/surfaces';
 import type { Rect, Vec2 } from '../../engine/types';
-import { def, RANK_CH, SUIT_CH } from '../../core/rules';
+import { def, RANK_CH } from '../../core/rules';
 import type { BattleIO } from '../../core/battle';
 import type { CardInst } from '../../core/types';
-import { C, ext, frame, inside, text } from './theme';
+import { C, ext, frame, inside, text, textCenter, textWidth } from './theme';
+import { icons } from './icons';
+import { numFont } from './numfont';
 import { BODY_FONT, TITLE_FONT } from './detail';
 
+const CARD_FONT = `22px "Ma Shan Zheng", "STKaiti", "KaiTi", serif`;
 export const RESPONSE = { lift: 22, bannerW: 230, bannerH: 56, barH: 6, btnW: 108, btnH: 44, gap: 10, defaultSeconds: 8, noLegalMs: 600 } as const;
 
 /** 宿主场景提供的布局（逻辑像素） */
@@ -87,11 +90,14 @@ export function responseGeometry(lay: ResponseLayout, st: ResponseState) {
   return { cards, banner, bar, ok, take };
 }
 
+/** 箭头终点：主将牌顶边中点（稿：指向武将牌本身） */
+export const arrowEnd = (to: Rect): Vec2 => ({ x: to.x + to.w / 2, y: to.y + 2 });
+
 function drawArrow(s: Surface, from: Rect, to: Rect, p: number) {
   const g = ext(s.ctx);
   if (!g.beginPath || !g.moveTo || !g.quadraticCurveTo || !g.stroke || !g.lineTo) return;
   const a: Vec2 = { x: from.x + from.w * 0.75, y: from.y + from.h };
-  const b: Vec2 = { x: to.x + to.w * 0.35, y: to.y - 6 };
+  const b = arrowEnd(to);
   const c: Vec2 = { x: Math.max(a.x, b.x) + 40, y: (a.y + b.y) / 2 - 20 };
   // 描线进度：按二次贝塞尔参数截断
   const steps = 24;
@@ -129,12 +135,17 @@ function drawCard(s: Surface, c: CardInst, r: Rect, sel: boolean) {
   g.fillRect(r.x, r.y, r.w, r.h);
   frame(g, r, sel ? '#ffe2a0' : C.gold, 2);
   const red = c.suit === 'H' || c.suit === 'D';
-  text(g, `${SUIT_CH[c.suit]}${RANK_CH[c.rank] ?? c.rank}`, r.x + 6, r.y + 34, 'bold 13px sans-serif', red ? '#ff8a80' : C.paper);
+  const nf = numFont();
+  // 花色在左：点数（数字字体）+ 花色（矢量图标）
+  const rk = RANK_CH[c.rank] ?? String(c.rank);
+  nf.draw(g, rk, r.x + 6, r.y + 40, 14, red ? '#ff8a80' : C.paper);
+  icons().draw(g, `suit_${c.suit}`, { x: r.x + 6, y: r.y + 44, w: 13, h: 13 }, red ? '#ff8a80' : C.paper);
   // 费用珠
   g.fillStyle = C.jade;
   g.fillRect(r.x + 4, r.y + 4, 18, 18);
-  text(g, String(d.cost), r.x + 9, r.y + 18, 'bold 13px sans-serif', C.paper);
-  text(g, d.name, r.x + r.w / 2 - 12 * Math.min(2, d.name.length) * 0.5 - 6, r.y + r.h - 14, `22px "Ma Shan Zheng", "STKaiti", "KaiTi", serif`, C.paper);
+  const cs = String(d.cost);
+  nf.draw(g, cs, r.x + 13 - nf.measure(g, cs, 13) / 2, r.y + 18, 13, C.paper);
+  textCenter(g, d.name, r.x + r.w / 2, r.y + r.h - 14, CARD_FONT, C.paper, 22);
 }
 
 export function drawResponse(s: Surface, lay: ResponseLayout, st: ResponseState) {
@@ -154,32 +165,63 @@ export function drawResponse(s: Surface, lay: ResponseLayout, st: ResponseState)
   g.fillStyle = C.gold;
   g.fillRect(b.x, b.y, b.w, 1.5);
   g.fillRect(b.x, b.y + b.h - 1.5, b.w, 1.5);
-  const t = st.info.title + (st.info.dmg ? `  ⚔${st.info.dmg}` : '');
-  text(g, t, b.x + 16, b.y + 37, TITLE_FONT, C.paper);
-  if (st.info.attacker) text(g, st.info.attacker, b.x + b.w - 14 - st.info.attacker.length * 13, b.y + 22, BODY_FONT, 'rgba(243,235,216,.6)');
-  // 进度条
-  const bar = geo.bar;
-  g.fillStyle = 'rgba(243,235,216,.15)';
-  g.fillRect(bar.x, bar.y, bar.w, bar.h);
-  if (Number.isFinite(st.total)) {
-    const k = Math.max(0, st.left / st.total);
-    g.fillStyle = k < 0.3 ? C.cinnabar : '#e0a060';
-    g.fillRect(bar.x, bar.y, bar.w * k, bar.h);
-    text(g, `${Math.ceil(st.left / 1000)}s`, bar.x + bar.w + 6, bar.y + 7, BODY_FONT, C.paper);
+  g.font = TITLE_FONT;
+  text(g, st.info.title, b.x + 16, b.y + 37, TITLE_FONT, C.paper);
+  if (st.info.dmg) {
+    // 伤害：杀印章 + 数字（不用 ⚔ 字符）
+    const x0 = b.x + 16 + textWidth(g, st.info.title, 24) + 10;
+    icons().draw(g, 'sha', { x: x0, y: b.y + 18, w: 20, h: 20 });
+    numFont().draw(g, String(st.info.dmg), x0 + 24, b.y + 36, 20, '#f0c0b0');
   }
+  if (st.info.attacker) {
+    g.font = BODY_FONT;
+    text(g, st.info.attacker, b.x + b.w - 14 - textWidth(g, st.info.attacker, 13), b.y + 22, BODY_FONT, 'rgba(243,235,216,.6)');
+  }
+  drawCountdown(s, geo, st);
   // 按钮：确定（选中合法牌后可用）/ 承受
   const ok = geo.ok;
   g.fillStyle = st.selected ? C.jade : 'rgba(47,107,79,.35)';
   g.fillRect(ok.x, ok.y, ok.w, ok.h);
   frame(g, ok, C.gold, 1.5);
-  text(g, '确定', ok.x + ok.w / 2 - 24, ok.y + 30, TITLE_FONT, st.selected ? C.paper : 'rgba(243,235,216,.45)');
+  textCenter(g, '确定', ok.x + ok.w / 2, ok.y + 30, TITLE_FONT, st.selected ? C.paper : 'rgba(243,235,216,.45)', 24);
   const tk = geo.take;
   g.fillStyle = '#3a1712';
   g.fillRect(tk.x, tk.y, tk.w, tk.h);
   frame(g, tk, C.gold, 1.5);
-  const takeLabel = st.info.dmg ? `❤−${st.info.dmg}` : st.req.pass;
-  text(g, takeLabel, tk.x + tk.w / 2 - takeLabel.length * 7, tk.y + 29, 'bold 18px sans-serif', '#f0c0b0');
+  if (st.info.dmg) {
+    // 承受：体力印（矢量）+ −N（数字字体），整体居中
+    const nf = numFont();
+    const lab = `−${st.info.dmg}`;
+    const w = 18 + 4 + nf.measure(g, lab, 18);
+    const x0 = tk.x + (tk.w - w) / 2;
+    icons().draw(g, 'ui_hp', { x: x0, y: tk.y + 13, w: 18, h: 18 });
+    nf.draw(g, lab, x0 + 22, tk.y + 29, 18, '#f0c0b0');
+  } else textCenter(g, st.req.pass, tk.x + tk.w / 2, tk.y + 29, TITLE_FONT, '#f0c0b0', 24);
 }
+
+/** 倒计时区（不透明底）：进度条 + 秒数。倒计时期间只重绘这一小块 */
+export function countdownRect(geo: ReturnType<typeof responseGeometry>): Rect {
+  const bar = geo.bar;
+  return { x: bar.x - 2, y: bar.y - 5, w: bar.w + 4, h: bar.h + 10 };
+}
+function drawCountdown(s: Surface, geo: ReturnType<typeof responseGeometry>, st: ResponseState) {
+  const g = s.ctx;
+  const r = countdownRect(geo);
+  g.fillStyle = COUNTDOWN_BG;
+  g.fillRect(r.x, r.y, r.w, r.h);
+  // 秒数放在倒计时块右端（块不越出横幅，不压主将牌）
+  const bar = { ...geo.bar, w: geo.bar.w - 24 };
+  g.fillStyle = 'rgba(243,235,216,.15)';
+  g.fillRect(bar.x, bar.y, bar.w, bar.h);
+  if (!Number.isFinite(st.total)) return;
+  const k = Math.max(0, st.left / st.total);
+  g.fillStyle = k < 0.3 ? C.cinnabar : '#e0a060';
+  g.fillRect(bar.x, bar.y, bar.w * k, bar.h);
+  const sec = Math.ceil(st.left / 1000);
+  numFont().draw(g, String(sec), bar.x + bar.w + 6, bar.y + 8, 13, C.paper);
+}
+/** 倒计时区底色：遮罩叠在场景上的近似色（不透明，便于局部重绘不叠加） */
+export const COUNTDOWN_BG = '#140806';
 
 /** 处理手势；返回 'ok'|'take'|'select'|null */
 export function responseTap(lay: ResponseLayout, st: ResponseState, at: Vec2): 'ok' | 'take' | 'select' | null {
@@ -207,21 +249,22 @@ export function openResponse(stack: OverlayStack, req: ResponseRequest, o: Respo
     kind: 'response',
     modal: true,
     dismissOnTapOutside: false,
-    animating: () => st.intro < 1 || Number.isFinite(st.left),
-    draw: (s, dt) => {
+    // 弹出动画（250ms）整层重绘；之后倒计时只局部重绘（秒数或进度条像素变化时）
+    animating: () => (st.intro < 1 ? true : Number.isFinite(st.left) && st.left > 0 ? 'tick' : false),
+    update: (dt) => {
       const step = Math.min(dt, 100); // 卡顿/切后台回来时不一次扣光
-      if (!o.paused?.()) {
-        st.intro = Math.min(1, st.intro + step / 250);
-        if (Number.isFinite(st.left)) {
-          st.left -= step;
-          if (st.left <= 0) {
-            st.left = 0;
-            queueMicrotask(() => handle.close(null)); // 超时自动承受
-          }
+      if (o.paused?.()) return;
+      st.intro = Math.min(1, st.intro + step / 250);
+      if (Number.isFinite(st.left)) {
+        st.left -= step;
+        if (st.left <= 0) {
+          st.left = 0;
+          queueMicrotask(() => handle.close(null)); // 超时自动承受
         }
       }
-      drawResponse(s, o.layout(), st);
     },
+    tick: (s) => drawCountdown(s, responseGeometry(o.layout(), st), st),
+    draw: (s) => drawResponse(s, o.layout(), st),
     gesture: (e: GestureEvent, h) => {
       if (e.type !== 'tap') return true; // 响应期间只接受点按，长按等一律吞掉
       const r = responseTap(o.layout(), st, e.at);
@@ -241,9 +284,11 @@ export function toastNoLegal(stack: OverlayStack, label: string, at: () => Rect)
     kind: 'toast',
     modal: false,
     animating: () => t < RESPONSE.noLegalMs,
-    draw: (s, dt) => {
+    update: (dt) => {
       t += Math.min(dt, 100);
       if (t >= RESPONSE.noLegalMs) queueMicrotask(() => h.close());
+    },
+    draw: (s) => {
       const r = at();
       s.ctx.globalAlpha = Math.max(0, Math.min(1, (RESPONSE.noLegalMs - t) / 150));
       s.ctx.fillStyle = 'rgba(26,8,6,.9)';

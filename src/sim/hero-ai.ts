@@ -228,6 +228,16 @@ export function heroRespond(g: Game, n: number, legal: (c: CardInst) => boolean)
   return cands.find((c) => def(c).shan) ?? cands[0];
 }
 
+/**
+ * 无懈可击决策点：敌方锦囊（当前只有妖咒：随机弃 1 张手牌）。
+ * 手里只剩无懈本身时，被咒弃掉的也只会是它，打出没有收益 → 不出；否则打出。
+ */
+export function heroWuxie(g: Game, legal: (c: CardInst) => boolean): CardInst | null {
+  const w = g.hand.find(legal);
+  if (!w) return null;
+  return g.hand.length <= 1 ? null : w;
+}
+
 /** 回合末弃牌：连营流优先留可打出的牌；其余按价值 */
 export function heroDiscards(g: Game): CardInst[] {
   const n = g.discardNeeded();

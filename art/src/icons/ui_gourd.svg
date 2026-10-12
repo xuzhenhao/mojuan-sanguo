@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
+<!-- 《墨卷三国》印章图标 ui_gourd（ui）· 2x 56×56，四周 4px 留给烘焙阴影；内容 48×48 -->
+<defs><filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/><feOffset dy="1.2"/><feComponentTransfer><feFuncA type="linear" slope=".85"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="1.6" xChannelSelector="R" yChannelSelector="G"/></filter><style>.st{stroke:#9AD4B8;fill:none}.ac{fill:#D4604C}.ac2{fill:#150A08;stroke:#150A08}</style></defs>
+<g filter="url(#sh)">
+<g filter="url(#rough)"></g>
+<g transform="translate(28 28) scale(1) translate(-28 -28)" fill="#9AD4B8" stroke="#070302" stroke-width="2" paint-order="stroke" stroke-linejoin="round"><path d="M28 9 a3 3 0 0 1 3 3 v2 C35 16 36 21 32 24 C40 27 42 34 40 39 C38 44 33 47 28 47 C23 47 18 44 16 39 C14 34 16 27 24 24 C20 21 21 16 25 14 v-2 a3 3 0 0 1 3 -3 Z"/><path d="M21 25 H35" stroke-width="2" class="ac2"/></g>
+</g></svg>
