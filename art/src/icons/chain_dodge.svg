@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
+<!-- 《墨卷三国》印章图标 chain_dodge（affix）· 2x 56×56，四周 4px 留给烘焙阴影；内容 48×48 -->
+<defs><filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="1.4"/><feOffset dy="1.2"/><feComponentTransfer><feFuncA type="linear" slope=".85"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="rough" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="1.6" xChannelSelector="R" yChannelSelector="G"/></filter><style>.st{stroke:#E9C877;fill:none}.ac{fill:#D4604C}.ac2{fill:#150A08;stroke:#150A08}</style></defs>
+<g filter="url(#sh)">
+<g filter="url(#rough)"><rect x="5" y="5" width="46" height="46" rx="6" fill="#150A08"/><rect x="5.8" y="5.8" width="44.4" height="44.4" rx="5.5" fill="none" stroke="#E9C877" stroke-width="1.6"/></g>
+<g transform="translate(28 28) scale(0.78) translate(-28 -28)" fill="#E9C877" stroke="#070302" stroke-width="0" paint-order="stroke" stroke-linejoin="round"><g transform="translate(-6 -4) scale(.85)"><path d="M14 36 C20 22 32 16 44 15 C36 20 30 27 27 38 Z"/><path d="M14 40 C24 37 32 38 42 33 C36 40 26 43 14 40 Z" opacity=".8"/></g><g transform="translate(12 10) scale(.7)"><path d="M14 36 C20 22 32 16 44 15 C36 20 30 27 27 38 Z"/><path d="M14 40 C24 37 32 38 42 33 C36 40 26 43 14 40 Z" opacity=".8"/></g></g>
+</g></svg>

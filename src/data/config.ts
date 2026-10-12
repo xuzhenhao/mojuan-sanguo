@@ -79,6 +79,8 @@ export interface ConfigBundle {
     drawPerTurn: number;
     firstTurnBonus: number;
     minHandLimit: number;
+    /** 手牌硬上限（PRD §5.4） */
+    handHardCap: number;
     responseSeconds: number;
     armorKeep: number;
     enemyArmorKeep?: number;
