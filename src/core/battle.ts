@@ -2,7 +2,7 @@ import { CARDS, starterDeck } from '../data/cards';
 import { BATTLES, ENEMIES, ENEMY_CARDS, MAX_FLASH_MARKS } from '../data/enemies';
 import { HEROES, RULES } from '../data/heroes';
 import { CONFIG } from '../data/config';
-import { cardMatches, Effects, standardJudgeDeck, type Source } from './effects';
+import { cardMatches, Effects, judgeFromCard, standardJudgeDeck, type Source } from './effects';
 import { AFFIXES } from '../data/affixes';
 import { rndInt, shuffle, type Rng } from './rng';
 import {
@@ -21,18 +21,34 @@ import {
   RANK_CH,
   SUIT_CH,
 } from './rules';
-import type { AffixDef, CardInst, Enemy, EnemyAct, Slot } from './types';
+import type { AffixDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, Slot } from './types';
+
+/** 战间回复后的体力（core 与自动试玩共用同一规则，#56） */
+/** 战间回复：amount 默认取 rules.map.betweenBattleHeal（游戏，H5 = 0，PRD §10.4）；模拟传 rules.sim.baselineBetweenBattleHeal */
+export const betweenBattleHeal = (hp: number, maxHp: number, amount: number = CONFIG.rules.map.betweenBattleHeal) => Math.min(maxHp, hp + Math.max(0, amount));
+
+/** 手满弃置事件（PRD §5.4：reason = hand_overflow，不触发任何弃置时/弃牌后效果） */
+export interface HandOverflowEvent {
+  type: 'discard';
+  reason: 'hand_overflow';
+  card: CardInst;
+  /** 当前硬上限（rules.handHardCap） */
+  cap: number;
+}
 
 /** 平台适配层需实现的 IO（Web DOM / 微信小游戏 Canvas 各自实现） */
 export interface BattleIO {
   log(t: string): void;
   update(): void;
   sleep(ms: number): Promise<void>;
-  showJudge(reason: string, c: CardInst): Promise<void>;
+  /** 判定事件：ev.card 是完整判定牌数据（签筒的签没有卡牌定义，不得按 id 查牌库） */
+  showJudge(ev: JudgeEvent): Promise<void>;
   /** 响应窗口：返回打出的牌或 null（放弃/超时） */
   respond(text: string, legal: (c: CardInst) => boolean, pass: string, timed: boolean): Promise<CardInst | null>;
   /** 灵光一闪三选一：reroll 可调用一次（看广告刷新） */
   epiphany(c: CardInst, options: AffixDef[], reroll: () => AffixDef[]): Promise<AffixDef | null>;
+  /** 手满弃置（PRD §5.4）：新摸到的牌因手牌达到硬上限直接进弃牌堆；可选，表现层用来提示「手满，弃置」 */
+  handOverflow?(ev: HandOverflowEvent): void;
   hurt?(): void;
   enemyHit?(e: Enemy): void;
   onBattleEnd(win: boolean): void;
@@ -79,7 +95,7 @@ export class Game {
   /** 本回合已使用的杀张数（虓烈 / 破阵） */
   shaIndex = 0;
   effects = new Effects(this);
-  judgeDeck: CardInst[] = [];
+  judgeDeck: JudgeCard[] = [];
   zeroCostPlays = new Map<string, number>();
   extraActs = new Map<Enemy, string[]>();
   logs: string[] = [];
@@ -190,8 +206,20 @@ export class Game {
         this.discard = [];
         this.log('弃牌堆洗入摸牌堆');
       }
-      this.hand.push(this.draw.pop()!);
+      this.addToHand(this.draw.pop()!);
     }
+  }
+  /** 所有进手牌的路径都必须走这里：手牌已达硬上限时直接进弃牌堆（PRD §5.4），不触发弃置类效果 */
+  addToHand(c: CardInst): boolean {
+    const cap = CONFIG.rules.handHardCap;
+    if (this.hand.length >= cap) {
+      this.discard.push(c);
+      this.log(`手满，弃置：${def(c)?.name ?? c.id}`);
+      this.io.handOverflow?.({ type: 'discard', reason: 'hand_overflow', card: c, cap });
+      return false;
+    }
+    this.hand.push(c);
+    return true;
   }
   toDiscard(c: CardInst) {
     this.hand = this.hand.filter((x) => x !== c);
@@ -203,23 +231,23 @@ export class Game {
     const v = (c: CardInst) => (def(c).tao ? 5 : def(c).shan ? 4 : def(c).sha ? 3 : def(c).slot ? 1 : 2);
     return this.hand.slice().sort((a, b) => v(a) - v(b))[0];
   }
-  async judge(reason: string) {
+  async judge(reason: string): Promise<JudgeCard> {
+    let j: JudgeCard;
     if (CONFIG.rules.mechanics.judgeSource === 'pool') {
       if (!this.judgeDeck.length) this.judgeDeck = shuffle(this.rng, standardJudgeDeck());
-      const c = this.judgeDeck.pop()!;
-      await this.io.showJudge(reason, c);
-      this.log(`判定（${reason}）：${SUIT_CH[c.suit]}${RANK_CH[c.rank]}`);
-      return c;
+      j = this.judgeDeck.pop()!;
+    } else {
+      if (!this.draw.length) {
+        this.draw = shuffle(this.rng, this.discard);
+        this.discard = [];
+      }
+      const c = this.draw.pop()!;
+      this.discard.push(c);
+      j = judgeFromCard(c, def(c)?.name ?? c.id);
     }
-    if (!this.draw.length) {
-      this.draw = shuffle(this.rng, this.discard);
-      this.discard = [];
-    }
-    const c = this.draw.pop()!;
-    this.discard.push(c);
-    await this.io.showJudge(reason, c);
-    this.log(`判定（${reason}）：${SUIT_CH[c.suit]}${RANK_CH[c.rank]}`);
-    return c;
+    await this.io.showJudge({ type: 'judge', reason, card: j });
+    this.log(`判定（${reason}）：${SUIT_CH[j.suit]}${RANK_CH[j.rank]}`);
+    return j;
   }
 
   // ---------- 流程 ----------
@@ -687,7 +715,11 @@ export class Game {
     }
     return false;
   }
-  nextBattle() {
+  /** 战间回复：默认 rules.map.betweenBattleHeal（H5 = 0，不回血）；只在胜利后进入下一场时生效，不超过体力上限 */
+  nextBattle(heal: number = CONFIG.rules.map.betweenBattleHeal) {
+    const healed = betweenBattleHeal(this.p.hp, this.p.maxHp, heal);
+    if (healed > this.p.hp) this.log(`战间休整：回复 ${healed - this.p.hp} 点体力`);
+    this.p.hp = healed;
     this.battleIdx++;
     this.startBattle();
   }

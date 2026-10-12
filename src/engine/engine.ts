@@ -8,8 +8,8 @@ import { GestureRecognizer, type GestureEvent } from './input';
 import { MainLoop } from './loop';
 import { OverlayStack } from './modal';
 import { SceneManager } from './scene';
-import { AtlasManager, BakeCache, bakeScale, TextureBudget, type BudgetWarning } from './memory';
-import { DEFAULT_RENDER_CONFIG, decideWebGL, effectiveDpr, type RenderConfig, type WebGLDecision } from './settings';
+import { AtlasManager, BakeCache, bakeScale, CANVAS2D_ATLASES, TextureBudget, type BudgetWarning } from './memory';
+import { DEFAULT_RENDER_CONFIG, decideWebGL, effectiveDpr, parseFlag, type RenderConfig, type WebGLDecision } from './settings';
 import { createSurfaces, type Surface, type SurfaceName } from './surfaces';
 import type { CanvasLike } from './types';
 
@@ -25,6 +25,8 @@ export class Engine {
   readonly dpr: number;
   /** 烘焙缓存倍率：低端 1.5x，否则 2x（不超过 dpr） */
   readonly bakeScale: number;
+  /** 资源半尺寸分级是否开启 */
+  readonly halfSize: boolean;
   readonly width: number;
   readonly height: number;
   readonly budget: TextureBudget;
@@ -48,7 +50,8 @@ export class Engine {
   ) {
     const info = platform.systemInfo();
     this.dpr = effectiveDpr(info.dpr, cfg.maxDpr);
-    this.bakeScale = bakeScale(cfg.lowEnd, this.dpr);
+    this.halfSize = parseFlag(platform.launchQuery().half) ?? cfg.halfSizeAssets;
+    this.bakeScale = bakeScale(cfg.lowEnd, this.dpr, this.halfSize);
     this.width = info.width;
     this.height = info.height;
     const pxW = Math.round(info.width * this.dpr);
@@ -58,15 +61,19 @@ export class Engine {
       platform.warn('[texture-budget] 纹理内存超过告警线', w);
     });
     // 回收顺序：先 LRU 烘焙缓存，再非当前场景图集（render-spec §12.5）
-    this.bakes = new BakeCache(this.budget);
-    // 2D 路径下图片解码为 RGBA8；WebGL 路径在 P4 按扩展选择压缩格式
-    this.atlases = new AtlasManager(this.budget, undefined, () => 'rgba8');
+    // 主画面始终走 2D：图片解码为 RGBA8，按 render-spec §12.5 分级（2x 锐利 / 1x 半尺寸 / 0.75x 立绘）
+    this.atlases = new AtlasManager(this.budget, CANVAS2D_ATLASES, () => 'rgba8', {}, { halfSize: this.halfSize });
+    this.bakes = new BakeCache(this.budget, undefined, undefined, {
+      ensure: (n) => this.atlases.ensure(n),
+      baked: (n) => void this.atlases.markBaked(n),
+    });
 
     const screen = platform.mainCanvas();
     screen.width = pxW;
     screen.height = pxH;
     this.budget.track('screen:main', 'framebuffer', pxW, pxH);
-    this.surfaces = createSurfaces((w, h) => platform.createOffscreen(w, h), pxW, pxH, this.budget);
+    // 半尺寸：背景离屏按 1x 逻辑分辨率（源图烘焙后释放），绘制时放大
+    this.surfaces = createSurfaces((w, h) => platform.createOffscreen(w, h), pxW, pxH, this.budget, this.halfSize ? { scale: { bg: 1 / this.dpr } } : {});
     this.compositor = new Canvas2DCompositor(screen);
 
     const probe: { canvas: CanvasLike | null } = { canvas: null };
@@ -144,7 +151,11 @@ export class Engine {
   frame(dt: number) {
     this.gestures.tick(this.platform.now());
     this.scenes.update(dt);
-    if (this.overlays.animating()) this.surfaces.main.dirty = true; // 弹层动画/倒计时：每帧重绘 main
+    this.overlays.update(dt);
+    // 弹层出帧：短动画整层重绘 main；倒计时只局部重绘（render-spec §12：空闲/等待时不整层重绘）
+    const anim = this.overlays.animating();
+    if (anim === 'full') this.surfaces.main.dirty = true;
+    const mainFull = this.surfaces.main.dirty;
     for (const s of Object.values(this.surfaces)) {
       if (!s.dirty) continue;
       const k = this.dpr * s.scale;
@@ -152,6 +163,12 @@ export class Engine {
       if (this.scenes.current) this.scenes.draw(s.name, s, dt);
       this.hooks.draw?.(s.name, s, dt);
       if (s.name === 'main') this.overlays.draw(s, dt);
+    }
+    if (anim === 'tick' && !mainFull) {
+      const m = this.surfaces.main;
+      m.ctx.setTransform(this.dpr * m.scale, 0, 0, this.dpr * m.scale, 0, 0);
+      this.overlays.tick(m);
+      m.dirty = true; // 只为触发合成（3 次 drawImage），不整层重绘
     }
     this.compositor.compose(this.surfaces);
     const tfx = this.scenes.transitionFx;
@@ -162,7 +179,7 @@ export class Engine {
     return (
       this.gestures.active ||
       this.scenes.animating() ||
-      this.overlays.animating() ||
+      !!this.overlays.animating() ||
       !!this.hooks.animating?.() ||
       (this.overlay ? WebGLOverlay.needsFrame(this.fx) : false)
     );

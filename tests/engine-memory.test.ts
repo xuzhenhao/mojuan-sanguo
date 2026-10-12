@@ -60,18 +60,18 @@ describe('TextureBudget', () => {
 
 describe('BakeCache（LRU + 按场景清空）', () => {
   it('各类 LRU 上限与 render-spec §12.2 一致', () => {
-    expect(BAKE_LRU_CAPS).toMatchObject({ hand: 12, bigcard: 4, enemy: 6, badge: 40, detail: 1, mapscroll: 1 });
+    expect(BAKE_LRU_CAPS).toMatchObject({ hand: 10, bigcard: 4, enemy: 6, badge: 40, detail: 1, mapscroll: 1 });
   });
   it('超过类别上限时淘汰最久未绘制的', () => {
     const { b } = mk();
     const disposed: string[] = [];
     const c = new BakeCache<string>(b, (v) => disposed.push(v));
-    for (let i = 0; i < 12; i++) c.get(`h${i}`, 'hand', 'battle', 108, 156, () => `h${i}`);
+    for (let i = 0; i < 10; i++) c.get(`h${i}`, 'hand', 'battle', 108, 156, () => `h${i}`);
     c.get('h0', 'hand', 'battle', 108, 156, () => 'x'); // 命中，刷新 h0
-    c.get('h12', 'hand', 'battle', 108, 156, () => 'h12');
-    expect(c.count('hand')).toBe(12);
+    c.get('h10', 'hand', 'battle', 108, 156, () => 'h10');
+    expect(c.count('hand')).toBe(10);
     expect(disposed).toEqual(['h1']);
-    expect(b.usedBy('bake')).toBe(12 * textureBytes(108, 156));
+    expect(b.usedBy('bake')).toBe(10 * textureBytes(108, 156));
   });
   it('离屏 drop 与离开场景 clearScene 释放内存', () => {
     const { b } = mk();
@@ -84,16 +84,16 @@ describe('BakeCache（LRU + 按场景清空）', () => {
     expect(c.size).toBe(1);
     expect(b.usedBy('bake')).toBe(textureBytes(531, 1050));
   });
-  it('战斗缓存满载峰值约 2.77MB（render-spec §12.2）', () => {
+  it('战斗缓存满载峰值约 2.64MB（render-spec §12.2，手牌上限 10）', () => {
     const { b } = mk();
     const c = new BakeCache(b);
-    for (let i = 0; i < 12; i++) c.get(`h${i}`, 'hand', 'battle', 108, 156, () => 0);
+    for (let i = 0; i < 10; i++) c.get(`h${i}`, 'hand', 'battle', 108, 156, () => 0);
     for (let i = 0; i < 6; i++) c.get(`e${i}`, 'enemy', 'battle', 144, 198, () => 0);
     c.get('g1', 'general', 'battle', 207, 282, () => 0);
     c.get('g2', 'general', 'battle', 114, 156, () => 0);
     for (let i = 0; i < 40; i++) c.get(`b${i}`, 'badge', 'battle', 48, 48, () => 0);
     c.get('d', 'detail', 'battle', 270, 300, () => 0);
-    expect(b.usedBy('bake') / MB).toBeGreaterThan(2.3);
+    expect(b.usedBy('bake') / MB).toBeGreaterThan(2.2);
     expect(b.usedBy('bake') / MB).toBeLessThan(2.8);
   });
   it('超过告警线时先淘汰 LRU 缓存', () => {
@@ -154,9 +154,10 @@ describe('引擎接入', () => {
   it('dpr2：上屏 + 3 块离屏的帧缓冲记账；WebGL 关闭时无叠加层', () => {
     const f = fakePlatform({ query: { webgl: '0' } });
     const e = new Engine(f.p);
-    expect(e.budget.usedBy('framebuffer')).toBe(780 * 1688 * 4 * 3 + 390 * 844 * 4);
+    // 上屏 + main 2x，背景 1x（半尺寸默认开），氛围层半分辨率
+    expect(e.budget.usedBy('framebuffer')).toBe(780 * 1688 * 4 * 2 + 390 * 844 * 4 * 2);
     expect(e.warnings).toHaveLength(0);
-    expect(e.bakeScale).toBe(2);
+    expect(e.bakeScale).toBe(1.5);
   });
   it('低端配置：缓存 1.5x', () => {
     const f = fakePlatform({ query: { webgl: '0' } });
