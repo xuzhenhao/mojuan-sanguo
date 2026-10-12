@@ -20,11 +20,21 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Canvas 新版 → /next/；DOM 可玩版 → 根目录（P5 #46 对调）
       - run: npm run build
+      # 必须在组装站点之前检查：确保 Canvas 发布包 dist/ 本身不含 DOM/调试代码
+      - run: npm run size-check
+      - run: npm run build:debug
+      - name: 组装站点（根目录 = DOM 版，/next/ = Canvas 版）
+        run: |
+          rm -rf _site && mkdir -p _site/next
+          cp -r dist-debug/. _site/
+          mv _site/debug.html _site/index.html
+          cp -r dist/. _site/next/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
   deploy:
     needs: build
     runs-on: ubuntu-latest

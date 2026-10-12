@@ -2,7 +2,9 @@
 
 水墨风三国 Roguelike 卡牌（微信小游戏，竖屏）的可玩网页战斗原型。
 
-- 🎮 在线试玩：<https://xuzhenhao.github.io/mojuan-sanguo/>（加 `?demo=1` 把灵光一闪触发率提高到 50%，加 `?seed=123` 固定随机种子）
+- 🎮 在线试玩（DOM 可玩原型）：<https://xuzhenhao.github.io/mojuan-sanguo/>（加 `?demo=1` 把灵光一闪触发率提高到 50%，加 `?seed=123` 固定随机种子）
+- 🧪 Canvas 新版（引擎 + B 金漆屏风页面流程，开发中）：<https://xuzhenhao.github.io/mojuan-sanguo/next/>（`?webgl=0` 关闭 WebGL 水墨叠加层，`?page=map` 直接进入某页）
+- 两者由同一次 Pages 部署产出；CI 的 size-check 保证 Canvas 发布包不含 DOM/调试代码。P5（#46）时对调：Canvas 版到根目录，DOM 版移到 `/debug/`
 - 📄 策划案：[docs/PRD.md](docs/PRD.md)
 - 📝 更新日志 / 设计决策：[docs/CHANGELOG.md](docs/CHANGELOG.md)
 
@@ -10,10 +12,13 @@
 
 ```bash
 npm install
-npm run dev      # 本地开发 http://localhost:5173/mojuan-sanguo/
+npm run dev      # Canvas 新版 http://localhost:5173/mojuan-sanguo/next/
+npm run dev:debug   # DOM 可玩版 http://localhost:5173/mojuan-sanguo/debug.html（不进 Canvas 发布包）
+npm run build:debug # DOM 版输出到 dist-debug/（Pages 部署到根目录）
+npm run size-check  # Canvas 发布包体检查（≤4MB，且不含 DOM/调试代码）
 npm test         # vitest 单元测试
 npm run lint     # ESLint + Prettier 检查
-npm run build    # 产物输出到 dist/
+npm run build    # Canvas 发布包输出到 dist/（Pages 部署到 /next/）
 npm run preview  # 预览构建产物
 ```
 
