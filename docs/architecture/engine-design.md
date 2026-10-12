@@ -1,7 +1,8 @@
-# 《墨卷三国》底层架构与引擎设计（草案 v0.3）
+# 《墨卷三国》底层架构与引擎设计（草案 v0.4）
 
-> 状态：草案，待负责人审阅、用户拍板。仅文档，不含代码改动。
+> 状态：已评审；关键取舍均已拍板（第 8 节）。仅文档，不含代码改动。
 > 硬约束：**同一份 TypeScript 同时产出 H5 与微信小游戏**；**不使用游戏引擎**，以 Canvas 2D 绘制为主。
+> v0.4 变更：【已决定 2026-10-12】原第 8 节 9 项待拍板全部定案（见第 8 节）；新增 4.12 WebGL 水墨层（只走 WebGL，降级以后再做）；**先做 H5、以 H5 验收**，微信只保留接口。
 > v0.3 变更：【已决定 2026-10-12】战斗页采用 **B 金漆屏风**，**单一皮肤、不做可切换皮肤**；render-spec 已随 PR #20 合入 main。
 > v0.2 变更：①【已决定】战斗逻辑采用同步结算 + 事件流；②「战斗页表现需求」按 `docs/ui/render-spec.md`（已合入 main）重写，渲染分层与之对齐；③参考链接已逐条在线核验。
 > 标注约定：【来源】为公开资料（附链接）；【推测】为无法从公开资料证实、基于经验的判断。
@@ -187,7 +188,7 @@ export interface SubpackageLoader {
 ```
 
 - 微信 Canvas：首个 `wx.createCanvas()` 为上屏画布，后续为离屏【来源】https://developers.weixin.qq.com/minigame/dev/api/render/canvas/wx.createCanvas.html
-- H5 广告：降级为“直接成功”或接入 H5 广告联盟，【待拍板】。
+- H5 广告【已决定】：H5 不接广告，“看广告刷新”改为**每局免费 1 次**（`AdsAdapter.rewarded` 在 H5 上按局计数，第 1 次返回 `completed`，之后返回 `unavailable`）。
 
 ### 4.2 轻量渲染层（需求 2）
 
@@ -234,10 +235,10 @@ export interface TextStyle { font: string; size: number; color: string; stroke?:
 - **对象级缓存**：敌人、我方、徽章、每张手牌、详情浮层各烘焙一张位图（`cacheAsBitmap`），内容变了才重烘，每帧只做带变换的 `drawImage`。受击闪白、溶解用 `globalCompositeOperation` 叠加，不重烘。
 - **脏矩形**：先不实现。缓存到位后整屏贴图合成的开销可以接受；基准不达标时再给 main 加脏矩形（合并成 ≤4 个矩形，超过就整屏重画）。
 - **降帧**：静止时 0fps；只剩常驻循环（致命脉冲、墨角标呼吸、倒计时）时 10–30fps；有动画或拖拽时 60fps。
-- **高 DPR**：与 render-spec 对齐，渲染缓冲 = 逻辑 × min(dpr, 3)，画质分档可降到 2 / 1.5（待拍板）；`ctx.setTransform(scale…)` 统一处理；资源按 2x 出图，3x 屏线性过滤。
+- **高 DPR**：与 render-spec 对齐，渲染缓冲 = 逻辑 × min(dpr, 3)，低端设备**自动降低 DPR**（2 或 1.5）【已决定】；`ctx.setTransform(scale…)` 统一处理；资源按 2x 出图，3x 屏线性过滤。
 - **适配**：设计基准 **390×844 dp** 竖屏（锁竖屏），等宽缩放 `scale = screenW/390`，多出或缺少的高度由战场区弹性吸收；背景层 cover 铺满物理屏，其余层只放在安全区内；`safeArea` 来自 `wx.getWindowInfo()` / CSS `env(safe-area-inset-*)`，胶囊用 `wx.getMenuButtonBoundingClientRect()` 生成禁区；布局提供 `anchor: 'safe-top' | 'safe-bottom' | 'capsule-left'`。
 - **文字**（按 render-spec 4.1）分三类：①书法字（马善政楷书，OFL）按用到的字做子集（约 300 字、60–90KB），H5 用 FontFace、微信用 `wx.loadFont`，常用的卡名、武将名、按钮**预渲染进图集**，避免首帧闪烁；②数字用**位图字体**（`BitmapText`，2 套）；③说明文字用系统无衬线字体，不打包。所有 `Text` 节点都离屏缓存。
-- 不引入 WebGL 作为主路径；水墨特效可选 WebGL 增强层，【待拍板】。
+- 上屏画布为 WebGL 合成器，场景仍用 2D 离屏绘制，水墨特效走 WebGL，见 4.12【已决定】。
 
 ### 4.3 UI 组件、布局、命中测试与手势（需求 3）
 
@@ -314,7 +315,7 @@ export interface ParticleEmitter { emit(cfg: ParticleConfig, at: Vec2): void } /
 ```
 
 - 原则：**视图状态由 snapshot 兜底**——每批事件后附带 snapshot，动画结束（或跳过）时视图对齐 snapshot，避免累积误差。
-- 水墨特效（无 shader 方案）：预渲染墨迹序列帧 / 笔刷印章 + `globalCompositeOperation`（`multiply`、`destination-out` 做晕染、擦除揭示）+ 少量粒子（墨点飞溅）。WebGL 方案作为可选增强。
+- 水墨特效：墨晕、晕染、纸纹、泼墨转场走 WebGL（4.12）；墨点飞溅、纸屑等仍用 2D 粒子。表现队列把效果实例（`InkFx`）交给 GL 合成器。
 - 合并规则：同帧多条 `damage` 可并行；`ability` 横幅串行；`log` 不占时长。
 
 ### 4.5 战斗页表现需求（对齐 main 上的 docs/ui/render-spec.md，PR #20 已合并）
@@ -406,9 +407,9 @@ export interface PresentationQueue {
 ```
 
 #### 4.5.5 资源与包体
-- render-spec 估算压缩后合计**约 2.8MB**：UI 图集 350KB、特效 120KB、卡图 600KB、武将 480KB、敌人 500KB、背景 720KB、字体 80KB。首包放 UI、特效、字体和第一章资源，**约 1.2MB**，其余走分包或 CDN。加上代码约 0.8MB，主包约 2MB，在 4MB 硬限内，满足 2.5MB 的目标。
+- render-spec §9（B 定稿，PR #29）估算压缩后合计**约 2.5MB**：UI 400KB、特效 150KB、卡图 600KB、武将 480KB、敌人 550KB、背景 200KB、字体 80KB。首包约 **1.1MB**（ui_common、fx、字体、共享背景、第一章敌人），立绘、卡图和第 2/3 章敌人走分包。另有 WebGL 特效纹理约 0.7MB，放在 `fx_webgl` 分包（4.12.4）。H5 阶段“分包”对应按需加载的资源组。加上代码约 0.8MB，首包约 1.9MB。
 - 图集单张 ≤2048：`battle_ui`（2048）、`battle_fx`（1024）、`cards_art_{1,2}`（1024）；立绘和敌人按章节动态加载。资源管线（4.7）按这些分组输出 manifest 的 group。
-- 单一 B 皮肤：只打包 B 的资源（武将牌头像 276×376、副将小牌 152×208、鎏金牌框九宫格），不出 A 的半身立绘；总量预计低于 2.8MB【推测】。
+- 单一 B 皮肤：只打包 B 的资源；九宫格切线按 render-spec §10（框 24/24/24/24、按钮 16、面板 20，2x）写进图集 JSON 的 `slice` 字段。
 - 离屏缓存上限：卡 10、敌 6、徽章约 30，约 12MB@dpr2。引擎提供 `BitmapCachePool`，设上限并按 LRU 淘汰，切换战斗时清空。
 
 #### 4.5.6 仍待对齐
@@ -416,25 +417,28 @@ export interface PresentationQueue {
 - B 方向各动画剧本的细节参数，以 render-spec 和 mockups-v2 为准，实现时逐项对稿。
 
 #### 4.5.7 给 UI 设计的引擎硬约束
-1. **滤镜和混合**：不能用 `ctx.filter`（微信端不保证支持）、`shadowBlur`（低端机太慢）和 SVG 滤镜。去饱和、阴影、发光、晕染都要**预烘焙进贴图**。运行时只允许 `globalAlpha`、着色（单色图标 tint）和 `globalCompositeOperation` 中的 `source-over / lighter / multiply / destination-in / destination-out`。`multiply` 需要在真机验证。
+1. **滤镜和混合**：
+   - **WebGL 路径**（render-spec §11 的 13 项，清单待对齐）：由 shader 实现，UI 提供参数和噪声/笔刷贴图，不需要序列帧；同屏特效实例 ≤8；全屏特效 pass 同时 ≤2；纹理放 `fx_webgl` 分包（约 0.7MB）；特效不承载关键信息，也不阻塞。
+   - **2D 场景层**（卡牌、敌人、UI）：仍不能用 `ctx.filter`、`shadowBlur`、SVG 滤镜；去饱和、阴影、发光要预烘焙；只允许 `globalAlpha`、tint 和 `source-over / lighter / multiply / destination-in / destination-out`。
+   - 本期不设计 2D 降级，降级以后再做。
 2. **字体**：书法字体只用一种（马善政楷书，OFL），按用到的字做子集，≤90KB；固定文案优先烘焙进图集。数字只用位图字体（最多 2 套）。说明文字用系统无衬线字体。不使用其他可商用风险字体。
-3. **包体**：微信主包 ≤4MB（硬限），工程目标 ≤2.5MB，其中首包资源 ≤1.2MB。总包按 20MB 保守计算（官方另一处写 30MB）。独立分包 ≤4MB。其余资源走分包或 CDN。
-4. **DPR 和分辨率**：设计基准 390×844 dp，DPR 上限 3，资源按 2x 出图；低画质档可能降到 2 或 1.5（待拍板）。
+3. **包体**：微信主包 ≤4MB（硬限），工程目标 ≤2.5MB，其中首包资源 ≤1.2MB（render-spec 现为约 1.1MB；WebGL 纹理约 0.7MB 放独立分包）。总包按 20MB 保守计算（官方另一处写 30MB）。独立分包 ≤4MB。其余资源走分包或 CDN。
+4. **DPR 和分辨率**：设计基准 390×844 dp，DPR 上限 3，资源按 2x 出图；低端设备自动降到 2 或 1.5【已决定】。
 5. **图集**：单张 ≤2048×2048，按场景分组，资源尺寸尽量用 2 的幂或便于装箱的尺寸。牌框用九宫格并标注切线。
 6. **性能**：低端安卓稳定 60fps；每帧 drawImage ≤300 次、粒子 ≤300 个；同屏全屏半透明遮罩 ≤2 层；静止时 0fps，常驻循环动效要少。
-7. **内存**：纹理 ≤150MB（低端档 ≤100MB），战斗缓存约 12MB@dpr2（卡 10、敌 6、徽章 30）；立绘和敌人按章节加载、离开时释放。
+7. **内存**：render-spec §10 估算总纹理约 106MB（WebGL 屏幕纹理/FBO 约 26MB 计入其中）；纹理 ≤150MB（低端档 ≤100MB），战斗缓存约 12MB@dpr2（卡 10、敌 6、徽章 30）；立绘和敌人按章节加载、离开时释放。
 8. **动画时间轴**：每项动画必须标明时长（1x），以及是否受倍速影响（1x/1.5x/2x）、能否跳过、是否阻塞。跳过时直接对齐终态，所以动画不能带逻辑副作用。常驻循环和倒计时按真实时间运行，不受倍速影响。画质低档会关闭环境动效、流光和粒子，中档粒子减半，设计时不能依赖这些效果传达信息。
 
 ### 4.6 性能预算（需求 5）
 
 | 项 | 预算 | 说明 |
 |---|---|---|
-| 帧率 | 低端安卓（如骁龙 6xx、2GB）稳定 60fps；降级档 30fps 也须流畅 | `wx.getDeviceBenchmarkInfo` / `benchmarkLevel` 分档【来源】https://developers.weixin.qq.com/minigame/dev/api/base/system/wx.getDeviceBenchmarkInfo.html |
+| 帧率 | 本期以 **H5 中端设备 60fps** 验收；预算按约 3 年前、千元左右的安卓机（约骁龙 680 / Helio G85 档，见 render-spec §11）制定，**低端真机验收延后**，真机待定 | `wx.getDeviceBenchmarkInfo` / `benchmarkLevel` 分档【来源】https://developers.weixin.qq.com/minigame/dev/api/base/system/wx.getDeviceBenchmarkInfo.html |
 | 单帧 | 逻辑 ≤1ms（仅输入时），渲染 ≤8ms，余量给 GC/系统 | |
 | 每帧 drawImage | ≤300；粒子 ≤300；离屏层 ≤6 张 | 【推测】经验值，需基准 |
 | 内存 | JS 堆 ≤80MB，纹理 ≤150MB（低端档 ≤100MB）；战斗内对象缓存约 12MB@dpr2（卡 10、敌 6、徽章 30，见 render-spec 第 5 节） | 图集最大 2048×2048；切换战斗或章节时释放 |
 | GC | 热路径零分配：对象池（粒子、Tween、Rect、事件） | |
-| 包体 | 主包 ≤4MB（硬限）、目标 ≤2.5MB（代码 ≤0.8MB + render-spec 首包资源约 1.2MB + 余量）；总包（主包+分包）≤30MB；普通分包不限大小，独立分包 ≤4MB | 【来源】已核验 https://developers.weixin.qq.com/minigame/dev/guide/base-ability/subPackage/useSubPackage.html ；另一页 https://developers.weixin.qq.com/minigame/dev/guide/framework/code-package.html 写的是“总包 20M（开通虚拟支付后 30M）”，两页口径不一致，CI 按 20MB 保守检查 |
+| 包体 | 主包 ≤4MB（硬限）、目标 ≤2.5MB（代码 ≤0.8MB + render-spec 首包资源约 1.1MB + 余量）；总包（主包+分包）≤30MB；普通分包不限大小，独立分包 ≤4MB | 【来源】已核验 https://developers.weixin.qq.com/minigame/dev/guide/base-ability/subPackage/useSubPackage.html ；另一页 https://developers.weixin.qq.com/minigame/dev/guide/framework/code-package.html 写的是“总包 20M（开通虚拟支付后 30M）”，两页口径不一致，CI 按 20MB 保守检查 |
 | 首屏 | 主包只含：引擎 + 逻辑 + 主菜单/第一战必需资源；其余放分包或 CDN | |
 
 ### 4.7 资源管线（需求 6）
@@ -483,9 +487,9 @@ export interface Replay { seed: string; configVersion: string; gameVersion: stri
 ```
 
 - 现状 `rng.ts` 的 mulberry32 状态仅一个 uint32，易序列化；改为多流（由主种子派生），**表现层/UI 禁止调用逻辑 RNG**（表现随机用独立非确定性 RNG）。
-- 存档时机：每次 Decision 处自动存（快照 + 输入日志），防 SL 与否【待拍板】。
+- 存档时机【已决定，防 SL】：**每次结算完成后自动存档**（结算栈清空、进入下一个 Decision 时写入快照 + 输入日志）。读档只能回到最近一次结算后的状态，不提供回合级回退。
 - 回放：`seed + configVersion + inputs` 在 `src/sim` 离线重放，校验最终 snapshot 哈希；CI 加入“黄金回放”回归测试。
-- 迁移：`schema` 单调递增，每次结构变更必须附 migration 与测试；`configVersion` 不匹配时，局内战斗回放按旧配置（保留最近 N 版配置）或作废战斗回到战前【待拍板】。
+- 迁移：`schema` 单调递增，每次结构变更必须附 migration 与测试；`configVersion` 不匹配时，**进行中的整局继续用旧配置**，新配置从下一局生效【已决定】；存档内保存 `configVersion`，本地保留该局所用配置包直到该局结束。
 
 ### 4.9 配置热更新、埋点、错误上报（需求 8）
 
@@ -495,8 +499,9 @@ export interface Analytics { track(ev: string, props?: Record<string, string | n
 export interface ErrorReport { message: string; stack?: string; version: string; configVersion: string; seed?: string; lastInputs?: PlayerInput[] }
 ```
 
+- 生效时机【已决定】：拉到新配置后只缓存，**当前局继续用旧配置，下一局生效**。
 - 热更新对象：只有 `config/` 生成的数据包（JSON，schema 校验后生效）；**不热更代码**。小游戏环境不支持用 `eval`/`new Function` 执行远程代码，运营规范也禁止绕过审核更新玩法。前者是社区普遍经验，后者以 https://developers.weixin.qq.com/minigame/product/ 规范原文为准，具体条款未逐条核对，标【推测-高可信】。
-- 埋点：战斗开始/结束、出牌、灵光一闪选择、广告点位、首包加载耗时、FPS 分档；批量上报，本地缓冲。服务选型（自建 / 微信 We 分析 / 第三方）【待拍板】。
+- 埋点：战斗开始/结束、出牌、灵光一闪选择、广告点位、首包加载耗时、FPS 分档；批量上报，本地缓冲。服务选型【已决定】：**优先微信官方**（We 分析、小游戏实时日志 / 错误日志）；H5 期间先用本地缓冲 + 控制台导出，接口对齐微信字段，接入微信时直接切换。
 - 错误上报：`wx.onError` / `window.onerror` + `unhandledrejection`；附种子与最近输入，可在 sim 中复现。
 
 ### 4.10 构建工具链（需求 9）
@@ -507,13 +512,13 @@ flowchart LR
   C --> V1["vite build --mode h5<br/>index.html + ESM"]
   C --> V2["vite build --mode wechat<br/>单文件 IIFE/CJS + game.js/game.json/project.config.json<br/>分包: subpackages/*/game.js"]
   V1 --> P["GitHub Pages 预览"]
-  V2 --> W["dist-wechat/ → 微信开发者工具 / miniprogram-ci 上传体验版"]
+  V2 --> W["dist-wechat/（本期仅保留接口，不上传）"]
   V2 --> K["size-check：主包≤4MB 等"]
 ```
 
 - `vite.config.ts` 按 `mode` 切换：`define: { __PLATFORM__: 'wechat' }`，入口 `src/platform/<p>/entry.ts`，`resolve.alias '@platform'`；微信目标关闭 `modulePreload`、`target: 'es2017'`，产物不得含 `document`/`window` 引用（CI 用 grep/ESLint 检查）。
 - 分包：每个分包一个 Rollup 入口，输出到 `subpackages/<name>/game.js`，并生成 `game.json.subpackages`。
-- CI：现有 job 增加 `build:wechat` + `size-check` + `replay-test`；可选 `miniprogram-ci` 上传体验版（需要上传密钥作为 secret，【待拍板】）。
+- CI：现有 job 增加 `build:wechat` + `size-check` + `replay-test`；微信预览上传流程**本期不做**（先做 H5）；以后接入时方案为：上传密钥存加密 secret，合并到 main 后自动上传预览版，secret 缺失则跳过。
 - 本地：微信开发者工具“导入 dist-wechat”，`npm run dev:wechat` 用 `vite build --watch`。
 
 ### 4.11 与现有代码的衔接与迁移路径（需求 10）
@@ -526,7 +531,7 @@ flowchart LR
 | ATOMS 中 `g.log(文本)` | 改为结构化事件 + 文本由表现层按模板生成（便于本地化） | `{t:'log'}` 过渡 |
 | `rng.ts` 单流 | `RngStreams`，`Game` 构造参数改为 streams | `seeded()` 保留 |
 | `config/` + schema | 加 `configVersion`（内容哈希）；构建产物可作为热更新包 | 不改 YAML 结构 |
-| `src/platform/web/main.ts`（DOM） | 新 Canvas 版入口；DOM 版保留为 `?debug` 调试界面 | |
+| `src/platform/web/main.ts`（DOM） | 新 Canvas 版入口；DOM 版保留为调试构建（`vite build --mode debug`），**不进发布包**【已决定】 | |
 | `src/sim/autoplay.ts` | 改用 `BattleLogic.submit`，成为回放与数值回归工具 | |
 
 ```ts
@@ -542,16 +547,91 @@ export interface ResolutionStack {
 
 ---
 
+### 4.12 WebGL 水墨增强层（【已决定 2026-10-12】）
+
+> 决定：水墨特效**只走 WebGL**。本期不设计 Canvas2D 降级，render-spec §11 里的“Canvas 2D 回退”列本期不实现。**降级以后再做。**
+> 规格来源：`docs/ui/render-spec.md` 的 §11（13 项特效）、§10（硬约束与动画阻塞表）、§7/§8（战斗页与外围页面），出自 PR #29（分支 feat/ui-v3-b-spec，**未合并**，合并后复核）。清单以 UI 设计助手最终确认为准，**待对齐**。
+> 目标平台：先做 **H5**，以 H5 验收；微信小游戏只保留接口，本期不实现、不验收。
+
+#### 4.12.1 与 3 块画布的组合
+render-spec §11 给了两种做法：“WebGL 叠加画布”，或“把 2D 画布作纹理输入做合成 pass”。本文选**后者**：
+- **上屏画布是 WebGL，充当合成器**。bg（z0）、ambient（z1）、main（z2–z15）三块仍是 **2D 离屏画布**，由 4.2 的场景树绘制，作为纹理输入。
+- 理由：①微信小游戏只有一块上屏画布，叠加方案无法移植；②晕染渗边、墨溶解这类效果需要读取 2D 画面本身，用纹理输入最自然，又**不需要回读**；③H5 上叠两块画布会多一次浏览器合成，并有透明度混合的问题。
+- 每帧合成顺序：
+  1. bg 纹理 + **#3 宣纸纹理/光照**、**#12 烛光呼吸**（作为 bg 合成 pass 的 uniform，不增加全屏 pass）；
+  2. ambient 纹理；
+  3. main 纹理；**#2 晕染渗边、#5 墨溶解** 在敌人牌包围盒内用 scissor 做局部 pass；
+  4. 局部特效（scissor 或小四边形）：#1 墨晕、#6 朱砂溅、#7 金箔流光、#10 水波涟漪；
+  5. 全屏特效（同一时刻最多 2 个，对齐 §11 预算）：#4 泼墨转场、#8 灵光一闪·墨聚、#13 受伤墨染屏边、#9 书法逐笔、#11 卷轴展开。#9 和 #11 只在局部区域运行时算局部特效。
+- 纹理上传只在**对应 2D 画布被标脏时**进行（`texImage2D(canvas)`）：bg 在切章节或页面时上传，ambient 30fps，main 在有变化的帧上传。
+- **禁止回读**：不用 `readPixels`、`toDataURL`、`getImageData`，也不把 WebGL 画布 `drawImage` 回 2D。数据只朝一个方向流动：2D → 纹理 → 屏幕。
+- 命中测试与 GL 无关，仍走 4.3 的场景树坐标。逻辑不依赖任何特效（§11：特效不承载关键信息）。
+- 微信侧（只留接口）：首个 `wx.createCanvas()` 是上屏画布，一块画布只能取一种上下文。离屏 2D 画布能否作纹理源、性能如何，标【推测】，接入时验证。
+
+#### 4.12.2 首批 13 项特效（对齐 render-spec §11，待对齐）
+| # | 特效 | 所在层 | 触发 / 时长 | 类别 | 纹理 |
+|---|---|---|---|---|---|
+| 1 | 墨晕扩散 | 13 | 命中 / 500ms | 局部，事件 | 共享噪声 256² |
+| 2 | 晕染渗边 | 3 | 敌人受伤 / 300ms | 局部，读 main | 噪声（共享） |
+| 3 | 宣纸纹理 + 光照 | 0–1 | 循环 60s 漂移 | 并入 bg pass | 纸纹 512² |
+| 4 | 泼墨转场 | 15 | 页面切换 / 450ms | 全屏，事件 | 笔触 1024×512 |
+| 5 | 墨溶解 | 3 | 敌人死亡 / 700ms | 局部，读 main | 噪声 + 烟 128² |
+| 6 | 朱砂溅射 | 13 | 暴击/致死 / 500ms | 局部 | 溅点 4×64² |
+| 7 | 金箔流光 | 9 | 循环 2.4s，真实时间 | 局部 | 高光 128×32 |
+| 8 | 灵光一闪·墨聚 | 13 | 900ms | 全屏 | 墨云 256²×2 + 金光 256² |
+| 9 | 书法逐笔描绘 | 12/13 | 600–800ms | 局部 | 笔顺距离场 256²×6 |
+| 10 | 水波涟漪 | 地图卷轴 | 400ms | 局部，程序化 | 无 |
+| 11 | 卷轴展开晕墨 | 地图 | 800ms | 全屏/局部 | 噪声（共享） |
+| 12 | 烛光呼吸 | 0 | 循环 6s，真实时间 | 并入 bg pass | 无 |
+| 13 | 受伤墨染屏边 | 13 | 我方掉血 / 250ms | 全屏边缘 | 晕影 256² |
+
+- 倍速与跳过沿用 §10.1：事件特效受倍速影响、可跳过，跳过时直接移除特效实例；循环特效用真实时间。阻塞属性由表现队列的剧本决定，GL 特效本身**一律不阻塞**。例如“墨晕命中”的阻塞由“出牌飞行/命中”剧本承担。
+- 页面转场（§8，450ms，阻塞输入）由 #4 实现：需要在转场期间同时持有新旧两帧，旧帧在开始时固定为一张 FBO（GPU 内部拷贝，不是回读）。
+
+```ts
+export type InkFxId =
+  | 'ink_bloom' | 'bleed' | 'paper_grain' | 'ink_transition' | 'ink_dissolve' | 'cinnabar_splash'
+  | 'gold_shimmer' | 'epiphany_gather' | 'brush_stroke' | 'ripple' | 'scroll_reveal' | 'vignette_light' | 'hurt_edge';
+export interface InkFx { id: InkFxId; rect?: Rect; at?: Vec2; progress: number; loop?: boolean; params?: Record<string, number> }
+export interface GLCompositor {
+  init(gl: WebGLRenderingContext): void;              // 启动时一次编译全部 program
+  uploadIfDirty(src: 'bg' | 'ambient' | 'main', canvas: CanvasLike): void;
+  snapshotForTransition(): void;                      // 把当前帧拷到 FBO（#4）
+  frame(fx: readonly InkFx[]): void;
+  onContextLost(cb: () => void): void;                // 本期：暂停，恢复后重建
+  stats(): { passes: number; fullscreenPasses: number; texBytes: number; gpuMs?: number };
+}
+```
+
+- 上下文丢失：监听 `webglcontextlost`/`restored`；丢失期间暂停渲染，恢复后重新编译 shader、重传纹理。每次结算后都会自动存档（4.8），最坏情况是刷新页面后恢复对局。不做 2D 降级。
+
+#### 4.12.3 性能预算（H5，以中端设备为基准；低端真机验收延后）
+| 项 | 预算 |
+|---|---|
+| 全屏 pass | 基础合成 1 个，加上 ≤2 个全屏特效 pass（对齐 §11，和 §10 的“全屏覆盖层 ≤2”分开计） |
+| 局部 pass | 同屏 ≤8 个特效实例，均用 scissor 或小四边形 |
+| GPU 时间/帧 | ≤4ms（中端设备）；单个全屏 pass ≤1.2ms，单个局部特效 ≤0.3ms【推测目标，P3 实测】 |
+| shader | ≤10 个 program（13 项特效合并同类），启动时编译，运行时不再编译；只用 `mediump`，只需 WebGL1 |
+| GL 纹理内存 | 3 块屏幕纹理 + 1–2 个 FBO：dpr2 下约 5×(780×1688×4B)≈26MB；特效贴图解码后约 4MB。这部分要计入 §10 估算的约 106MB 总纹理 |
+| 上传带宽 | main 全屏每帧约 5MB，只在脏帧上传；必要时把 main 按“战场 / 手牌”拆成两块纹理分别标脏 |
+| 空闲 | 静止时停帧；只有循环特效（#7、#12）时按小区域低频刷新（§10“空闲不重绘”的例外） |
+
+#### 4.12.4 包体影响（对齐 render-spec §9/§11）
+- WebGL 特效纹理合计约 **0.7MB**（压缩后），放在独立的 **`fx_webgl` 分包**；首包只放共享噪声，如果首屏就要转场，再加墨扫笔触。
+- render-spec §9（B 定稿）的资源合计约 **2.5MB**，首包约 **1.1MB**（ui_common、fx、字体、共享背景、第一章敌人）。fx_webgl 的 0.7MB 不在这 2.5MB 里【以 render-spec 为准，待对齐】。
+- shader 源码约 10–15KB，GL 合成器代码约 10–20KB【推测】。
+- 原来为 2D 路径准备的墨晕序列帧、墨扫贴图等“回退资源”**本期不打包**。
+
 ## 5. 关键取舍与备选
 
 | 决策 | 选择 | 备选 | 理由 |
 |---|---|---|---|
-| 引擎 | 自研轻量 Canvas2D | PixiJS（WebGL，有微信适配）/ Cocos Creator | 硬约束不用引擎；卡牌游戏绘制量小，自研可控、包小（目标引擎层 <60KB gz）；风险是开发量 |
+| 引擎 | 自研轻量 Canvas2D 场景 + WebGL 合成/特效 | PixiJS（WebGL，有微信适配）/ Cocos Creator | 硬约束不用引擎；卡牌游戏绘制量小，自研可控、包小（目标引擎层 <60KB gz）；风险是开发量 |
 | 渲染策略 | 16 个逻辑层（场景树）+ 3 块物理画布 + 对象级烘焙缓存 + 静止降帧 | 每个逻辑层一块画布 / 全局脏矩形 | 显存可控；与 render-spec 一致；脏矩形留作后备 |
 | 逻辑执行 | **【已决定】** 同步结算 + 事件流 + Decision 挂起 | （已否决）async/await + sleep / StS 式动作带时长 | 可回放、可倍速、可跳过、可无头测试；用户已拍板 |
 | 结算顺序 | 显式栈 | 依赖 JS 调用栈 | 可存档中途状态、可调试 |
 | 文字 | 书法子集字体 + 图集预渲染、数字位图字体、说明用系统字体 | 全量位图字库 | 中文字量大 |
-| 水墨特效 | 序列帧 + 混合模式 | WebGL shader | 兼容低端机，WebGL 作可选增强 |
+| 水墨特效 | **【已决定】WebGL shader**（只走 WebGL） | 序列帧 + 2D 混合模式 | 效果更好、资源更少；降级以后再做 |
 | UI 布局 | 自研简化锚点/flex | Yoga 布局引擎（wasm） | 包体与复杂度 |
 | 双端构建 | Vite 多 mode | webpack / 独立 rollup 脚本 | 已在用 Vite |
 
@@ -567,34 +647,43 @@ export interface ResolutionStack {
 | 热更新配置与存档不兼容 | 中 | configVersion + 新局生效 + 迁移测试 |
 | InnerAudioContext 实例数与 iOS 静音模式 | 低-中 | 音效池；`obeyMuteSwitch` 选项 |
 | render-spec 后续修订 | 低 | 已合入 main；规格改动时同步更新 4.5 |
+| 只走 WebGL、没有降级：不支持 WebGL 或上下文丢失的设备无法正常显示 | 中 | 已接受（降级以后再做）；上下文丢失时暂停并重建，每次结算自动存档保证可恢复 |
+| 每帧上传 2D 画布纹理的带宽开销 | 中 | 只传脏画布；必要时把 main 分块；H5 性能基准先在中端设备上做 |
+| **纹理内存约 106MB（render-spec §10 估算），对千元安卓偏高** | 高 | 低端优化**延后到后续阶段**（低档 dpr 限 2、背景用 1x 版可降到约 80MB；main 纹理分块；按章节释放）；本期以 H5 中端设备验收 |
+| 低端真机验收延后，性能问题可能晚暴露 | 中 | 预算按约 3 年前、千元左右的安卓机制定；H5 阶段用 Chrome CPU 4× 降速模拟 |
+| 微信只留接口、未实测，后续接入可能有差异 | 中 | 平台接口集中、禁止业务直连平台 API；接入时单独立项 |
 | 参考资料中多处为推测 | 低 | 已标注，不影响本项目设计决策 |
 
 ## 7. 分阶段计划
 
+> 【已决定 2026-10-12】**先做 H5，以 H5 验收**。微信小游戏只保留平台接口，不实现、不上传、不验收；低端真机验收延后。
+
 | 阶段 | 内容 | 产出 / 验收 |
 |---|---|---|
-| P0 地基（约 1 周） | 平台接口 + web/wechat 空实现；Vite 双目标；CI 加 wechat 构建与 size-check；ESLint 分层约束 | 微信开发者工具能跑出空白画布 + 触控回显 |
-| P1 逻辑重构（已决定，2–3 周，最高优先） | ①先建黄金回放和 autoplay 基线；②RngStreams；③BattleEvent + 结构化日志；④ResolutionStack，ATOMS 全部改为同步，judge/respond/epiphany 改成栈帧 + Decision；⑤删除 `BattleIO.sleep/update` 和所有 `await`；⑥`BattleLogic.submit` 成为唯一入口，autoplay 和 DOM 调试版都改用它 | core 内零 Promise、零平台依赖；回放哈希一致；autoplay 1000 局 <10s【推测目标】 |
-| P2 渲染与输入（1–2 周，可与 P1 并行） | 场景树 + 16 个逻辑层、3 块物理画布、对象烘焙缓存、降帧、图集、书法/位图字体、安全区和胶囊、命中测试、手势、基础组件 | 低端机基准：200 精灵 60fps |
-| P3 表现队列（2 周） | Tween/Timeline/粒子/水墨基础；4.5 中 B 方向全部动画的剧本注册；1x/1.5x/2x 与跳过；画质分档；按 render-spec 实现 B 方案战斗页 | 战斗可完整演出、可跳过 |
-| P4 存档与资源（1 周） | 存档/迁移、分包、CDN 缓存、资源管线脚本 | 中途退出恢复；主包 ≤2.5MB |
-| P5 运营能力（1 周） | 配置热更新、埋点、错误上报、广告、分享种子 | 体验版上线 |
+| P0 地基（约 1 周） | `Platform` 接口 + **web 实现**；wechat 只放接口桩；Vite 多 mode（h5 / debug；wechat 目标只留配置占位）；CI 加 size-check 和分层 ESLint 约束；DOM 版移到 debug 构建 | H5 能跑出空白 WebGL 合成画布（3 块 2D 纹理输入）+ 触控回显；发布包不含 DOM 版 |
+| P1 逻辑重构（已决定，2–3 周，最高优先） | ①先建黄金回放和 autoplay 基线；②RngStreams；③BattleEvent + 结构化日志；④ResolutionStack，ATOMS 全部改同步，judge/respond/epiphany 改成栈帧 + Decision；⑤删除 `BattleIO.sleep/update` 和所有 `await`；⑥`BattleLogic.submit` 成为唯一入口 | core 内零 Promise、零平台依赖；回放哈希一致 |
+| P2 渲染与输入（1–2 周，可与 P1 并行） | 场景树 + 16 个逻辑层、3 块 2D 离屏 + **WebGL 合成器**、对象烘焙缓存、降帧、图集、字体、安全区、命中测试、手势、自动降 DPR | H5 中端设备 60fps；Chrome CPU 4× 降速下可用 |
+| P3 表现队列与水墨（2 周） | Tween/Timeline/粒子；B 方向全部动画剧本；倍速/跳过；**WebGL 13 项特效**（render-spec §11，待对齐）+ `fx_webgl` 分包；画质分档 | GPU ≤4ms/帧；战斗可完整演出、可跳过 |
+| P4 存档与资源（1 周） | 每次结算后自动存档、迁移；资源管线、CDN 缓存 | 刷新页面后恢复到最近一次结算后 |
+| P5 运营能力（1 周） | 配置热更新（下局生效）、H5 每局免费刷新 1 次、埋点/错误上报（字段对齐微信）、分享种子 | **H5 验收** |
+| 延后 | 低端设备纹理内存优化、微信小游戏实现与分包、CI 预览上传（加密 secret，合并后上传，缺 secret 跳过）、低端真机验收、WebGL 降级 | 另行立项 |
 
-## 8. 需要用户拍板的取舍
+## 8. 已定的取舍（原「需要用户拍板的取舍」，2026-10-12 全部定案）
 
-> 已决定（2026-10-12）：战斗逻辑采用“同步结算 + 事件流 + 决策点”，不考虑重构成本（见 0、4.11、7 P1）。
-> 已决定（2026-10-12）：战斗页采用 B 金漆屏风，单一皮肤，不做可切换皮肤。
-> 已由 render-spec 定义、不再单独拍板：演出倍速 1x/1.5x/2x 加点屏跳过。
+> 早先已定：战斗逻辑采用同步结算 + 事件流 + 决策点；战斗页用 B 金漆屏风，单一皮肤；倍速 1x/1.5x/2x 加跳过（render-spec）。
 
-1. **是否允许 WebGL 增强层**做水墨 shader 特效（低端机退回 Canvas2D）。render-spec 目前的方案是贴图驱动，不需要 WebGL。
-2. **存档与防 SL**：每个决策点自动存档、读档回到同一状态，还是允许回到回合开始重来。
-3. **配置热更新时进行中的对局**：按旧配置继续（需保留旧配置），还是作废回到战前。
-4. **H5 端广告**：“看广告刷新”在 H5 上直接免费、隐藏，还是接入 H5 广告平台。
-5. **埋点和错误上报服务**：自建、微信 We 分析，还是第三方（如 Sentry）。
-6. **CI 自动上传微信体验版**：是否在 GitHub 存放上传密钥。
-7. **性能基线机型**：用哪款低端安卓真机做 60fps 验收。
-8. **是否保留 DOM 版**作为调试界面。
-9. **DPR 上限**：render-spec 定为 3；低端机是否允许画质档自动降到 2 或 1.5（影响清晰度，换取帧率和显存）。
+| # | 议题 | 决定（2026-10-12） | 见 |
+|---|---|---|---|
+| 1 | WebGL 水墨 | 采用，**只走 WebGL，降级以后再做**；首批按 render-spec §11 的 13 项（PR #29），清单**待对齐** | 4.12 |
+| 2 | 防 SL | 每次结算后自动存档 | 4.8 |
+| 3 | 热更新与进行中的局 | 当前局继续用旧配置，下一局生效 | 4.8、4.9 |
+| 4 | H5 看广告刷新 | 每局免费 1 次 | 4.1 |
+| 5 | 埋点与错误上报 | 优先微信官方分析和错误日志 | 4.9 |
+| 6 | CI 微信上传 | 本期不做（先做 H5）；以后用加密 secret，合并 main 后自动上传，缺 secret 跳过（密钥待用户提供） | 4.10、7 |
+| 7 | 性能基线机型 | 真机待定，验收延后；预算按约 3 年前、千元左右的安卓机制定 | 4.6、7 |
+| 8 | DOM 版 | 保留为调试构建，不进发布包 | 4.11 |
+| 9 | DPR | 低端设备自动降低 DPR | 4.2 |
+| — | 目标平台 | 先做 H5、以 H5 验收；微信只保留接口 | 7 |
 
 ## 附：参考链接（2026-10-12 在线核验，除已标注的外均可访问）
 - BaseMod Wiki：https://github.com/daviscook477/BaseMod/wiki
