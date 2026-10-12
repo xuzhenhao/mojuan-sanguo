@@ -244,7 +244,7 @@ describe('路由约定', () => {
       params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'shop' },
     });
     expect(routeFor(1, n('CHEST')).event).toEqual({ type: 'enter_node', node: 'reward' });
-    expect(routeFor(1, n('CHEST')).params.kind).toBe('chest');
+    expect(routeFor(1, n('CHEST')).params).toMatchObject({ kind: 'normal', nodeType: 'CHEST' }); // #83 前借用奖励页
     expect(routeFor(1, n('CHEST')).event).toEqual({ type: 'enter_node', node: CHEST_PAGE });
   });
   it('FlowMachine：地图 → 奖励（宝箱）→ 地图', () => {

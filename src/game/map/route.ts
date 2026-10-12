@@ -29,7 +29,12 @@ export interface ShopRouteParams extends Base {
 export interface ChestRouteParams extends Base {
   kind: 'chest';
 }
-export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams;
+/** #83 合并前宝箱借用奖励页：奖励页（#45）只认 kind 'normal'|'elite'|'boss'，传 'chest' 会抽奖失败，所以临时按 normal 发 */
+export interface ChestViaRewardParams extends Base {
+  kind: 'normal';
+  nodeType: 'CHEST';
+}
+export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams | ChestViaRewardParams;
 
 /**
  * 宝箱去哪个页面：#83（chest 页 + enter_node{node:'chest'} + chest_done）合并前为 'reward'。
@@ -67,5 +72,7 @@ export function routeFor(
     };
   }
   if (node.type === 'SHOP') return { event, params: { ...base, kind: 'shop' } };
+  // #83 合并后：CHEST_PAGE = 'chest'，只保留 kind:'chest' 分支
+  if (page === 'reward') return { event, params: { ...base, kind: 'normal', nodeType: 'CHEST' } };
   return { event, params: { ...base, kind: 'chest' } };
 }
