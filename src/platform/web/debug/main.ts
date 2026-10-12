@@ -29,9 +29,9 @@ const io: BattleIO = {
   log: () => renderLog(),
   update: () => render(),
   sleep,
-  async showJudge(reason, c) {
+  async showJudge({ reason, card: j }) {
     const js = $('#judgeShow');
-    js.innerHTML = `判定·${reason}<br><span style="font-size:30px;color:${isRed(c) ? '#A63D2F' : '#1A1A1A'}">${SUIT_CH[c.suit]}${RANK_CH[c.rank]}</span> ${def(c).name}`;
+    js.innerHTML = `判定·${reason}<br><span style="font-size:30px;color:${j.color === 'red' ? '#A63D2F' : '#1A1A1A'}">${SUIT_CH[j.suit]}${RANK_CH[j.rank]}</span> ${j.name}`;
     js.classList.remove('hidden');
     render();
     await sleep(900);

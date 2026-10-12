@@ -2,7 +2,7 @@ import { CARDS, starterDeck } from '../data/cards';
 import { BATTLES, ENEMIES, ENEMY_CARDS, MAX_FLASH_MARKS } from '../data/enemies';
 import { HEROES, RULES } from '../data/heroes';
 import { CONFIG } from '../data/config';
-import { cardMatches, Effects, standardJudgeDeck, type Source } from './effects';
+import { cardMatches, Effects, judgeFromCard, standardJudgeDeck, type Source } from './effects';
 import { AFFIXES } from '../data/affixes';
 import { rndInt, shuffle, type Rng } from './rng';
 import {
@@ -21,7 +21,10 @@ import {
   RANK_CH,
   SUIT_CH,
 } from './rules';
-import type { AffixDef, CardInst, Enemy, EnemyAct, Slot } from './types';
+import type { AffixDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, Slot } from './types';
+
+/** 战间回复后的体力（core 与自动试玩共用同一规则，#56） */
+export const betweenBattleHeal = (hp: number, maxHp: number) => Math.min(maxHp, hp + (CONFIG.rules.betweenBattleHeal ?? 0));
 
 /** 响应决策点类型 */
 export type RespondKind = 'shan' | 'tao' | 'wuxie';
@@ -31,7 +34,8 @@ export interface BattleIO {
   log(t: string): void;
   update(): void;
   sleep(ms: number): Promise<void>;
-  showJudge(reason: string, c: CardInst): Promise<void>;
+  /** 判定事件：ev.card 是完整判定牌数据（签筒的签没有卡牌定义，不得按 id 查牌库） */
+  showJudge(ev: JudgeEvent): Promise<void>;
   /**
    * 响应窗口：返回打出的牌或 null（放弃/超时）。
    * kind：决策点类型（shan = 被杀出闪；tao = 濒死求桃/酒；wuxie = 敌方锦囊出无懈可击），旧实现可忽略。
@@ -85,7 +89,7 @@ export class Game {
   /** 本回合已使用的杀张数（虓烈 / 破阵） */
   shaIndex = 0;
   effects = new Effects(this);
-  judgeDeck: CardInst[] = [];
+  judgeDeck: JudgeCard[] = [];
   zeroCostPlays = new Map<string, number>();
   extraActs = new Map<Enemy, string[]>();
   logs: string[] = [];
@@ -209,23 +213,23 @@ export class Game {
     const v = (c: CardInst) => (def(c).tao ? 5 : def(c).shan ? 4 : def(c).sha ? 3 : def(c).slot ? 1 : 2);
     return this.hand.slice().sort((a, b) => v(a) - v(b))[0];
   }
-  async judge(reason: string) {
+  async judge(reason: string): Promise<JudgeCard> {
+    let j: JudgeCard;
     if (CONFIG.rules.mechanics.judgeSource === 'pool') {
       if (!this.judgeDeck.length) this.judgeDeck = shuffle(this.rng, standardJudgeDeck());
-      const c = this.judgeDeck.pop()!;
-      await this.io.showJudge(reason, c);
-      this.log(`判定（${reason}）：${SUIT_CH[c.suit]}${RANK_CH[c.rank]}`);
-      return c;
+      j = this.judgeDeck.pop()!;
+    } else {
+      if (!this.draw.length) {
+        this.draw = shuffle(this.rng, this.discard);
+        this.discard = [];
+      }
+      const c = this.draw.pop()!;
+      this.discard.push(c);
+      j = judgeFromCard(c, def(c)?.name ?? c.id);
     }
-    if (!this.draw.length) {
-      this.draw = shuffle(this.rng, this.discard);
-      this.discard = [];
-    }
-    const c = this.draw.pop()!;
-    this.discard.push(c);
-    await this.io.showJudge(reason, c);
-    this.log(`判定（${reason}）：${SUIT_CH[c.suit]}${RANK_CH[c.rank]}`);
-    return c;
+    await this.io.showJudge({ type: 'judge', reason, card: j });
+    this.log(`判定（${reason}）：${SUIT_CH[j.suit]}${RANK_CH[j.rank]}`);
+    return j;
   }
 
   // ---------- 流程 ----------
@@ -715,7 +719,11 @@ export class Game {
     }
     return false;
   }
+  /** 战间回复（V1：rules.betweenBattleHeal = 1）：只在胜利后进入下一场时生效，不超过体力上限 */
   nextBattle() {
+    const healed = betweenBattleHeal(this.p.hp, this.p.maxHp);
+    if (healed > this.p.hp) this.log(`战间休整：回复 ${healed - this.p.hp} 点体力`);
+    this.p.hp = healed;
     this.battleIdx++;
     this.startBattle();
   }
