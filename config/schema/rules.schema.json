@@ -8,6 +8,7 @@
     "drawPerTurn",
     "firstTurnBonus",
     "minHandLimit",
+    "handHardCap",
     "responseSeconds",
     "armorKeep",
     "maxFlashMarks",
@@ -35,6 +36,12 @@
       "type": "integer",
       "minimum": 0,
       "description": "首回合额外摸牌"
+    },
+    "handHardCap": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 30,
+      "description": "手牌硬上限（PRD §5.4 = 10）：超出时新摸到的牌直接进弃牌堆，不触发弃置类效果"
     },
     "minHandLimit": {
       "type": "integer",
