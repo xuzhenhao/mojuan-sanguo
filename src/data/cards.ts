@@ -15,6 +15,7 @@ function toDef(c: CardCfg): CardDef {
   if (tags.has('aoe')) d.aoe = true;
   if (tags.has('trick')) d.trick = true;
   if (tags.has('need_red')) d.needRed = true;
+  if (tags.has('wuxie')) d.wuxie = true;
   if (d.sha) {
     const dmg = atomAmount(c.abilities, 'damage') ?? 1;
     if (dmg > 1) d.bonus = dmg - 1;

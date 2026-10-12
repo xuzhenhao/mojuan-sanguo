@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊：无懈可击 ─────────
+# PRD 5.9.2 / 6.6：0 费 R；只能在锦囊响应窗口打出，使一张锦囊无效（含敌方咒、闪电、火攻）。
+# 结算在 core（Game.wuxieWindow）；不进任何起始牌组。敌人无懈标记与再无懈连锁（最多 2 次）未实装。
+id: T009
+name: 无懈可击
+type: 锦囊
+tags: [trick, wuxie]
+cost: 0
+rarity: R
+desc: 响应：使一张锦囊对你无效（含敌方妖咒、闪电、火攻）。
+abilities:
+  - id: wuxie_negate
+    name: 无懈可击
+    kind: 响应技
+    desc: 使一张对你生效的锦囊无效。
+    trigger: { when: targeted_by_trick }
+    do:
+      - { do: negate_trick, target: current_trick }

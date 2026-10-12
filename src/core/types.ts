@@ -20,6 +20,8 @@ export interface CardDef {
   slot?: Slot;
   range?: number;
   trick?: boolean;
+  /** 无懈可击：只能在锦囊响应窗口打出 */
+  wuxie?: boolean;
 }
 
 export interface CardInst {
