@@ -12,10 +12,15 @@
 .slot.sel .card{transform:translateY(-14px) scale(1.06);box-shadow:0 0 0 2px var(--gold-hi),0 0 26px 8px rgba(233,200,119,.7),0 10px 20px #000}
 .tags{display:flex;gap:4px}.tag{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4a4a,#0a0a0a);box-shadow:0 0 0 1px var(--gold-lo);display:grid;place-items:center;font-family:Brush;font-size:13px;color:var(--gold)}
 .tag.f{color:#ff9a85}
-.relic{position:absolute;top:600px;left:50%;margin-left:-150px;width:300px;height:64px;display:flex;align-items:center;gap:12px;padding:0 14px}
+.rrow{position:absolute;top:592px;left:0;right:0;display:flex;justify-content:center;gap:12px}
+.relic{position:absolute;top:660px;left:50%;margin-left:-150px;width:300px;height:64px;display:flex;align-items:center;gap:12px;padding:0 14px}
 .relic .ri{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4a4a,#0a0a0a);box-shadow:0 0 0 2px var(--gold),0 0 14px rgba(233,200,119,.5);display:grid;place-items:center}.relic .ri svg{width:26px;height:26px;fill:var(--gold)}
 .relic b{font-family:Brush;font-weight:normal;font-size:22px;color:var(--gold)}.relic .gem{margin-left:auto;width:12px;height:12px;transform:rotate(45deg);background:#dfe5e8;box-shadow:0 0 0 1px #000}
-.bar .btn.sec{margin-left:auto}
+.bar .btn.sec{margin-left:auto}.bar{gap:8px}
+.pf{position:absolute;inset:0;z-index:9;background:rgba(5,2,1,.72);display:none;align-items:center;justify-content:center}body.full .pf{display:flex}
+.pfd{width:300px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px}.pft{font-family:Brush;font-size:26px;color:var(--gold)}
+.slots3{display:flex;gap:14px}.ps{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#4a4a4a,#0a0a0a);box-shadow:0 0 0 2px var(--gold-lo)}.ps svg{width:30px;height:30px;fill:#9ad4b8}.ps.sel{box-shadow:0 0 0 2px var(--gold-hi),0 0 16px 4px rgba(233,200,119,.6)}.ps.new{box-shadow:0 0 0 2px var(--gold),0 0 20px 6px rgba(154,212,184,.6)}
+.arr{font-size:22px;color:var(--gold)}.pb{display:flex;gap:12px}
 </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
  <filter id="brush" x="-10%" y="-10%" width="120%" height="120%">
@@ -147,11 +152,13 @@
 <div class="top"><div class="tb brush" style="font-size:16px;color:var(--gold)">第一章 · 黄巾</div><div class="sp"></div><div class="capsule"></div></div>
 <div class="rays"></div>
 <div class="win"><span class="seal bigseal">胜</span></div>
-<div class="loot"><div class="lt panel"><svg><use href="#i-coin"/></svg><span class="num">+22</span></div><div class="lt panel"><svg style="fill:#9ad4b8"><use href="#i-gourd"/></svg><span class="num">+1</span></div></div>
+<div class="loot"><div class="lt panel"><svg><use href="#i-coin"/></svg><span class="num">+22</span></div><div class="lt panel"><svg style="fill:#9ad4b8"><use href="#i-gourd"/></svg><span class="num">+1</span><span class="num" style="font-size:12px;color:#ff8a73;margin-left:2px">3/3</span></div></div>
 <div class="pick">择一入卷<small></small></div>
 <div class="cards" id="cards"></div>
 <div class="relic panel"><div class="ri"><svg><use href="#i-flag"/></svg></div><b>帅旗</b><span class="gem"></span></div>
-<div class="bar"><div class="ico"><svg><use href="#i-deck"/></svg></div><span class="num" style="font-size:14px">14</span><div class="btn sec sm">略过</div><div class="btn sm ok">收入</div></div>
+<div class="bar"><div class="ico"><svg><use href="#i-deck"/></svg></div><span class="num" style="font-size:14px">14</span><div class="btn sm ok" style="margin-left:auto">收入</div></div>
+<div class="rrow"><div class="btn sec sm" style="font-size:16px"><svg><use href="#i-refresh"/></svg>免费刷新（本局 1 次）</div><div class="btn sec sm">略过</div></div>
+<div class="pf" id="pf"><div class="pfd panel"><div class="pft">丹药已满</div><div class="slots3"><div class="ps"><svg><use href="#i-gourd"/></svg></div><div class="ps sel"><svg style="fill:#ff9a85"><use href="#i-wine"/></svg></div><div class="ps"><svg style="fill:var(--azure-hi)"><use href="#i-gourd"/></svg></div></div><div class="arr">⇅</div><div class="ps new"><svg><use href="#i-gourd"/></svg></div><div class="pb"><div class="btn sec sm">放弃</div><div class="btn ok sm">替换</div></div></div></div>
 </div>
 <script>const use=(id,cls='')=>`<svg class="${cls}"><use href="#${id}"/></svg>`;
 const red=s=>s=='♥'||s=='♦';
@@ -163,4 +170,4 @@ function longpress(el,fn){let t;el.addEventListener('pointerdown',()=>{t=setTime
 const R=[{n:'火杀',c:1,s:'♦',p:'7',k:'atk',i:'i-fire',r:'N',t:['火']},{n:'铁索',c:1,s:'♣',p:'Q',k:'skill',i:'i-scroll',r:'R',t:['连','抽']},{n:'冲阵',c:2,s:'♠',p:'K',k:'atk',i:'i-spear',r:'E',mo:1,t:['龙','穿']}];
 cards.innerHTML=R.map((c,i)=>`<div class="slot ${i==2?'sel':''}">${card(c,'big')}<div class="tags">${c.t.map(t=>`<span class="tag ${t=='火'?'f':''}">${t}</span>`).join('')}</div></div>`).join('');
 document.querySelectorAll('.slot').forEach(s=>s.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>x.classList.remove('sel'));s.classList.add('sel')});
-</script></body></html>
+if(location.hash=='#full')document.body.classList.add('full');</script></body></html>

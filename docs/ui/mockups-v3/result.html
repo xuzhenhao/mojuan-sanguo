@@ -9,7 +9,7 @@
 .soul svg.s{width:30px;height:30px;fill:#ffb36b;filter:drop-shadow(0 0 8px #ff8a3a)}
 .soul .num{font-size:30px;color:var(--gold-hi)}
 .soul .btn{margin-left:auto}
-.copy{position:absolute;left:18px;right:18px;top:510px;height:180px;padding:12px 14px}
+.copy{position:absolute;left:18px;right:18px;top:510px;height:200px;padding:12px 14px}
 .ch{display:flex;align-items:center;gap:8px}.ch b{font-family:Brush;font-weight:normal;font-size:22px;color:var(--gold)}.ch svg{width:20px;height:20px;fill:var(--gold)}
 .ink{margin-left:auto;display:flex;gap:3px;align-items:center}.ink i{width:9px;height:16px;border-radius:2px;background:#000;box-shadow:0 0 0 1px var(--gold-lo)}.ink i.f{background:var(--gold)}.ink i.n{background:#ff9a85;animation:bl 1s infinite}@keyframes bl{50%{opacity:.4}}
 .cl{display:flex;gap:14px;margin-top:12px;justify-content:center}
@@ -153,10 +153,10 @@
  <div class="st"><div class="ico"><svg><use href="#i-helm"/></svg></div><span class="num">3</span></div>
  <div class="st"><div class="ico"><svg><use href="#i-swords"/></svg></div><span class="num">14</span></div>
  <div class="st"><div class="ico" style="box-shadow:0 0 0 1.5px var(--cinnabar)"><svg style="fill:#ff8a73"><use href="#i-sword"/></svg></div><span class="num">2</span></div></div>
-<div class="soul panel"><svg class="s"><use href="#i-soul"/></svg><span class="num">+192</span><div class="btn sm"><svg><use href="#i-ad"/></svg>×2</div></div>
-<div class="copy panel"><div class="ch"><svg><use href="#i-book"/></svg><b>兵书抄录</b><div class="ink"><i class="f"></i><i class="f"></i><i class="f"></i><i class="n"></i><i class="n"></i><i></i></div></div>
- <div class="cl" id="cl"></div></div>
-<div class="bar"><div class="btn sec sm">跳过</div><div class="btn sm">抄录</div></div>
+<div class="soul panel"><svg class="s"><use href="#i-soul"/></svg><span class="num">+192</span><div class="tb" style="margin-left:auto"><svg><use href="#i-soul"/></svg><span class="num">1,432</span></div></div>
+<div class="copy panel"><div class="ch"><svg><use href="#i-book"/></svg><b>兵书抄录</b><span style="font-size:12px;color:#a89c84;margin-left:4px">可跳过</span><div class="ink"><i class="f"></i><i class="f"></i><i class="f"></i><i class="n"></i><i class="n"></i><i></i></div></div>
+ <div class="cl" id="cl"></div><div style="position:absolute;right:14px;bottom:12px" class="btn ok sm">抄录</div></div>
+<div class="bar"><div class="btn sec sm">返回点将</div><div class="btn sm" style="margin-left:auto">再来一局</div></div>
 </div>
 <script>const use=(id,cls='')=>`<svg class="${cls}"><use href="#${id}"/></svg>`;
 const red=s=>s=='♥'||s=='♦';

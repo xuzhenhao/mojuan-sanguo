@@ -1,12 +1,13 @@
 <!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=390,user-scalable=no"><title>v3 复活</title><link rel="stylesheet" href="b.css"><style>
 .ghost{position:absolute;inset:0;filter:grayscale(1) brightness(.35)}
 .ghost .gf{position:absolute}
-.dlg{position:absolute;left:30px;right:30px;top:200px;height:420px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;gap:14px;z-index:3}
+.dlg{position:absolute;left:30px;right:30px;top:200px;height:440px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;gap:14px;z-index:3}
 .dlg .gf{width:120px;height:164px;filter:grayscale(.85)}
 .dlg .ring{position:absolute;top:14px;width:150px;height:150px}
 .ttl{font-family:Brush;font-size:30px;color:var(--cinn-hi)}
 .gain{display:flex;gap:14px;font-size:18px}.gain span{display:flex;align-items:center;gap:4px}.gain svg{width:22px;height:22px}
 .btns{display:flex;gap:12px;margin-top:6px}
+.nxt{display:flex;align-items:center;gap:6px;font-size:13px;color:#a89c84}.fm{display:flex;align-items:center;gap:2px;padding:2px 6px;border-radius:3px;background:linear-gradient(#2a1410,#0f0705);box-shadow:0 0 0 1px var(--gold-lo)}.fm svg{width:16px;height:16px;fill:#9cc3d1}.fm b{font-size:12px;color:var(--paper)}
 .lim{font-size:12px;color:#a89c84}
 </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -143,8 +144,9 @@
  
  <div class="gf" style="margin-top:4px"><div class="w"><svg class="fig"><use href="#hero"/></svg><span class="nm" style="font-size:22px">赵云</span></div></div>
  <div class="ttl">将星未陨</div>
- <div class="gain"><span><svg style="fill:#9ad4b8"><use href="#i-heart"/></svg><span class="num">+2</span></span><span><svg style="fill:var(--azure-hi)"><use href="#i-shield"/></svg><span class="num">+3</span></span><span><svg style="fill:var(--azure-hi)"><use href="#i-dodge"/></svg></span></div>
- <div class="btns"><div class="btn sec sm">放弃</div><div class="btn"><svg><use href="#i-ad"/></svg>复活</div></div>
- <div class="lim"><span class="num">1</span>/<span class="num">1</span></div>
+ <div class="gain"><span><svg style="fill:#9ad4b8"><use href="#i-heart"/></svg><span class="num">+2</span></span><span><svg style="fill:var(--azure-hi)"><use href="#i-shield"/></svg><span class="num">+3</span></span></div>
+ <div class="nxt"><span class="lbn">敌下回合</span><span class="fm"><svg><use href="#i-dodge"/></svg><b class="num">+1</b></span><span class="fm"><svg><use href="#i-dodge"/></svg><b class="num">+1</b></span><span class="fm"><svg><use href="#i-dodge"/></svg><b class="num">+1</b></span></div>
+ <div class="btns"><div class="btn sec sm">放弃</div><div class="btn">复活</div></div>
+ <div class="lim">本局 <span class="num">1</span> 次</div>
 </div>
 </div></body></html>
