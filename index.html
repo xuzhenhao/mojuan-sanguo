@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>墨卷三国 · 战斗原型</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="top"><span id="chap">第一章·黄巾</span><span id="battleNo"></span><button id="btnSet">设置</button></div>
+      <div id="field">
+        <div class="rowlab">后排</div>
+        <div id="back" class="row"></div>
+        <div class="rowlab">前排</div>
+        <div id="front" class="row"></div>
+        <div id="log"></div>
+      </div>
+      <div id="player">
+        <div id="sub" class="portrait sub"><div class="pname">赵云</div><div class="ptag">副将</div></div>
+        <div id="pinfo">
+          <div><b id="pmain">关羽</b> <span class="ptag">主将·蜀</span> <span id="combo">珠联·龙虎会</span></div>
+          <div id="hp"></div>
+          <div><span id="armor"></span> <span id="ling"></span> <span id="buffs"></span></div>
+          <div id="equip"></div>
+        </div>
+        <div id="skills"><button id="skAogu" title="傲骨：弃1张红色牌，本回合下一张杀伤害+1（出牌阶段限1）">傲骨</button></div>
+      </div>
+      <div id="handwrap"><div id="hand"></div></div>
+      <div id="bottom"><span id="piles"></span><span id="hint"></span><button id="btnEnd">结束回合</button></div>
+      <div id="overlay" class="hidden"></div>
+      <div id="judgeShow" class="hidden"></div>
+    </div>
+    <script type="module" src="/src/platform/web/main.ts"></script>
+  </body>
+</html>

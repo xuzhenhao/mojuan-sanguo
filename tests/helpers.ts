@@ -1,0 +1,25 @@
+import { Game, type BattleIO } from '../src/core/battle';
+import { seeded } from '../src/core/rng';
+import type { CardInst } from '../src/core/types';
+
+export function mkIO(over: Partial<BattleIO> = {}): BattleIO & { ended: boolean[] } {
+  const ended: boolean[] = [];
+  return {
+    ended,
+    log: () => {},
+    update: () => {},
+    sleep: async () => {},
+    showJudge: async () => {},
+    respond: async () => null,
+    epiphany: async (_c, o) => o[0] ?? null,
+    onBattleEnd: (w) => ended.push(w),
+    ...over,
+  };
+}
+export function mkGame(over: Partial<BattleIO> = {}, seed = 1) {
+  const io = mkIO(over);
+  const g = new Game(seeded(seed), io, { autoShan: false });
+  return { g, io };
+}
+let u = 1000;
+export const card = (id: string, suit: CardInst['suit'] = 'S', rank = 7, mods: string[] = []): CardInst => ({ uid: ++u, id, suit, rank, mods });
