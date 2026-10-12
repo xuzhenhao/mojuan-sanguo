@@ -16,7 +16,9 @@
     "epiphany",
     "rarityWeight",
     "checks",
-    "mechanics"
+    "mechanics",
+    "sim",
+    "map"
   ],
   "properties": {
     "lingPerTurn": {
@@ -268,10 +270,35 @@
       "additionalProperties": false,
       "description": "未指定选将时的默认主将 / 副将"
     },
-    "betweenBattleHeal": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "自动对局整章模拟：战间回复体力（验收口径：1）"
+    "sim": {
+      "type": "object",
+      "required": [
+        "baselineBetweenBattleHeal"
+      ],
+      "additionalProperties": false,
+      "description": "自动对局 / 回归基线专用参数",
+      "properties": {
+        "baselineBetweenBattleHeal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "3 战回归基线：战间回复体力（design-v1 §12.2：1）"
+        }
+      }
+    },
+    "map": {
+      "type": "object",
+      "required": [
+        "betweenBattleHeal"
+      ],
+      "additionalProperties": false,
+      "description": "真实游戏 / 正式地图流程参数",
+      "properties": {
+        "betweenBattleHeal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "正式地图战间回复体力（PRD 0.5.4 §10.4：H5 为 0）"
+        }
+      }
     }
   },
   "additionalProperties": false
