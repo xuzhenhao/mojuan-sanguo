@@ -127,6 +127,7 @@ type Plays = { attack: number; defense: number; other: number };
 export async function heroAiTurn(g: Game, plays: Plays) {
   const pf = profileOf(g);
   await useActives(g, 'start');
+  let healed = 0;
   for (let guard = 0; guard < 40 && !g.over; guard++) {
     const p = g.p;
     const ok = (c: CardInst) => g.hand.includes(c) && !g.checkPlay(c);
@@ -136,7 +137,9 @@ export async function heroAiTurn(g: Game, plays: Plays) {
     const afford = (c: CardInst) => p.ling - g.costOf(c) >= pf.reserveLing || g.costOf(c) === 0;
     const far = unreachable(g);
     // 数值策划建议 1（design-v1 8.4 AI2）：体力 ≤ ⌈上限/2⌉，或（体力 ≤ 上限−2 且手里没有杀）时才吃桃
-    const wantHeal = () => p.hp <= Math.ceil(p.maxHp / 2) || (p.hp <= p.maxHp - 2 && !g.hand.some((x) => def(x).sha || g.canAsSha(x)));
+    const hasSha = () => g.hand.some((x) => def(x).sha || g.canAsSha(x));
+    // 有杀时每回合至多吃 1 次（避免把军令全花在回复上、陷入不出杀的僵局）
+    const wantHeal = () => (healed === 0 || !hasSha()) && (p.hp <= Math.ceil(p.maxHp / 2) || (p.hp <= p.maxHp - 2 && !hasSha()));
     // 建议 2：有给友军加成的敌人（张宝）在场时，用义勇（无视距离）去打后排使能者
     const enabler = g.alive().find((e) => isEnabler(g, e) && !g.inRange(e));
     let c: CardInst | undefined;
@@ -154,7 +157,13 @@ export async function heroAiTurn(g: Game, plays: Plays) {
       /* 装备 */
     } else if (wantHeal() && (c = find((x) => !!def(x).tao || (atoms(x).includes('heal') && !def(x).tgt)))) {
       /* 回复 */
-    } else if ((c = find((x) => (x.id === 'T013' || isDraw(x)) && (g.costOf(x) === 0 || (afford(x) && (!shas().length || p.ling - g.costOf(x) >= 1)))))) {
+    } else if (
+      (c = find(
+        (x) =>
+          (x.id === 'T013' || isDraw(x)) &&
+          (g.costOf(x) === 0 || (afford(x) && (!shas().length || (p.ling - g.costOf(x) >= shas().length && p.ling - g.costOf(x) >= 1)))),
+      ))
+    ) {
       if (def(c).tgt) tgt = g.alive()[0];
     } else if (far && (c = find((x) => def(x).tgt === 'any' && atoms(x).includes('damage') && !def(x).sha))) {
       tgt = far; // 无视距离的伤害牌先打后排
@@ -192,6 +201,7 @@ export async function heroAiTurn(g: Game, plays: Plays) {
     if (isShaPlay(c) || d.jiu || c.id === 'SH01' || d.aoe || c.id === 'X004' || (d.tgt && atoms(c).includes('damage'))) plays.attack++;
     else if (isDefCard(c)) plays.defense++;
     else plays.other++;
+    if (def(c).tao || (atoms(c).includes('heal') && !def(c).tgt)) healed++;
     await g.play(c, tgt, red);
   }
   if (!g.over) await useActives(g, 'end');
