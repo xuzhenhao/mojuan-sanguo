@@ -12,7 +12,8 @@
 .op.sel{box-shadow:0 0 0 2px var(--gold-hi),0 0 20px 6px rgba(233,200,119,.5),0 10px 24px #000;transform:translateY(-8px)}
 .op.ad{opacity:.85}.op.ad .orb{box-shadow:0 0 0 2px var(--gold-lo),0 0 0 5px var(--lac-3)}
 .adb{position:absolute;margin-top:150px;font-size:12px;display:flex;align-items:center;gap:3px;color:var(--gold)}.adb svg{width:16px;height:16px;fill:var(--gold)}
-.bar .btn{margin-left:auto}
+.bar .btn{margin-left:auto}.adb{display:none}body.wx .adb{display:flex}body.wx #burn{opacity:.7}body.wx #burn .orb{box-shadow:0 0 0 2px var(--gold-lo),0 0 0 5px var(--lac-3)}
+.hint{display:none;position:absolute;left:246px;top:566px;width:132px;padding:8px;font-size:11px;line-height:1.4;color:var(--paper);z-index:5}body.wx .hint{display:block}.hint::before{content:"";position:absolute;left:50%;top:-7px;border:7px solid transparent;border-bottom-color:var(--gold-lo);border-top:0;margin-left:-7px}
 </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
  <filter id="brush" x="-10%" y="-10%" width="120%" height="120%">
@@ -152,8 +153,9 @@
 <div class="opts">
  <div class="op panel sel"><div class="orb"><svg style="fill:#9ad4b8"><use href="#i-heart"/></svg></div><b>疗伤</b><span class="v"><svg style="fill:#9ad4b8"><use href="#i-heart"/></svg><span class="num">+2</span></span></div>
  <div class="op panel"><div class="orb"><svg style="fill:var(--gold)"><use href="#i-fire"/></svg></div><b>淬炼</b><span class="v"><svg style="fill:var(--gold)"><use href="#i-deck"/></svg><span class="brush" style="font-size:16px">+词条</span></span></div>
- <div class="op panel ad"><div class="orb"><svg style="fill:#ff8a73"><use href="#i-trash"/></svg></div><b>焚稿</b><span class="v"><svg style="fill:#ff8a73"><use href="#i-deck"/></svg><span class="num">−1</span></span><span class="adb"><svg><use href="#i-ad"/></svg>本章 1 次</span></div>
+ <div class="op panel" id="burn"><div class="orb"><svg style="fill:#ff8a73"><use href="#i-trash"/></svg></div><b>焚稿</b><span class="v"><svg style="fill:#ff8a73"><use href="#i-deck"/></svg><span class="num">−1</span></span><span class="adb wx"><svg><use href="#i-ad"/></svg>解锁</span></div>
 </div>
+<div class="hint panel">看一段视频即可获得，不看也不影响进度</div>
 <div class="bar"><div class="ico"><svg><use href="#i-deck"/></svg></div><span class="num" style="font-size:14px">14</span><div class="btn ok sm">确定</div></div>
 </div><script>const use=(id,cls='')=>`<svg class="${cls}"><use href="#${id}"/></svg>`;
 const red=s=>s=='♥'||s=='♦';
@@ -163,4 +165,4 @@ const HEROES=[{n:'吕布',f:'qun',fa:'群',hp:9,s:'boss'},{n:'貂蝉',f:'qun',fa
 function longpress(el,fn){let t;el.addEventListener('pointerdown',()=>{t=setTimeout(fn,420)});['pointerup','pointerleave'].forEach(v=>el.addEventListener(v,()=>clearTimeout(t)));}
 
 document.querySelector('.hp').innerHTML=Array.from({length:8},(_,k)=>`<i class="bead ${k<4?'':k<6?'p':'e'}"></i>`).join('');
-document.querySelectorAll('.op').forEach(o=>o.onclick=()=>{document.querySelectorAll('.op').forEach(x=>x.classList.remove('sel'));o.classList.add('sel')});</script></body></html>
+document.querySelectorAll('.op').forEach(o=>o.onclick=()=>{document.querySelectorAll('.op').forEach(x=>x.classList.remove('sel'));o.classList.add('sel')});if(location.hash=='#wx')document.body.classList.add('wx');</script></body></html>
