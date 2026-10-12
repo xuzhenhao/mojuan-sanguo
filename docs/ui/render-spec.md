@@ -487,3 +487,12 @@ WebGL 特效纹理合计：64KB + 256KB + 256KB + 溅点图集 256² ETC2 64KB �
 ## 附：已废弃内容
 - **方案 A（墨卷长轴）**：宣纸舞台背景、剪影站立敌人、砚台军令、扇形手牌、红心体力，**全部作废**。原 A 的 SVG 晕染滤镜不再需要烘焙。
 - v1 四版（`docs/ui/battle-mockups/`、`public/mockups/a–d.html`）只作反面参照。
+
+## 15. ui_sharp 首版资源（图标 + 位图数字）
+- 源：`art/src/icons/<id>.svg`（印章样式，56×56@2x，内容 48×48，四周 4px 为烘焙阴影）；数字字形用 `art/src/fonts/DejaVuSerif-Bold.ttf`（仅构建期，Georgia Bold 风格替身）。`art/tools/gen-icon-svgs.mjs` 是首版 SVG 的生成器，可直接改 SVG。
+- 构建：`npm run atlas:build`（加 `-- --sheets <dir>` 输出预览 `icons-sheet.png`/`digits-sheet.png`）。产物：
+  - `public/assets/atlases/ui_sharp.png` + `.json`：1024² RGBA8（4.00MB 内存，与 §12.5 一致），已用 1024×370，余下空间留给勾玉、虎符、花色、“墨”角标、九宫格四角、书法名。
+  - `public/assets/fonts/num_w.json`（白字黑描边）、`num_gold.json`（金字）：BMFont JSON 风格，字形在 ui_sharp 内；顶层 = L 档（68px@2x，用于 num-xl/l/m 15–34dp），`small` = S 档（28px@2x，用于 num-s ≤14dp）。数字等宽（`tabularDigits`），`xadvance` 已扣除描边叠压；字符 `0-9 + - − / % × x : .`。
+- 印章分类：意图 = 实心色方印（sha/volley 朱砂、defend 青、buff 金褐）；词条 = 漆底金边方印；状态 = 漆底圆印；地图节点 = 色底金边圆章；UI 导航/资源 = 无印框金色图形加墨描边。图标已带颜色，**不要再 tint**（伤害红/治疗绿的 tint 只用于数字）。
+- 绘制：`src/engine/atlas.ts` 的 `drawIcon(ctx, img, atlas, id, x, y, 24)`（内容区坐标，自动外扩阴影）、`drawNumber/measureNumber`（自动按字号选档）。`tests/ui-atlas.test.ts` 校验 §14 每个 id 都有帧。
+- `ui_relic_*` 首版只出通用 `ui_relic`（玉佩），具体宝物图标待宝物表定稿。
