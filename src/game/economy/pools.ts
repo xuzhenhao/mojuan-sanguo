@@ -122,12 +122,10 @@ export function applyMods(p: number, inv: Pick<Inventory, 'relics' | 'destiny'>)
 }
 
 /**
- * 卡牌售价（PRD 14.2）：卡牌配置 shopPrice 为定价、不浮动（T002 = 40）；
- * 否则按 rules.shop.cardPrice 稀有度基础价 ±10% 取整到 5。均叠加断袖香囊 / 天命加成。
+ * 卡牌售价（PRD 14.2）：基价 = 卡牌配置 shopPrice（覆盖稀有度价，T002 = 40），否则 rules.shop.cardPrice；
+ * 统一 ±10% 浮动、取整到 5（组长裁定），再叠加断袖香囊 / 天命加成。
  */
 export function cardPrice(rng: Rng, id: string, inv: Pick<Inventory, 'relics' | 'destiny'>): number {
-  const own = CONFIG.cards[id]?.shopPrice;
-  if (own !== undefined) return applyMods(own, inv);
   const base = shopPrice(id);
   if (base === undefined) throw new Error(`卡牌 ${id} 缺少商店价（rules.shop.cardPrice）`);
   return jitter(rng, base, inv);
