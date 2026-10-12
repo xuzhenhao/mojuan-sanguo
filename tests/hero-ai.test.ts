@@ -88,3 +88,20 @@ describe('hero AI 行为', () => {
     expect(h1).toEqual(h2);
   });
 });
+
+describe('#34 陆逊主将：回合结束补牌型连营也算打空收益', () => {
+  it('profileOf(陆逊主将) 识别 turn_end + hand_count_at_most → draw', () => {
+    expect(profileOf(setup('H08', 'H07')).emptyHand).toBe(true);
+    expect(profileOf(setup('H08', 'H04')).emptyHand).toBe(true);
+  });
+  it('AI 会把手牌打到 ≤1，回合结束连营补到 2 张', async () => {
+    const g = setup('H08', 'H04');
+    g.en.forEach((e) => (e.pat = [['闪']]));
+    g.hand = [card('T012'), card('B001'), card('X802')];
+    g.p.ling = 3;
+    await heroAiTurn(g, plays());
+    expect(g.hand.length).toBeLessThanOrEqual(1);
+    g.turnEnd();
+    expect(g.logs.join('|')).toContain('连营：摸');
+  });
+});
