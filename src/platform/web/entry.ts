@@ -5,12 +5,16 @@
 import './style.css';
 import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
-import { FlowMachine, type FlowEvent, type Page } from '../../game/flow';
+import { FlowMachine, viewOf, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
+import { RunSession } from '../../game/run';
+import { initialState } from '../../game/select/model';
+import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { createMapScene } from '../../game/map';
 import { createWebPlatform } from './platform';
+import brushUrl from '../../../public/mockups/v3/fonts/brush.woff?url';
 
 const root = document.getElementById('app')!;
 const platform = createWebPlatform(root);
@@ -18,12 +22,46 @@ const platform = createWebPlatform(root);
 const cfg = { ...DEFAULT_RENDER_CONFIG, webgl: import.meta.env.VITE_WEBGL !== '0' };
 const engine = new Engine(platform, {}, cfg);
 
-const flow = new FlowMachine();
+const run = new RunSession();
+const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : null));
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
-// P3 地图（#44）
-engine.scenes.register('map', () => createMapScene(engine, (e, p) => void router.send(e, p)));
+// P1 点将（#43）：出征 → core 新建局 → FlowMachine start_run → 地图
+const query = platform.launchQuery();
+engine.scenes.register(
+  'select',
+  () =>
+    new SelectScene({
+      overlays: engine.overlays,
+      initial: initialState(query),
+      onStart(sel) {
+        const seed = query.seed ? Number(query.seed) : Math.floor(platform.now() * 1000) >>> 0;
+        run.start({ ...sel, seed });
+        send({ type: 'start_run' });
+      },
+    }),
+);
+// 书法字体（马善政，与 mockups/v3/fonts 同一文件，打进发布包）：加载完成后重绘，避免系统字体回退
+if (typeof FontFace !== 'undefined') {
+  const brush = new FontFace('Brush', `url(${brushUrl})`);
+  brush
+    .load()
+    .then((f) => {
+      document.fonts.add(f);
+      engine.invalidateAll();
+    })
+    .catch((e) => platform.warn('书法字体加载失败', e));
+}
+// P3 地图（#44）：局种子取点将出征时 core 建局的种子
+engine.scenes.register('map', () =>
+  createMapScene(
+    engine,
+    (e, p) => void router.send(e, p),
+    undefined,
+    () => run.params?.seed,
+  ),
+);
 const router = new Router(flow, engine.scenes);
 // P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
 engine.scenes.register(
@@ -55,11 +93,11 @@ engine.overlays.push({
 });
 
 // 启动页可用 ?page=map 等直接进入（截图与测试用）
-const q = platform.launchQuery().page as Page | undefined;
+const q = query.page as Page | undefined;
 if (q && pages.includes(q)) {
   flow.page = q;
 }
-if (platform.launchQuery().page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
+if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
 else void router.start();
 engine.start();
-(window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router };
+(window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router, run };

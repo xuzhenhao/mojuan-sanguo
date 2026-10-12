@@ -23,9 +23,17 @@ export interface OverlaySpec<R = unknown> {
   draw(s: Surface, dt: number): void;
   /** 返回 true 表示已处理 */
   gesture?(e: GestureEvent, h: OverlayHandle<R>): boolean;
-  /** 是否需要持续出帧（倒计时、弹出动画）；true 时引擎每帧重绘 main 层 */
-  animating?(): boolean;
+  /**
+   * 是否需要持续出帧：true = 整层重绘（弹出动画等短动画）；'tick' = 只调用 tick() 局部重绘（倒计时）。
+   */
+  animating?(): boolean | 'tick';
+  /** 推进时间（每帧调用一次，与是否重绘无关） */
+  update?(dt: number): void;
+  /** 局部重绘：只画自身的一小块不透明区域（animating() 为 'tick' 时由引擎调用） */
+  tick?(s: Surface): void;
 }
+
+export type OverlayAnim = false | 'tick' | 'full';
 
 export interface OverlayHandle<R = unknown> {
   readonly id: string;
@@ -102,9 +110,23 @@ export class OverlayStack {
     return false;
   }
 
-  /** 是否有弹层需要持续出帧 */
-  animating() {
-    return this.items.some((e) => !!e.spec.animating?.());
+  /** 推进各弹层的时间（倒计时、动画） */
+  update(dt: number) {
+    for (const e of [...this.items]) e.spec.update?.(dt);
+  }
+  /** 出帧需求：'full' 需要整层重绘；'tick' 只需局部重绘；false 可停帧 */
+  animating(): OverlayAnim {
+    let tick = false;
+    for (const e of this.items) {
+      const a = e.spec.animating?.();
+      if (a === true) return 'full';
+      if (a === 'tick') tick = true;
+    }
+    return tick ? 'tick' : false;
+  }
+  /** 局部重绘所有 'tick' 弹层 */
+  tick(s: Surface) {
+    for (const it of this.ordered()) if (it.spec.animating?.() === 'tick') it.spec.tick?.(s);
   }
 
   draw(s: Surface, dt: number) {

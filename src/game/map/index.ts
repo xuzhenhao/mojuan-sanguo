@@ -50,8 +50,13 @@ export function defaultHud(): HudInfo {
   return { hp, maxHp: hp, gold: 99, potions: [null, null, null], hero: h?.name ?? '将' };
 }
 
-export function createMapScene(engine: Engine, go: (e: FlowEvent, p: MapRouteParams) => void, hud: () => HudInfo = defaultHud) {
-  const s = mapSession(engine);
+export function createMapScene(
+  engine: Engine,
+  go: (e: FlowEvent, p: MapRouteParams) => void,
+  hud: () => HudInfo = defaultHud,
+  runSeed: () => number | undefined = () => undefined,
+) {
+  const s = mapSession(engine, 1, runSeed());
   const boss = s.state.boss;
   return new MapScene({
     session: s,
