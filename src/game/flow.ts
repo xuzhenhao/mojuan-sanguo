@@ -4,11 +4,14 @@
  */
 import type { Game } from '../core/battle';
 
+/** 地图节点可去的页面：战斗/精英/Boss → battle；集市 → shop；宝箱（以及营地/奇遇页上线前的占位）→ reward（CHEST 在 P4 渲染） */
+export type NodePage = 'battle' | 'shop' | 'reward';
+
 export type Page = 'select' | 'map' | 'battle' | 'reward' | 'shop' | 'result';
 
 export type FlowEvent =
   | { type: 'start_run' } // 点将确认
-  | { type: 'enter_node'; node: 'battle' | 'shop' }
+  | { type: 'enter_node'; node: NodePage }
   | { type: 'battle_end'; win: boolean }
   | { type: 'reward_done' }
   | { type: 'shop_done' }
@@ -32,7 +35,7 @@ export function viewOf(g: Pick<Game, 'over' | 'isLast' | 'battleIdx' | 'p'>): Ru
 
 const TABLE: Record<Page, Partial<Record<FlowEvent['type'], (e: FlowEvent, v: RunStateView | null) => Page>>> = {
   select: { start_run: () => 'map' },
-  map: { enter_node: (e) => (e as { node: 'battle' | 'shop' }).node },
+  map: { enter_node: (e) => (e as { node: NodePage }).node },
   battle: { battle_end: (e) => ((e as { win: boolean }).win ? 'reward' : 'result') },
   reward: { reward_done: (_e, v) => (v?.isLast ? 'result' : 'map') },
   shop: { shop_done: () => 'map' },

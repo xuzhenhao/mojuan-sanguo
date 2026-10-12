@@ -60,3 +60,33 @@ presets:
     deck: prototype
     forceCombos: [龙虎会]
     note: design-v1 第 7.1 节复核基线：关羽 + 赵云（V1 护主）+ 原型 19 张牌组 + 龙虎会原值（开场 3 甲、首杀摸 1）
+
+# ───────── 局与地图（PRD 10.1–10.4、10.9；P3 #44） ─────────
+run:
+  chapters: 1 # H5 首版只开第 1 章（Boss 张角）
+
+map:
+  layers: 8 # 不含 Boss；第 layers+1 层为 Boss
+  columns: 4
+  paths: 4 # 随机游走路线数
+  distinctStarts: 2 # 前 N 条路线起点必须不同列（10.3 第 2 条）
+  fixedLayers: { 1: BATTLE, 8: REST } # 固定层（Boss 层固定为 BOSS，不在此列）
+  # 按层段的类型权重（10.4，V0.5.3 定稿）；未列出的层用 0 权重会导致生成失败
+  weights:
+    - { layers: [2, 3], BATTLE: 60, ELITE: 0, EVENT: 25, REST: 0, SHOP: 5, CHEST: 10 }
+    - { layers: [4, 5], BATTLE: 45, ELITE: 15, EVENT: 15, REST: 10, SHOP: 10, CHEST: 5 }
+    - { layers: [6, 7], BATTLE: 35, ELITE: 20, EVENT: 15, REST: 10, SHOP: 15, CHEST: 5 }
+  constraints:
+    minLayerFor: { ELITE: 4, REST: 4 } # 约束 1：第 4 层之前不出现
+    noConsecutive: [ELITE, REST, SHOP] # 约束 2：同一路线上不连续出现同类
+    distinctSiblings: true # 约束 3：同一节点的后继尽量不同类（重抽失败时放宽）
+    minElite: 1 # 约束 4：每章至少 1 个精英
+    shopOnEveryStart: true # 约束 4（V0.5.3）：每个起点至少能到达 1 个集市
+    maxRerolls: 50 # 校验失败用同一种子流重抽的次数，仍失败则放宽约束 3
+  betweenBattleHeal: 0 # 地图模式战后不回血（顶层 betweenBattleHeal 仅三战制回归口径）
+  boss: { 1: B1 } # 每章 Boss 敌人 id（开局可见名称与头像）
+  nodeIcons: { BATTLE: battle, ELITE: elite, EVENT: event, REST: rest, SHOP: shop, CHEST: chest, BOSS: boss }
+  # 以下为 UI 表现参数（render-spec §8.2 / acceptance），占位可调
+  layerSpacing: 62 # 卷轴每层高度 dp
+  moveMs: 500 # 头像沿路径移动
+  pulseMs: 1400 # 可走节点脉冲周期

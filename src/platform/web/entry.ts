@@ -9,6 +9,7 @@ import { FlowMachine, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
+import { createMapScene } from '../../game/map';
 import { createWebPlatform } from './platform';
 
 const root = document.getElementById('app')!;
@@ -21,6 +22,8 @@ const flow = new FlowMachine();
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
+// P3 地图（#44）
+engine.scenes.register('map', () => createMapScene(engine, (e, p) => void router.send(e, p)));
 const router = new Router(flow, engine.scenes);
 // P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
 engine.scenes.register(

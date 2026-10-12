@@ -47,6 +47,138 @@
         },
         "additionalProperties": false
       }
+    },
+    "pools": {
+      "type": "object",
+      "description": "战斗组包（PRD 10.5）：池内随机等权，同池不连续抽到同一组合",
+      "required": [
+        "easy",
+        "normal",
+        "elite",
+        "boss"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "easy": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "enemies"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "enemies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "maxItems": 5
+              }
+            }
+          }
+        },
+        "normal": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "enemies"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "enemies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "maxItems": 5
+              }
+            }
+          }
+        },
+        "elite": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "enemies"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "enemies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "maxItems": 5
+              }
+            }
+          }
+        },
+        "boss": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "enemies"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "enemies": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "maxItems": 5
+              }
+            }
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "easyBattles",
+        "noRepeatInPool"
+      ],
+      "properties": {
+        "easyBattles": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "本章前 N 场普通战斗用 easy 池"
+        },
+        "noRepeatInPool": {
+          "type": "boolean",
+          "description": "同一池内不连续抽到同一组合"
+        }
+      }
     }
   },
   "additionalProperties": false
