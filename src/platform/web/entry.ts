@@ -11,6 +11,7 @@ import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
 import { initialState } from '../../game/select/model';
 import { SelectScene } from '../../game/select/scene';
+import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { createWebPlatform } from './platform';
 import brushUrl from '../../../public/mockups/v3/fonts/brush.woff?url';
 
@@ -52,6 +53,17 @@ if (typeof FontFace !== 'undefined') {
     .catch((e) => platform.warn('书法字体加载失败', e));
 }
 const router = new Router(flow, engine.scenes);
+// P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
+engine.scenes.register(
+  'battle-overlay-demo',
+  () =>
+    new BattleOverlayDemoScene({
+      overlays: engine.overlays,
+      safe: () => platform.systemInfo().safeArea,
+      measure: () => engine.surfaces.main.ctx,
+      paused: () => engine.scenes.isPaused,
+    }),
+);
 
 // 状态栏（非模态系统层）：渲染路径与纹理内存
 engine.overlays.push({
@@ -75,6 +87,7 @@ const q = query.page as Page | undefined;
 if (q && pages.includes(q)) {
   flow.page = q;
 }
-void router.start();
+if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
+else void router.start();
 engine.start();
 (window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router, run };
