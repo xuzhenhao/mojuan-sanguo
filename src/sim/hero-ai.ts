@@ -135,8 +135,8 @@ export async function heroAiTurn(g: Game, plays: Plays) {
     // 留军令（挟势）：非关键牌不把军令花到 reserve 以下
     const afford = (c: CardInst) => p.ling - g.costOf(c) >= pf.reserveLing || g.costOf(c) === 0;
     const far = unreachable(g);
-    // 数值策划建议 1：只在体力 ≤50% 或手里没有杀时吃桃
-    const wantHeal = () => p.hp < p.maxHp && (p.hp <= p.maxHp / 2 || !g.hand.some((x) => def(x).sha || g.canAsSha(x)));
+    // 数值策划建议 1（design-v1 8.4 AI2）：体力 ≤ ⌈上限/2⌉，或（体力 ≤ 上限−2 且手里没有杀）时才吃桃
+    const wantHeal = () => p.hp <= Math.ceil(p.maxHp / 2) || (p.hp <= p.maxHp - 2 && !g.hand.some((x) => def(x).sha || g.canAsSha(x)));
     // 建议 2：有给友军加成的敌人（张宝）在场时，用义勇（无视距离）去打后排使能者
     const enabler = g.alive().find((e) => isEnabler(g, e) && !g.inRange(e));
     let c: CardInst | undefined;

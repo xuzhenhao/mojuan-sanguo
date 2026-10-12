@@ -48,7 +48,7 @@ describe('hero AI 行为', () => {
     g.hand = [tao, card('B001')];
     g.p.ling = 1;
     await heroAiTurn(g, plays());
-    expect(g.hand).toContain(tao);
+    expect(g.hand).toContain(tao); // 6 > ⌈8/2⌉ 且有杀
     g.p.hp = 4;
     g.p.ling = 3;
     g.hand = [tao, card('B001')];
