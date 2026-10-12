@@ -579,12 +579,14 @@ export interface ErrorReport { message: string; stack?: string; version: string;
 
 ### 4.10 构建工具链（需求 9）
 
-> **部署（v0.6，用户验收决定）**：GitHub Pages 一次部署产出两个入口：
-> - 根目录 = **DOM 可玩版**（当前对外试玩）：https://xuzhenhao.github.io/mojuan-sanguo/
-> - `/next/` = **Canvas 新版**（引擎 + 页面流程）：https://xuzhenhao.github.io/mojuan-sanguo/next/
+> **部署（v0.7，P5 #46 对调入口后）**：GitHub Pages 一次部署产出：
+> - 根目录 = **Canvas 版**（引擎 + B 金漆屏风页面流程，默认入口）：https://xuzhenhao.github.io/mojuan-sanguo/
+> - `/debug/` = **DOM 调试版**（原可玩原型，测试用）：https://xuzhenhao.github.io/mojuan-sanguo/debug/
+> - `/next/` = 跳转页（`scripts/next-redirect.html`），保留查询参数跳到根目录，避免旧链接 404
+> - `/mockups/` = 设计稿（`public/` 直接拷到站点根目录，**不进任何构建产物**）
 >
-> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/next/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/`，带 public/mockups）→ 组装 `_site/`：DOM 版放根目录（`debug.html` 改名为 `index.html`），Canvas 版放 `next/`。CI 同样跑 size-check 和 build:debug。
-> **P5 对调入口（#46）**：Canvas 版到根目录，DOM 版移到 `/debug/`；只需改 `vite.config.ts` 的两个 base 和 `pages.yml` 的组装步骤。
+> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/debug/`）→ 组装 `_site/`：`dist/` 放根目录，`dist-debug/` 放 `debug/`（`debug.html` 改名为 `index.html`），再放 `next/` 跳转页和 `public/`。CI 同样跑 size-check 和 build:debug。base 定义在 `vite.config.ts` 的 `PAGES_BASE`，有测试（`tests/result.test.ts`）。
+> v0.6 时为根目录 DOM 版 + `/next/` Canvas 版（#36）。
 
 ```mermaid
 flowchart LR
@@ -652,7 +654,8 @@ flowchart LR
 - **`src/game/flow.ts` · FlowMachine**：页面状态机，非法事件抛错。由 core 局状态驱动：`viewOf(game)` 只读 `over / isLast / battleIdx / p.hp`；`sync()` 在 core 报告战斗结束时自动转到奖励或结算；`battle_end` 与 core 状态矛盾时拒绝。**不修改 src/core 和 config/**。
 - **`src/game/router.ts` · Router**：把页面变化映射到场景切换（默认用泼墨转场）。
 - **`src/game/scenes/placeholder.ts`**：6 个占位页面，带按钮推进流程、长按弹详情浮层；正式页面替换对应 id 即可。发布入口支持 `?page=map` 等参数直接进入某页（截图和测试用）。
-- 测试：`tests/engine-scene.test.ts`、`tests/flow.test.ts`。
+- **P5 结算与放弃本局（#46）**：`FlowMachine` 增加 `abandon`（点将 / 地图 / 战斗 / 奖励 / 集市 → 结算，PRD 5.13）和 `result_done.to`（`'map'` = 再来一局，默认 `'select'` = 返回点将，PRD 14.5）。结算页 `src/game/result/scene.ts`；启动续玩弹窗与放弃二次确认 `src/game/result/resume.ts` 只用 `OverlayStack.push`，设置浮层可复用 `confirmAbandon`。**离开结算页时**才入账局外存档（`mojuan.meta.v1`）并删除局内存档（`mojuan.run.v1`）。其他页面通过 `src/game/result/bridge.ts` 接入（`outcome` / `restart` / `resume`）。
+- 测试：`tests/engine-scene.test.ts`、`tests/flow.test.ts`、`tests/result.test.ts`。
 
 ### 4.12 WebGL 水墨增强层（【已决定 2026-10-12】）
 
