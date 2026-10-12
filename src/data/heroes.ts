@@ -22,7 +22,7 @@ export const HEROES: Record<string, HeroDef> = {
       { name: '龙胆', desc: '锁定：杀可当闪打出，闪可当杀使用' },
       { name: '涯角', desc: '锁定：出牌阶段使用的第一张杀或闪，摸1张牌' },
     ],
-    subSkill: { name: '护主', desc: '主将成为杀的目标时，可令其判定，红色则此杀无效（每回合限1）' },
+    subSkill: { name: '护主', desc: '主将成为杀的目标时，可令其判定，♥ 则此杀无效（每回合限1）' },
   },
 };
 
