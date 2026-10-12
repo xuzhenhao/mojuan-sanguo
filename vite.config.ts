@@ -4,14 +4,16 @@ import { defineConfig } from 'vite';
 /**
  * 构建模式（engine-design §4.10）：
  * - 默认 / h5：发布包，只含 Canvas 引擎入口（index.html），不含 DOM 调试版；输出 dist/
- * - debug：DOM 调试版（debug.html），输出 dist-debug/，不进发布包
+ * - debug：DOM 调试版（debug.html），输出 dist-debug/，不进发布包；Pages 上部署到 /mojuan-sanguo/debug/
  * - wechat：仅保留占位，本期不实现
  */
 export default defineConfig(({ mode }) => {
   if (mode === 'wechat') throw new Error('wechat 构建目标本期未实现（engine-design §7）');
   const debug = mode === 'debug';
   return {
-    base: '/mojuan-sanguo/',
+    // 发布包在 Pages 根目录；调试版部署在 /debug/
+    base: debug ? '/mojuan-sanguo/debug/' : '/mojuan-sanguo/',
+    publicDir: debug ? false : 'public',
     build: {
       outDir: debug ? 'dist-debug' : 'dist',
       emptyOutDir: true,

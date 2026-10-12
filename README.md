@@ -2,7 +2,9 @@
 
 水墨风三国 Roguelike 卡牌（微信小游戏，竖屏）的可玩网页战斗原型。
 
-- 🎮 在线试玩：<https://xuzhenhao.github.io/mojuan-sanguo/>（加 `?demo=1` 把灵光一闪触发率提高到 50%，加 `?seed=123` 固定随机种子）
+- 🎮 发布版（Canvas 引擎，P0 骨架）：<https://xuzhenhao.github.io/mojuan-sanguo/>（`?webgl=0` 关闭 WebGL 水墨叠加层）
+- 🧪 调试版（DOM 可玩原型，测试用）：<https://xuzhenhao.github.io/mojuan-sanguo/debug/>（加 `?demo=1` 把灵光一闪触发率提高到 50%，加 `?seed=123` 固定随机种子）
+- 两者由同一次 Pages 部署产出：根目录为发布包，`/debug/` 为调试包；CI 的 size-check 保证发布包不含调试代码
 - 📄 策划案：[docs/PRD.md](docs/PRD.md)
 - 📝 更新日志 / 设计决策：[docs/CHANGELOG.md](docs/CHANGELOG.md)
 
@@ -11,8 +13,9 @@
 ```bash
 npm install
 npm run dev      # 本地开发 http://localhost:5173/mojuan-sanguo/
-npm run dev:debug   # DOM 调试版（可玩原型）/mojuan-sanguo/debug.html，不进发布包
-# Canvas 发布入口支持 ?webgl=0 关闭 WebGL 水墨叠加层
+npm run dev:debug   # DOM 调试版（可玩原型）http://localhost:5173/mojuan-sanguo/debug/debug.html，不进发布包
+npm run build:debug # 调试版输出到 dist-debug/（Pages 部署到 /debug/）
+npm run size-check  # 发布包体检查（≤4MB，且不含调试代码）
 npm test         # vitest 单元测试
 npm run lint     # ESLint + Prettier 检查
 npm run build    # 产物输出到 dist/

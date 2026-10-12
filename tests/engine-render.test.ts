@@ -81,18 +81,18 @@ describe('WebGL 关闭：2D 直接合成路径', () => {
 });
 
 describe('WebGL 开启：叠加层', () => {
-  it('创建独立叠加画布（1.5 倍分辨率上限），2D 合成照常', () => {
+  it('创建独立叠加画布（半分辨率），2D 合成照常', () => {
     const f = fakePlatform({ webgl: true });
     const e = new Engine(f.p);
     expect(e.webgl.enabled).toBe(true);
     expect(f.overlays).toHaveLength(1);
-    expect(f.overlays[0].width).toBe(585);
+    expect(f.overlays[0].width).toBe(390);
     expect(f.screen.contexts).not.toContain('webgl');
     e.start();
     f.flush(16);
     expect(e.compositor.composites).toBe(1);
     expect(e.overlay!.frames).toBe(1);
-    expect(e.budget.usedBy('fx')).toBe(585 * 1266 * 4);
+    expect(e.budget.has('screen:webgl-overlay')).toBe(true);
   });
   it('默认配置为开启', () => {
     expect(DEFAULT_RENDER_CONFIG.webgl).toBe(true);

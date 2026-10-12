@@ -6,7 +6,9 @@ import type { Platform } from '../platform/types';
 import { Canvas2DCompositor, WebGLOverlay, type InkFx } from './compositor';
 import { GestureRecognizer, type GestureEvent } from './input';
 import { MainLoop } from './loop';
-import { TextureBudget, type BudgetWarning } from './memory';
+import { OverlayStack } from './modal';
+import { SceneManager } from './scene';
+import { AtlasManager, BakeCache, bakeScale, TextureBudget, type BudgetWarning } from './memory';
 import { DEFAULT_RENDER_CONFIG, decideWebGL, effectiveDpr, type RenderConfig, type WebGLDecision } from './settings';
 import { createSurfaces, type Surface, type SurfaceName } from './surfaces';
 import type { CanvasLike } from './types';
@@ -21,15 +23,21 @@ export interface EngineHooks {
 
 export class Engine {
   readonly dpr: number;
+  /** 烘焙缓存倍率：低端 1.5x，否则 2x（不超过 dpr） */
+  readonly bakeScale: number;
   readonly width: number;
   readonly height: number;
   readonly budget: TextureBudget;
+  readonly bakes: BakeCache;
+  readonly atlases: AtlasManager;
   readonly surfaces: Record<SurfaceName, Surface>;
   readonly compositor: Canvas2DCompositor;
   webgl: WebGLDecision;
   readonly overlay: WebGLOverlay | null;
   readonly loop: MainLoop;
   readonly gestures: GestureRecognizer;
+  readonly scenes: SceneManager;
+  readonly overlays: OverlayStack;
   fx: InkFx[] = [];
   warnings: BudgetWarning[] = [];
 
@@ -40,19 +48,24 @@ export class Engine {
   ) {
     const info = platform.systemInfo();
     this.dpr = effectiveDpr(info.dpr, cfg.maxDpr);
+    this.bakeScale = bakeScale(cfg.lowEnd, this.dpr);
     this.width = info.width;
     this.height = info.height;
     const pxW = Math.round(info.width * this.dpr);
     const pxH = Math.round(info.height * this.dpr);
-    this.budget = new TextureBudget(cfg.textureBudgetBytes, undefined, (w) => {
+    this.budget = new TextureBudget(cfg.textureBudgetBytes, cfg.textureWarnBytes, (w) => {
       this.warnings.push(w);
-      platform.warn('[texture-budget] 超出预算', w);
+      platform.warn('[texture-budget] 纹理内存超过告警线', w);
     });
+    // 回收顺序：先 LRU 烘焙缓存，再非当前场景图集（render-spec §12.5）
+    this.bakes = new BakeCache(this.budget);
+    // 2D 路径下图片解码为 RGBA8；WebGL 路径在 P4 按扩展选择压缩格式
+    this.atlases = new AtlasManager(this.budget, undefined, () => 'rgba8');
 
     const screen = platform.mainCanvas();
     screen.width = pxW;
     screen.height = pxH;
-    this.budget.track('screen:main', 'screen', pxW, pxH);
+    this.budget.track('screen:main', 'framebuffer', pxW, pxH);
     this.surfaces = createSurfaces((w, h) => platform.createOffscreen(w, h), pxW, pxH, this.budget);
     this.compositor = new Canvas2DCompositor(screen);
 
@@ -65,12 +78,12 @@ export class Engine {
     const c = probe.canvas;
     if (this.webgl.enabled && c) {
       try {
-        // 叠加层分辨率上限 1.5 倍（engine-design §4.7.1）
-        const od = Math.min(this.dpr, 1.5);
+        // 特效叠加层用半分辨率（render-spec §12.4：特效 RT 半分辨率）
+        const od = this.dpr / 2;
         c.width = Math.round(info.width * od);
         c.height = Math.round(info.height * od);
         overlay = new WebGLOverlay(c);
-        this.budget.track('screen:webgl-overlay', 'fx', c.width, c.height);
+        this.budget.track('screen:webgl-overlay', 'framebuffer', c.width, c.height);
       } catch (e) {
         platform.warn('WebGL 叠加层创建失败，仅使用 2D 渲染', e);
         this.webgl = { enabled: false, reason: 'unsupported' };
@@ -78,8 +91,23 @@ export class Engine {
     }
     this.overlay = overlay;
 
+    const sceneCtx = {
+      width: this.width,
+      height: this.height,
+      invalidate: (l?: SurfaceName) => (l ? this.invalidate(l) : this.invalidateAll()),
+    };
+    this.scenes = new SceneManager(sceneCtx, { atlases: this.atlases, bakes: this.bakes }, () => !!this.overlay);
+    this.overlays = new OverlayStack({
+      invalidate: () => this.invalidate('main'),
+      pauseScene: () => this.scenes.pause(),
+      resumeScene: () => this.scenes.resume(),
+    });
+    platform.onHide(() => this.scenes.pause());
+    platform.onShow(() => this.scenes.resume());
+
+    // 输入路由：弹层栈（栈顶优先）→ 当前场景 → 外部钩子
     this.gestures = new GestureRecognizer((e) => {
-      this.hooks.gesture?.(e);
+      if (!this.overlays.gesture(e) && !this.scenes.gesture(e)) this.hooks.gesture?.(e);
       this.invalidate();
     });
     const toDp = (ts: { id: number; x: number; y: number }[]) => ts;
@@ -105,24 +133,31 @@ export class Engine {
     if (layer) this.surfaces[layer].dirty = true;
     this.loop.invalidate();
   }
-  start() {
+  invalidateAll() {
     for (const s of Object.values(this.surfaces)) s.dirty = true;
-    this.invalidate();
+    this.loop.invalidate();
+  }
+  start() {
+    this.invalidateAll();
   }
 
   frame(dt: number) {
     this.gestures.tick(this.platform.now());
+    this.scenes.update(dt);
     for (const s of Object.values(this.surfaces)) {
-      if (!s.dirty || !this.hooks.draw) continue;
+      if (!s.dirty) continue;
       const k = this.dpr * s.scale;
       s.ctx.setTransform(k, 0, 0, k, 0, 0);
-      this.hooks.draw(s.name, s, dt);
+      if (this.scenes.current) this.scenes.draw(s.name, s, dt);
+      this.hooks.draw?.(s.name, s, dt);
+      if (s.name === 'main') this.overlays.draw(s, dt);
     }
     this.compositor.compose(this.surfaces);
-    this.overlay?.frame(this.fx);
+    const tfx = this.scenes.transitionFx;
+    this.overlay?.frame(tfx ? [...this.fx, tfx] : this.fx);
   }
 
   needsFrame() {
-    return this.gestures.active || !!this.hooks.animating?.() || (this.overlay ? WebGLOverlay.needsFrame(this.fx) : false);
+    return this.gestures.active || this.scenes.animating() || !!this.hooks.animating?.() || (this.overlay ? WebGLOverlay.needsFrame(this.fx) : false);
   }
 }

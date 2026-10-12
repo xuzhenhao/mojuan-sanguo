@@ -10,12 +10,18 @@ export interface RenderConfig {
   maxDpr: number;
   /** 纹理内存总预算（字节），见 memory.ts */
   textureBudgetBytes: number;
+  /** 告警线（render-spec §12.5：45MB） */
+  textureWarnBytes: number;
+  /** 低端机：缓存按 1.5x 烘焙（render-spec §12.2） */
+  lowEnd: boolean;
 }
 
 export const DEFAULT_RENDER_CONFIG: RenderConfig = {
   webgl: true,
   maxDpr: 2,
   textureBudgetBytes: 50 * 1024 * 1024,
+  textureWarnBytes: 45 * 1024 * 1024,
+  lowEnd: false,
 };
 
 export type WebGLDecision = { enabled: boolean; reason: 'query' | 'config' | 'unsupported' };

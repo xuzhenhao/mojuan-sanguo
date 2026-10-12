@@ -21,6 +21,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # 发布包检查必须在合入调试版之前：确保 dist/ 本身不含 DOM 调试代码
+      - run: npm run size-check
+      - run: npm run build:debug
+      - name: 调试版部署到 /debug/
+        run: |
+          mkdir -p dist/debug
+          cp -r dist-debug/. dist/debug/
+          mv dist/debug/debug.html dist/debug/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

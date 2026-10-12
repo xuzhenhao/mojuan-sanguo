@@ -28,7 +28,7 @@ export function createSurfaces(make: (w: number, h: number) => Canvas2DLike, pxW
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error(`无法创建 2D 离屏画布 ${name}`);
-    budget?.track(`surface:${name}`, 'screen', w, h);
+    budget?.track(`surface:${name}`, 'framebuffer', w, h);
     out[name] = { name, canvas, ctx, scale: SCALE[name], dirty: true };
   }
   return out;
