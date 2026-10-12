@@ -13,11 +13,13 @@ mainSkills:
   - id: lianying
     name: 连营
     kind: 锁定技
-    desc: 你的手牌打空时摸 2 张牌（每回合限 2 次）。
-    trigger: { when: hand_empty }
-    limit: { per: turn, times: 2 }
+    desc: 回合结束时，若你的手牌不多于 1 张，摸牌至 2 张。
+    note: V1 定稿（用户确认）：原「手牌打空时摸 2（每回合 2 次）」改为回合结束补牌，不依赖主动打空
+    trigger: { when: turn_end }
+    if:
+      - { type: hand_count_at_most, value: 1 }
     do:
-      - { do: draw, target: self, amount: 2 }
+      - { do: draw, target: self, upTo: 2 }
   - id: qianxun
     name: 谦逊
     kind: 锁定技
@@ -57,32 +59,31 @@ starterDeck: # 12 张，红 6 / 黑 6
   - { card: X801, suit: D, rank: 11 }
   - { card: X802, suit: H, rank: 5 }
   - { card: X802, suit: S, rank: 5 }
-  - { card: B006, suit: C, rank: 9 }
+  - { card: B001, suit: C, rank: 9 } # V1 定稿：原 B006 ♣9 换成杀
 
 exclusiveCards: [X801, X802]
 
 combos:
   - partner: H07
     name: 火烧连营
-    enabled: false
-    note: 连营摸到的首张牌若为杀，视为火杀。需要「标记摸到的牌」，引擎尚未支持，暂停用
+    note: 定稿改写：手牌打空后本回合杀视为火杀（每回合 1 次）
     value: 2
     abilities:
       - id: huoshao
         name: 火烧连营
-        desc: 连营摸到的首张牌若为杀，视为火杀。
+        desc: 你的手牌打空后，本回合你的杀视为火杀（每回合 1 次）。
         trigger: { when: hand_empty }
+        limit: { per: turn, times: 1 }
         do:
           - { do: modify, stat: sha_fire, amount: 1, scope: this_turn }
   - partner: H04
     name: 夷陵
-    enabled: false
-    note: 刘备副将技触发时额外得 1 甲。需要「监听副将技触发」事件，引擎尚未支持，暂停用
+    note: 定稿改写：与招贤同时机独立触发
     value: 2
     abilities:
       - id: yiling
         name: 夷陵
-        desc: 招贤触发时，额外获得 1 点护甲。
+        desc: 你每回合首张杀造成伤害后获得 1 点护甲（每 2 回合 1 次，与招贤同时机）。
         trigger: { when: deal_damage, filter: { tag: sha } }
         limit: { per: turn, times: 1, everyNTurns: 2 }
         do:

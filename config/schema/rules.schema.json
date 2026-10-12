@@ -49,6 +49,11 @@
       "minimum": 0,
       "description": "玩家回合开始时护甲最多保留几点"
     },
+    "enemyArmorKeep": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "敌人从第 2 回合起，回合开始（被动技结算前）护甲最多保留几点（design-v1 8.1）"
+    },
     "maxFlashMarks": {
       "type": "integer",
       "minimum": 0,

@@ -16,6 +16,9 @@ mainSkills:
     desc: 出牌阶段限 1 次：选择一名敌人判定，若不为 ♥，该敌人本回合的杀改为打向其友军（每张 1 点伤害）。
     trigger: { when: active }
     limit: { per: turn, times: 1 }
+    if:
+      - { type: alive_enemies_at_least, value: 2 }
+    targets: { hasAlly: true }
     do:
       - do: judge
         success: { suit: [H], not: true }
@@ -60,25 +63,24 @@ exclusiveCards: [X201]
 combos:
   - partner: H01
     name: 连环计
-    enabled: false
-    value: 3
-    note: 离间的目标本回合同时受到 1 点伤害。需要「离间判定成功」事件，引擎尚未支持，暂停用
+    value: 2.5
+    note: 定稿改写：每 2 回合首张杀命中后，随机敌人受 1 点伤害
     abilities:
       - id: lianhuanji
         name: 连环计
-        desc: 离间判定成功时，目标同时受到 1 点伤害。
-        trigger: { when: active }
+        desc: 你每回合首张杀造成伤害后，对随机一名敌人造成 1 点伤害（每 2 回合 1 次）。
+        trigger: { when: deal_damage, filter: { tag: sha } }
+        limit: { per: turn, times: 1, everyNTurns: 2 }
         do:
-          - { do: damage, target: chosen, amount: 1 }
+          - { do: damage, target: random_enemy, amount: 1 }
   - partner: H06
     name: 铜雀
-    enabled: false
-    note: 月隐触发时改为摸 1 并得 1 甲（每场前 3 次）。需要「替换他人技能效果」，引擎尚未支持，暂停用
+    note: 定稿改写：不替换月隐，独立触发：回合结束手牌少于体力时 +1 甲（每场 3 次）
     value: 2.4
     abilities:
       - id: tongque
         name: 铜雀
-        desc: 月隐触发时，改为摸 1 张牌并获得 1 点护甲（每场前 3 次）。
+        desc: 回合结束时若手牌数少于体力，获得 1 点护甲（每场 3 次）。
         trigger: { when: turn_end }
         limit: { per: battle, times: 3 }
         if:

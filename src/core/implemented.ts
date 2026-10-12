@@ -44,6 +44,7 @@ export const IMPLEMENTED = {
     'hp_lost',
     'hand_less_than_hp',
     'hand_count_at_least',
+    'hand_count_at_most',
     'hand_over_limit',
     'sha_index_in_turn_at_least',
     'has_back_row_ally',
@@ -54,6 +55,7 @@ export const IMPLEMENTED = {
     'partner_faction_is',
     'turn_is',
     'has_skill',
+    'alive_enemies_at_least',
   ],
   statuses: ['jiu', 'aogu', 'yiyong', 'lebu', 'no_sha', 'yice', 'xieling', 'empty_draw', 'lian_shan', 'shandian'],
   stats: [

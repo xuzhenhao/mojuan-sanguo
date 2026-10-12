@@ -13,6 +13,8 @@ export interface Ability {
   trigger: { when: string; who?: string; filter?: Record<string, any> };
   limit?: { per?: string; times?: number; passiveQuota?: boolean; everyNTurns?: number };
   if?: Record<string, any>[];
+  /** 主动技目标筛选 */
+  targets?: { row?: 'front' | 'back'; hasAlly?: boolean; armorAtLeast?: number; inRange?: boolean };
   do: Record<string, any>[];
 }
 export interface CardCfg {
@@ -75,6 +77,7 @@ export interface ConfigBundle {
     minHandLimit: number;
     responseSeconds: number;
     armorKeep: number;
+    enemyArmorKeep?: number;
     maxFlashMarks: number;
     starterDeck: string;
     enemyCards: Record<string, { t: '杀' | '万箭' | '闪' | '咒'; dmg?: number; mod?: string }>;

@@ -13,9 +13,10 @@ mainSkills:
   - id: renyi
     name: 仁义
     kind: 锁定技
-    desc: 回合结束时，若你的手牌超出上限，可赠出 1 张多余的牌（视为弃置）并获得 1 点护甲（每回合 1 次）。
+    desc: 回合结束时，若你的手牌超出上限，可赠出 1 张多余的牌（视为弃置）并获得 1 点护甲（每 2 回合 1 次）。
+    note: V1 定稿（用户确认）：每回合 1 次 → 每 2 回合 1 次，效果不变
     trigger: { when: turn_end }
-    limit: { per: turn, times: 1 }
+    limit: { per: turn, times: 1, everyNTurns: 2 }
     if:
       - { type: hand_over_limit }
     do:

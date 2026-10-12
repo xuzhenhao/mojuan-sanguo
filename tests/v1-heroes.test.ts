@@ -25,7 +25,7 @@ describe('选将', () => {
     expect(r.g.p.armor).toBe(3); // forceCombos: 龙虎会
   });
   it('停用的珠联不生效', () => {
-    const g = setup('H01', 'H02'); // 凤仪亭 enabled:false
+    const g = setup('H09', 'H03'); // 龙虎会 enabled:false（非回归预设）
     expect(g.effects.combos()).toEqual([]);
   });
   it.each(ROSTER)('%s 能打完整章不报错', async (main) => {
@@ -119,12 +119,8 @@ describe('V1 武将技能', () => {
     expect(g.en[0].hp).toBe(hps[0] - 2); // 纵火 +1
     expect(g.en[1].hp).toBeLessThan(hps[1]);
   });
-  it('陆逊·连营：手牌打空摸 2；谦逊免咒', async () => {
+  it('陆逊·谦逊免咒', async () => {
     const g = setup('H08');
-    const c = card('T012');
-    g.hand = [c];
-    await g.play(c, null);
-    expect(g.hand.length).toBe(2); // 连营 2
     g.en[0].pat = [['咒']];
     const n = g.hand.length;
     await g.endTurn();
@@ -157,5 +153,63 @@ describe('V1 卡牌', () => {
     await g.endTurn();
     expect(e.hp).toBe(6);
     expect(e.judge).not.toContain(sd);
+  });
+});
+
+describe('V1 定稿修正（design-v1 第 8 节）', () => {
+  it('敌人护甲保留上限 2：第 2 回合起回合开始削到 2，张宝至多叠到 3', async () => {
+    const r = mkGame({}, 1, { main: 'H03', sub: 'H04' });
+    r.g.battleIdx = 2;
+    r.g.startBattle();
+    const g = r.g;
+    g.en.forEach((e) => (e.pat = [['闪']]));
+    const zb = g.en.find((e) => e.id === 'E1E1')!;
+    expect(zb.max).toBe(9);
+    zb.armor = 6;
+    await g.endTurn(); // 第 1 回合：不削，黄天 +1
+    expect(zb.armor).toBe(7);
+    await g.endTurn(); // 第 2 回合：削到 2，黄天 +1
+    expect(zb.armor).toBe(3);
+  });
+  it('5 个珠联已启用', () => {
+    const on = (h: string, n: string) => CONFIG.heroes[h].combos!.find((c) => c.name === n)!.enabled !== false;
+    expect(on('H01', '凤仪亭') && on('H02', '连环计') && on('H02', '铜雀') && on('H08', '火烧连营') && on('H08', '夷陵')).toBe(true);
+  });
+  it('凤仪亭：战斗开始获得酒', () => {
+    const g = setup('H01', 'H02');
+    expect(g.p.jiu).toBe(1);
+  });
+});
+
+describe('V1 定稿：刘备仁义、陆逊连营与起始牌组', () => {
+  it('仁义每 2 回合 1 次', () => {
+    const g = setup('H04');
+    g.p.hp = 2;
+    g.p.armor = 0;
+    g.hand = [card('B001'), card('B001'), card('B001')];
+    g.turnEnd();
+    expect(g.p.armor).toBe(1);
+    g.turn = 2;
+    g.effects.reset('turn');
+    (g as unknown as { turnEndDone: boolean }).turnEndDone = false;
+    g.hand = [card('B001'), card('B001'), card('B001')];
+    g.turnEnd();
+    expect(g.p.armor).toBe(1);
+  });
+  it('连营：回合结束手牌 ≤1 时摸到 2 张', () => {
+    const g = setup('H08');
+    g.hand = [card('B001')];
+    g.turnEnd();
+    expect(g.hand.length).toBe(2);
+    const g2 = setup('H08');
+    g2.hand = [card('B001'), card('B001')];
+    g2.turnEnd();
+    expect(g2.hand.length).toBe(2);
+  });
+  it('陆逊起始牌组：B006 ♣9 换成杀，红黑 6/6', () => {
+    const d = CONFIG.heroes.H08.starterDeck;
+    expect(d.some((c) => c.card === 'B006')).toBe(false);
+    expect(d.find((c) => c.suit === 'C' && c.rank === 9)!.card).toBe('B001');
+    expect(d.filter((c) => c.suit === 'H' || c.suit === 'D').length).toBe(6);
   });
 });
