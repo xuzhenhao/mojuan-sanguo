@@ -30,7 +30,7 @@ function mkScene(hooks?: BattleOverlayHooks, main?: string, sub?: string) {
   const inv: string[] = [];
   const overlays = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
   const ends: boolean[] = [];
-  const sc = new BattleScene({ overlays, hooks, onEnd: (w) => ends.push(w) });
+  const sc = new BattleScene({ overlays, hooks, onEnd: (w) => ends.push(w), debugDefaults: true });
   sc.enter({ width: 390, height: 844, invalidate: (l) => inv.push(l ?? 'all') }, { seed: 7, main, sub });
   return { sc, overlays, ends };
 }
@@ -209,6 +209,38 @@ describe('战斗场景', () => {
     const v = judgeViewOf('乐不思蜀', { suit: 'H', rank: 12, name: '桃', result: { effective: false } });
     expect(v).toMatchObject({ face: '♥Q', red: true, name: '桃', effective: false });
     expect(judgeViewOf('闪电', { suit: 'S', rank: 1 }).face).toBe('♠A');
+  });
+  it('灵光一闪：正式版未接入弹层时不自动选第一个', async () => {
+    const warns: string[] = [];
+    const rel = new BattleScene({ warn: (m) => warns.push(m) });
+    rel.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
+    const opts = [{ id: 'a', r: 'N', n: 'A', d: '', cat: 'sha' }] as never;
+    expect(await rel.io.epiphany(rel.g.hand[0], opts, () => opts)).toBeNull();
+    expect(warns.length).toBe(1);
+    const { sc } = mkScene();
+    expect(await sc.io.epiphany(sc.g.hand[0], opts, () => opts)).toBe((opts as unknown[])[0]);
+  });
+  it('drawElement 支持 disabled；rectOf 与 hitTest 一致', () => {
+    const { sc } = mkScene();
+    const { s } = recCtx();
+    const alphas: number[] = [];
+    const ctx = s.ctx as unknown as { fillRect: () => void; globalAlpha: number };
+    ctx.fillRect = () => alphas.push(ctx.globalAlpha);
+    sc.drawElement(s.ctx, { kind: 'endTurn' }, 'disabled');
+    expect(Math.max(...alphas)).toBeLessThanOrEqual(0.45);
+    for (const el of [{ kind: 'endTurn' as const }, { kind: 'hero' as const, which: 'main' as const }, { kind: 'enemy' as const, enemy: sc.g.alive()[0] }]) {
+      const r = sc.rectOf(el)!;
+      expect(sc.hitTest({ x: r.x + r.w / 2, y: r.y + r.h / 2 })?.kind).toBe(el.kind);
+    }
+  });
+  it('默认接入 P1b 响应弹窗（makeRespond）：有合法牌时压入 response 弹层', async () => {
+    const { sc, overlays } = mkScene(undefined);
+    const shan = card('B004', 'D', 2);
+    sc.g.hand = [shan, card('B001', 'S', 3)];
+    const p = sc.io.respond('黄巾步卒 对你使用【杀】，伤害 1', (c) => c === shan, '不出闪', true);
+    expect(overlays.ids().some((id) => id.includes('respon'))).toBe(true);
+    overlays.closeAll('response');
+    expect(await p).toBeNull();
   });
   it('接入 Engine（WebGL 关闭路径）可绘制', () => {
     const fp = fakePlatform({ query: { webgl: '0' } });

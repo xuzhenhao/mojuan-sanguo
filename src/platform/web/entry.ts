@@ -9,6 +9,7 @@ import { FlowMachine, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { BattleScene } from '../../game/scenes/battle/scene';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
+import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { createWebPlatform } from './platform';
 
 const root = document.getElementById('app')!;
@@ -21,13 +22,34 @@ const flow = new FlowMachine();
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
-// P1a：战斗页正式场景（弹层钩子由 P1b 注入，见 src/game/scenes/battle/hooks.ts）
+// P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）
 const info = platform.systemInfo();
 engine.scenes.register(
   'battle',
-  () => new BattleScene({ overlays: engine.overlays, now: () => platform.now(), safe: info.safeArea, onEnd: (win) => send({ type: 'battle_end', win }) }),
+  () =>
+    new BattleScene({
+      overlays: engine.overlays,
+      now: () => platform.now(),
+      safe: info.safeArea,
+      measure: () => engine.surfaces.main.ctx,
+      paused: () => engine.scenes.isPaused,
+      debugDefaults: import.meta.env.MODE === 'debug',
+      warn: (m) => platform.warn(m),
+      onEnd: (win) => send({ type: 'battle_end', win }),
+    }),
 );
 const router = new Router(flow, engine.scenes);
+// P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
+engine.scenes.register(
+  'battle-overlay-demo',
+  () =>
+    new BattleOverlayDemoScene({
+      overlays: engine.overlays,
+      safe: () => platform.systemInfo().safeArea,
+      measure: () => engine.surfaces.main.ctx,
+      paused: () => engine.scenes.isPaused,
+    }),
+);
 
 // 状态栏（非模态系统层）：渲染路径与纹理内存
 engine.overlays.push({
@@ -52,6 +74,7 @@ if (q && pages.includes(q)) {
   flow.page = q;
 }
 const seed = Number(platform.launchQuery().seed);
-void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined);
+if (platform.launchQuery().page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
+else void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined);
 engine.start();
 (window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router };

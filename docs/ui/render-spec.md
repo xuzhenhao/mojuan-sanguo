@@ -452,11 +452,13 @@ WebGL 特效纹理合计：64KB + 256KB + 256KB + 溅点图集 256² ETC2 64KB �
 - 每名武将的剪影轮廓（仅看黑影）都要能单独辨认，这条作为验收标准。
 
 ## 14. 图标 id 对照（PRD 19.1.2）
-所有图标统一画成**印章样式**，资源名 = PRD 的 `icon` id，打进 `ui_sharp`（2x，每个 48×48）。mockup 里的临时符号名对照如下。
+所有图标统一画成**印章样式**。PRD 的 `icon` id 是**配置校验枚举**：配置里写了不在表中的 id 会导致校验失败；资源名必须与 id 一一对应，缺图视为构建错误。图标资源名 = PRD 的 `icon` id，打进 `ui_sharp`（2x，每个 48×48）。mockup 里的临时符号名对照如下。
 
 | PRD id | 含义 | mockup 临时符号 / 备注 |
 |---|---|---|
 | `sha` | 杀（意图） | `i-sword` |
+| `buff` | 增益（意图） | `i-drum`（PRD 0.5.2 新增） |
+| `defend` | 防御（意图） | `i-shield` 变体，青色（PRD 0.5.2 新增） |
 | `volley` | 万箭（意图） | `i-arrow` |
 | `sharp` | 锋锐（+伤） | `i-sword` 加“+” |
 | `light` | 轻招（减费） | 新绘 |
@@ -479,7 +481,7 @@ WebGL 特效纹理合计：64KB + 256KB + 256KB + 溅点图集 256² ETC2 64KB �
 | `quota` | 被动免伤配额「☯ N」 | 新绘，带数字槽 |
 | `immune_trick` | 帷幕 | 新绘 |
 
-不在 PRD 表中的 **UI 专用图标**（导航与资源，不进配置）：`ui_coin` 铜钱、`ui_soul` 将魂、`ui_tally` 虎符、`ui_deck` 牌堆、`ui_book` 兵书、`ui_gourd` 丹药、`ui_relic_*` 宝物、`ui_node_{battle,elite,event,rest,shop,chest,boss}` 地图节点、`ui_gear` 设置、`ui_ad` 视频、`ui_refresh` 刷新、`ui_trash` 删牌、`ui_hourglass` 时限、`ui_drum` 增益意图（PRD 未定义 buff 意图 id，**建议补登记 `buff`**）、`ui_defend` 防御意图（**建议补登记 `defend`**）。
+不在 PRD 表中的 **UI 专用图标**（导航与资源，不进配置）：`ui_coin` 铜钱、`ui_soul` 将魂、`ui_tally` 虎符、`ui_deck` 牌堆、`ui_book` 兵书、`ui_gourd` 丹药、`ui_relic_*` 宝物、`ui_node_{battle,elite,event,rest,shop,chest,boss}` 地图节点、`ui_gear` 设置、`ui_ad` 视频、`ui_refresh` 刷新、`ui_trash` 删牌、`ui_hourglass` 时限。（增益、防御意图已改用 PRD 枚举 `buff`、`defend`，不再使用 UI 专用图标。）
 
 ---
 ## 附：已废弃内容

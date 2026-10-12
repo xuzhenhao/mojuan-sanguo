@@ -13,7 +13,9 @@ import type { Scene, SceneContext } from '../../../engine/scene';
 import type { Surface, SurfaceName } from '../../../engine/surfaces';
 import type { Ctx2DLike, Rect, Vec2 } from '../../../engine/types';
 import { CARD_H, CARD_W, clamp, hitHand, layoutHand, lockDirection, type DragMode, type HandLayout } from './hand';
-import type { BattleElement, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
+import { cardDetail, enemyDetail, LongPressDetail, skillDetail, type DetailContent } from '../../overlays/detail';
+import { makeRespond } from '../../overlays/response';
+import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
 import { judgeViewOf, type JudgeView } from './judge';
 import { diff, PresentationQueue, type Snapshot } from './present';
@@ -31,6 +33,15 @@ export interface BattleDeps {
   safe?: Rect;
   /** 结束回合二次确认（1.5s） */
   confirmEnd?: boolean;
+  /** 详情浮层测量文字用的上下文（P1b LongPressDetail） */
+  measure?(): Surface['ctx'];
+  /** 场景是否暂停（响应倒计时冻结） */
+  paused?(): boolean;
+  responseSeconds?: number;
+  autoShan?: boolean;
+  /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
+  debugDefaults?: boolean;
+  warn?(msg: string): void;
 }
 
 const inside = (r: Rect, p: Vec2) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
@@ -59,7 +70,51 @@ export class BattleScene implements Scene<BattleParams> {
   ended: boolean | null = null;
   readonly logs: string[] = [];
 
-  constructor(private deps: BattleDeps = {}) {}
+  private lp: LongPressDetail | null = null;
+  private respondImpl: BattleIO['respond'] | null = null;
+
+  constructor(private deps: BattleDeps = {}) {
+    const ov = deps.overlays;
+    if (ov) {
+      // P1b #64：响应弹窗。布局全部取自 rectOf，保证与绘制/命中一致
+      this.respondImpl = makeRespond(ov, () => this.g.hand, {
+        layout: () => ({
+          cardRect: (i) => this.handLayoutAt(-1).rects[i],
+          attacker: this.lastActor ? this.rectOf({ kind: 'enemy', enemy: this.lastActor }) : null,
+          hero: this.rectOf({ kind: 'hero', which: 'main' })!,
+        }),
+        seconds: deps.responseSeconds,
+        autoShan: deps.autoShan,
+        paused: deps.paused,
+      });
+      if (deps.measure) {
+        const measure = deps.measure;
+        this.lp = new LongPressDetail(ov, (at) => this.detailAt(at), {
+          safe: () => deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H },
+          measure,
+          invalidate: () => this.ctx.invalidate('main'),
+        });
+      }
+    }
+  }
+
+  /** 长按详情内容：命中测试 → P1b 的内容生成 */
+  detailAt(at: Vec2): DetailContent | null {
+    const h = this.hitTest(at);
+    if (!h) return null;
+    if (h.kind === 'card') return cardDetail(h.card);
+    if (h.kind === 'enemy' || h.kind === 'intent' || h.kind === 'countdown') return enemyDetail(h.enemy);
+    if (h.kind === 'skill') {
+      const s = this.g.effects.activeAbility(h.id);
+      return s ? skillDetail(s.ab) : null;
+    }
+    if (h.kind === 'hero') {
+      const hero = h.which === 'main' ? this.g.main : this.g.sub;
+      const sk = h.which === 'main' ? hero.mainSkills : [hero.subSkill];
+      return { title: hero.name, sub: h.which === 'main' ? '主将' : '副将', lines: sk.map((x) => `【${x.name}】${x.desc}`) };
+    }
+    return null;
+  }
 
   // ---------- 生命周期 ----------
   enter(ctx: SceneContext, params?: BattleParams) {
@@ -103,13 +158,16 @@ export class BattleScene implements Scene<BattleParams> {
     respond: async (txt, legal, pass, timed) => {
       const req: ResponseRequest = { text: txt, legal, pass, timed, attacker: this.lastActor, legalCards: this.g.hand.filter(legal) };
       const h = this.deps.hooks?.respond;
-      const r = h ? await h(req, this.overlayCtx) : (req.legalCards[0] ?? null); // 默认：自动出第一张合法牌（P1b 接入正式响应弹层）
-      if (!r && !req.legalCards.length) this.flash('无闪可出', 600);
-      return r;
+      if (h) return h(req, this.overlayCtx);
+      if (this.respondImpl) return this.respondImpl(txt, legal, pass, timed);
+      return null; // 没有弹层栈（单测替身）：承受
     },
     epiphany: async (card, options, reroll) => {
       const h = this.deps.hooks?.epiphany;
-      return h ? h({ card, options, reroll }, this.overlayCtx) : (options[0] ?? null);
+      if (h) return h({ card, options, reroll }, this.overlayCtx);
+      if (this.deps.debugDefaults) return options[0] ?? null; // 仅调试版/测试
+      this.deps.warn?.('[battle] 未接入灵光一闪弹层，本次不铭刻');
+      return null;
     },
     hurt: () => {
       this.shakeT = 250;
@@ -227,7 +285,11 @@ export class BattleScene implements Scene<BattleParams> {
   }
   handLayout(): HandLayout {
     const sel = this.selected ? this.g.hand.indexOf(this.selected) : -1;
-    const l = layoutHand(this.g.hand.length, this.layout().hand, this.scroll, this.mode === 'target' || this.mode === 'redSel' ? sel : -1);
+    return this.handLayoutAt(this.mode === 'target' || this.mode === 'redSel' ? sel : -1);
+  }
+  /** 手牌布局（selected = 上浮的下标，-1 为不上浮） */
+  handLayoutAt(selected: number): HandLayout {
+    const l = layoutHand(this.g.hand.length, this.layout().hand, this.scroll, selected);
     this.scroll = clamp(this.scroll, 0, l.maxScroll);
     return l;
   }
@@ -302,6 +364,7 @@ export class BattleScene implements Scene<BattleParams> {
 
   gesture(e: GestureEvent): boolean {
     const hk = this.deps.hooks;
+    if (!hk?.detail && this.lp?.gesture(e)) return true;
     if (e.type === 'cancel') {
       this.press = null;
       this.endDrag(null);
@@ -310,7 +373,7 @@ export class BattleScene implements Scene<BattleParams> {
     if (e.type === 'longpressprogress') {
       const hit = this.hitTest(e.at);
       if (hk?.longPressProgress) hk.longPressProgress(e.at, e.progress, hit, this.overlayCtx);
-      else this.press = hit ? { at: e.at, p: e.progress } : null;
+      else if (!this.lp || hk?.detail) this.press = hit ? { at: e.at, p: e.progress } : null;
       return true;
     }
     if (e.type === 'longpress') {
@@ -573,7 +636,7 @@ export class BattleScene implements Scene<BattleParams> {
     if (before || this.press) this.ctx.invalidate('main');
   }
   animating() {
-    return this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0;
+    return this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || (this.lp?.progress ?? 0) > 0;
   }
 
   // ---------- 弹层上下文 ----------
@@ -616,11 +679,25 @@ export class BattleScene implements Scene<BattleParams> {
         return L.tally;
     }
   }
-  drawElement(ctx: Ctx2DLike, el: BattleElement, st?: CardState) {
+  drawElement(ctx: Ctx2DLike, el: BattleElement, st?: ElementState) {
     const r = this.rectOf(el);
     if (!r) return;
+    const a0 = ctx.globalAlpha;
+    const disabled = st === 'disabled';
+    if (disabled) ctx.globalAlpha = a0 * 0.45;
+    this.drawElementInner(ctx, el, r, disabled ? 'normal' : st);
+    if (disabled) {
+      ctx.globalAlpha = a0 * 0.35;
+      rect(ctx, r, '#3a3a3a'); // 去饱和近似：灰罩
+    }
+    ctx.globalAlpha = a0;
+  }
+  private drawElementInner(ctx: Ctx2DLike, el: BattleElement, r: Rect, st?: Exclude<ElementState, 'disabled'>) {
     if (el.kind === 'card') this.drawCard(ctx, el.card, r, st ?? this.cardState(el.card));
-    else if (el.kind === 'enemy') this.drawEnemy(ctx, el.enemy);
+    else if (el.kind === 'skill') {
+      const b = this.skillButtons().find((x) => x.id === el.id);
+      if (b) button(ctx, r, b.name, 'secondary', b.disabled, 16);
+    } else if (el.kind === 'enemy') this.drawEnemy(ctx, el.enemy);
     else if (el.kind === 'hero') this.drawHeroes(ctx, el.which);
     else if (el.kind === 'tally') this.drawTally(ctx);
     else if (el.kind === 'endTurn') this.drawBar(ctx);
@@ -665,6 +742,7 @@ export class BattleScene implements Scene<BattleParams> {
       ring(ctx, this.press.at.x, this.press.at.y - 30, 16, C.gold, 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.press.p);
     }
     this.drawSeal(ctx);
+    this.lp?.draw(s);
   }
 
   /** 顶条文案：全部读 core 状态，不写死（#55） */

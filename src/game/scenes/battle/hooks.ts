@@ -6,7 +6,7 @@
  * - 一律基于现有 `OverlayStack`（src/engine/modal.ts）push 弹层，不改 OverlayStack 和手势接口。
  * - 响应窗口 kind='response'（z 12，modal，不可点外部关闭）；长按详情 kind='detail'（z 14，dismissOnTapOutside）。
  * - 战斗场景退出时会 `closeAll('detail')` 和 `closeAll('response')`。
- * - 钩子未提供时使用内置的最小默认实现（见 scene.ts：响应 = 自动出唯一合法牌 / 承受；长按 = 不弹）。
+ * - 响应窗口与长按详情默认接入 P1b（#64）的 makeRespond / LongPressDetail；hooks 里提供同名钩子时优先用钩子。
  */
 import type { Game } from '../../../core/battle';
 import type { AffixDef, CardInst, Enemy } from '../../../core/types';
@@ -50,6 +50,9 @@ export interface EpiphanyRequest {
   reroll: () => AffixDef[];
 }
 
+/** 焦点层重绘状态；disabled = 去饱和 + 透明度 .45（按钮 / 手牌 / 敌人通用） */
+export type ElementState = 'normal' | 'legal' | 'illegal' | 'selected' | 'disabled';
+
 /** 战斗场景提供给弹层实现的只读上下文 */
 export interface BattleOverlayContext {
   readonly overlays: OverlayStack;
@@ -59,7 +62,13 @@ export interface BattleOverlayContext {
   readonly height: number;
   /** 安全区（逻辑像素） */
   readonly safe: Rect;
-  /** 某元素当前包围盒；不在场上返回 null */
+  /**
+   * 某元素当前包围盒（逻辑像素 dp）；不在场上返回 null。**稳定 API**：战斗页所有布局都从这里取，
+   * 绘制与 hitTest 用的是同一份矩形。约定：
+   * - card：手牌当前位置（含滚动、选中上浮 22）；
+   * - enemy：敌人牌框（含行动前冲位移）；intent / countdown：敌人牌右上 / 左上外挂；
+   * - hero main / sub：主将 / 副将牌；skill：主动技按钮；endTurn：结束回合按钮；tally：虎符列。
+   */
   rectOf(el: BattleElement): Rect | null;
   /** 命中测试（按 z 从上到下），供响应弹层选手牌等 */
   hitTest(at: Vec2): BattleHit | null;
@@ -67,7 +76,7 @@ export interface BattleOverlayContext {
    * 在遮罩之上重绘场景元素（render-spec §7.1 第 11 层焦点层：攻击者 / 我方武将牌 / 合法手牌）。
    * 在 OverlaySpec.draw 里调用；state 用于手牌高亮。
    */
-  drawElement(s: Surface, el: BattleElement, state?: 'normal' | 'legal' | 'illegal' | 'selected'): void;
+  drawElement(s: Surface, el: BattleElement, state?: ElementState): void;
   /** 请求重绘 main 层 */
   invalidate(): void;
   /** 当前时间（ms，平台时钟），响应倒计时用 */
@@ -82,7 +91,7 @@ export interface BattleOverlayHooks {
   detail?(hit: BattleHit, ctx: BattleOverlayContext): boolean;
   /** 长按进度（0–1，420ms 环形进度）；不提供时场景自己画默认环 */
   longPressProgress?(at: Vec2, progress: number, hit: BattleHit | null, ctx: BattleOverlayContext): void;
-  /** 灵光一闪三选一；不提供时默认选第一个 */
+  /** 灵光一闪三选一。未注入时：调试版/测试默认选第一个；正式版不自动选（返回 null，本次灵光不铭刻）并告警 */
   epiphany?(req: EpiphanyRequest, ctx: BattleOverlayContext): Promise<AffixDef | null>;
   /** 判定展示（判定区翻牌）；不提供时场景用内置动画 */
   judge?(reason: string, card: CardInst, ctx: BattleOverlayContext): Promise<void>;
