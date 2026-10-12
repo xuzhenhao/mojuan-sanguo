@@ -7,6 +7,7 @@ import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
 import { FlowMachine, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
+import { BattleScene } from '../../game/scenes/battle/scene';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { createWebPlatform } from './platform';
 
@@ -20,6 +21,12 @@ const flow = new FlowMachine();
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
+// P1a：战斗页正式场景（弹层钩子由 P1b 注入，见 src/game/scenes/battle/hooks.ts）
+const info = platform.systemInfo();
+engine.scenes.register(
+  'battle',
+  () => new BattleScene({ overlays: engine.overlays, now: () => platform.now(), safe: info.safeArea, onEnd: (win) => send({ type: 'battle_end', win }) }),
+);
 const router = new Router(flow, engine.scenes);
 
 // 状态栏（非模态系统层）：渲染路径与纹理内存
@@ -34,7 +41,7 @@ engine.overlays.push({
     s.ctx.fillText?.(
       `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
       16,
-      engine.height - 24,
+      flow.page === 'battle' ? 52 : engine.height - 24,
     );
   },
 });
@@ -44,6 +51,7 @@ const q = platform.launchQuery().page as Page | undefined;
 if (q && pages.includes(q)) {
   flow.page = q;
 }
-void router.start();
+const seed = Number(platform.launchQuery().seed);
+void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined);
 engine.start();
 (window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router };
