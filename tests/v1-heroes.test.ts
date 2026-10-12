@@ -86,14 +86,14 @@ describe('V1 武将技能', () => {
     expect(g.hand.length).toBe(2);
     expect(g.p.armor).toBe(1);
   });
-  it('郭嘉·天策：受伤摸 2（护甲完全吸收不算）', async () => {
+  it('郭嘉·天策：受伤摸 1（护甲完全吸收不算）', async () => {
     const g = setup('H05');
     g.p.armor = 1;
     const n = g.hand.length;
     await g.dmgPlayer(1);
     expect(g.hand.length).toBe(n);
     await g.dmgPlayer(1);
-    expect(g.hand.length).toBe(n + 2); // 天策 2（副将刘备无天妒）
+    expect(g.hand.length).toBe(n + 1); // 平衡 v2：天策 1（副将刘备无天妒）
   });
   it('曹操·挟令：弃 1 得 2 甲，护甲被打穿反击', async () => {
     const g = setup('H06');
@@ -196,15 +196,32 @@ describe('V1 定稿：刘备仁义、陆逊连营与起始牌组', () => {
     g.turnEnd();
     expect(g.p.armor).toBe(1);
   });
-  it('连营：回合结束手牌 ≤1 时摸到 2 张', () => {
+  it('连营（平衡 v2 恢复原版）：手牌打空时摸 2，每回合限 2 次', async () => {
     const g = setup('H08');
-    g.hand = [card('B001')];
-    g.turnEnd();
-    expect(g.hand.length).toBe(2);
-    const g2 = setup('H08');
-    g2.hand = [card('B001'), card('B001')];
-    g2.turnEnd();
-    expect(g2.hand.length).toBe(2);
+    g.p.ling = 9;
+    for (let i = 0; i < 3; i++) {
+      g.hand = [];
+      await g.checkEmpty();
+    }
+    expect(g.logs.filter((l) => l.startsWith('连营：')).length).toBe(2);
+  });
+  it('draw upTo + hand_count_at_most 仍可用（回合结束补牌写法）', () => {
+    const ab = CONFIG.heroes.H08.mainSkills.find((a) => a.id === 'lianying')!;
+    const old = { ...ab };
+    try {
+      Object.assign(ab, {
+        trigger: { when: 'turn_end' },
+        limit: undefined,
+        if: [{ type: 'hand_count_at_most', value: 1 }],
+        do: [{ do: 'draw', target: 'self', upTo: 2 }],
+      });
+      const g = setup('H08');
+      g.hand = [card('B001')];
+      g.turnEnd();
+      expect(g.hand.length).toBe(2);
+    } finally {
+      Object.assign(ab, old);
+    }
   });
   it('陆逊起始牌组：B006 ♣9 换成杀，红黑 6/6', () => {
     const d = CONFIG.heroes.H08.starterDeck;

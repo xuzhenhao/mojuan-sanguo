@@ -1,3 +1,4 @@
+import { CONFIG } from '../src/data/config';
 import { describe, expect, it } from 'vitest';
 import { heroAiTurn, heroRespond, profileOf, bestTarget, isEnabler } from '../src/sim/hero-ai';
 import { runBattle } from '../src/sim/autoplay';
@@ -89,19 +90,32 @@ describe('hero AI 行为', () => {
   });
 });
 
-describe('#34 陆逊主将：回合结束补牌型连营也算打空收益', () => {
-  it('profileOf(陆逊主将) 识别 turn_end + hand_count_at_most → draw', () => {
+describe('#34 陆逊主将：两种连营写法都算打空收益', () => {
+  it('hand_empty → draw（平衡 v2 现行写法）', () => {
     expect(profileOf(setup('H08', 'H07')).emptyHand).toBe(true);
     expect(profileOf(setup('H08', 'H04')).emptyHand).toBe(true);
   });
-  it('AI 会把手牌打到 ≤1，回合结束连营补到 2 张', async () => {
-    const g = setup('H08', 'H04');
+  it('turn_end + hand_count_at_most → draw（#28 写法）', () => {
+    const ab = CONFIG.heroes.H08.mainSkills.find((a) => a.id === 'lianying')!;
+    const old = { ...ab };
+    try {
+      Object.assign(ab, {
+        trigger: { when: 'turn_end' },
+        limit: undefined,
+        if: [{ type: 'hand_count_at_most', value: 1 }],
+        do: [{ do: 'draw', target: 'self', upTo: 2 }],
+      });
+      expect(profileOf(setup('H08', 'H04')).emptyHand).toBe(true);
+    } finally {
+      Object.assign(ab, old);
+    }
+  });
+  it('AI 会主动打空手牌触发连营', async () => {
+    const g = setup('H08', 'H02');
     g.en.forEach((e) => (e.pat = [['闪']]));
-    g.hand = [card('T012'), card('B001'), card('X802')];
-    g.p.ling = 3;
+    g.hand = [card('T012'), card('B001')];
+    g.p.ling = 4;
     await heroAiTurn(g, plays());
-    expect(g.hand.length).toBeLessThanOrEqual(1);
-    g.turnEnd();
     expect(g.logs.join('|')).toContain('连营：摸');
   });
 });

@@ -4,7 +4,7 @@
 id: H05
 name: 郭嘉
 faction: 魏
-hp: 8
+hp: 7
 role: 卖血过牌：越疼越强，手牌巨大
 unlock: 初始（全部免费）
 roster: true
@@ -13,11 +13,11 @@ mainSkills:
   - id: tiance
     name: 天策
     kind: 锁定技
-    desc: 你受到伤害后摸 2 张牌（每回合限 2 次）。
+    desc: 你受到伤害（失去体力）后摸 1 张牌（每回合限 2 次）。
     trigger: { when: damaged }
     limit: { per: turn, times: 2 }
     do:
-      - { do: draw, target: self, amount: 2 }
+      - { do: draw, target: self, amount: 1 }
   - id: yiji
     name: 遗计
     kind: 锁定技
@@ -30,7 +30,7 @@ subSkill:
   id: tiandu
   name: 天妒
   kind: 被动
-  desc: 主将受到伤害后摸 1 张牌（每回合限 1 次）。
+  desc: 主将受到伤害（失去体力）后摸 1 张牌（每回合限 1 次）。
   trigger: { when: damaged, who: main_hero }
   limit: { per: turn, times: 1 }
   do:
@@ -59,7 +59,7 @@ combos:
     abilities:
       - id: zhiyu
         name: 知遇
-        desc: 战斗开始时获得 2 点护甲。
+        desc: 战斗开始时获得 1 点护甲。
         trigger: { when: battle_start }
         do:
-          - { do: armor, target: self, amount: 2 }
+          - { do: armor, target: self, amount: 1 }

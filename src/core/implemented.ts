@@ -56,6 +56,7 @@ export const IMPLEMENTED = {
     'turn_is',
     'has_skill',
     'alive_enemies_at_least',
+    'target_flash_marks_at_least',
   ],
   statuses: ['jiu', 'aogu', 'yiyong', 'lebu', 'no_sha', 'yice', 'xieling', 'empty_draw', 'lian_shan', 'shandian'],
   stats: [

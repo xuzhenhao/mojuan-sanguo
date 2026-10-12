@@ -4,7 +4,7 @@
 id: H06
 name: 曹操
 faction: 魏
-hp: 9
+hp: 7
 role: 护甲反击：厚血厚甲、慢节奏
 unlock: 初始（全部免费）
 roster: true
@@ -13,9 +13,9 @@ mainSkills:
   - id: jianxiong
     name: 奸雄
     kind: 锁定技
-    desc: 你受到伤害后摸 1 张牌（每回合限 2 次）。
+    desc: 你受到伤害（失去体力）后摸 1 张牌（每回合限 1 次）。
     trigger: { when: damaged }
-    limit: { per: turn, times: 2 }
+    limit: { per: turn, times: 1 }
     do:
       - { do: draw, target: self, amount: 1 }
   - id: xieling
@@ -59,8 +59,8 @@ exclusiveCards: [X601]
 combos:
   - partner: H05
     name: 奉孝遗策
-    value: 3
-    note: 「奸雄每回合额外 +1 次」需要修改他人技能限次，引擎尚未支持，本条只实装手牌上限 +1
+    value: 2
+    note: design-v1 9.5 第 3 条定稿：只保留手牌上限 +1，正式删除「奸雄每回合额外 +1 次」
     abilities:
       - id: fengxiao
         name: 奉孝遗策

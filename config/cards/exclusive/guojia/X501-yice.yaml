@@ -9,7 +9,7 @@ target: self
 cost: 0
 rarity: R
 exclusiveHero: H05
-desc: 摸 1 张牌；你下次受到伤害时，额外摸 1 张牌。（每回合限 1 次）
+desc: 摸 1 张牌；你下次受到伤害（失去体力）后，额外摸 1 张牌。（每回合限 1 次）
 abilities:
   - id: yice
     name: 遗策
