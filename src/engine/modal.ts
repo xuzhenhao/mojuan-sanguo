@@ -23,6 +23,8 @@ export interface OverlaySpec<R = unknown> {
   draw(s: Surface, dt: number): void;
   /** 返回 true 表示已处理 */
   gesture?(e: GestureEvent, h: OverlayHandle<R>): boolean;
+  /** 是否需要持续出帧（倒计时、弹出动画）；true 时引擎每帧重绘 main 层 */
+  animating?(): boolean;
 }
 
 export interface OverlayHandle<R = unknown> {
@@ -98,6 +100,11 @@ export class OverlayStack {
       if (modal) return true;
     }
     return false;
+  }
+
+  /** 是否有弹层需要持续出帧 */
+  animating() {
+    return this.items.some((e) => !!e.spec.animating?.());
   }
 
   draw(s: Surface, dt: number) {

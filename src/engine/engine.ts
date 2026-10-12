@@ -144,6 +144,7 @@ export class Engine {
   frame(dt: number) {
     this.gestures.tick(this.platform.now());
     this.scenes.update(dt);
+    if (this.overlays.animating()) this.surfaces.main.dirty = true; // 弹层动画/倒计时：每帧重绘 main
     for (const s of Object.values(this.surfaces)) {
       if (!s.dirty) continue;
       const k = this.dpr * s.scale;
@@ -158,6 +159,12 @@ export class Engine {
   }
 
   needsFrame() {
-    return this.gestures.active || this.scenes.animating() || !!this.hooks.animating?.() || (this.overlay ? WebGLOverlay.needsFrame(this.fx) : false);
+    return (
+      this.gestures.active ||
+      this.scenes.animating() ||
+      this.overlays.animating() ||
+      !!this.hooks.animating?.() ||
+      (this.overlay ? WebGLOverlay.needsFrame(this.fx) : false)
+    );
   }
 }

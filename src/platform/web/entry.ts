@@ -8,6 +8,7 @@ import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
 import { FlowMachine, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
+import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { createWebPlatform } from './platform';
 
 const root = document.getElementById('app')!;
@@ -21,6 +22,17 @@ const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
 const router = new Router(flow, engine.scenes);
+// P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
+engine.scenes.register(
+  'battle-overlay-demo',
+  () =>
+    new BattleOverlayDemoScene({
+      overlays: engine.overlays,
+      safe: () => platform.systemInfo().safeArea,
+      measure: () => engine.surfaces.main.ctx,
+      paused: () => engine.scenes.isPaused,
+    }),
+);
 
 // 状态栏（非模态系统层）：渲染路径与纹理内存
 engine.overlays.push({
@@ -44,6 +56,7 @@ const q = platform.launchQuery().page as Page | undefined;
 if (q && pages.includes(q)) {
   flow.page = q;
 }
-void router.start();
+if (platform.launchQuery().page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
+else void router.start();
 engine.start();
 (window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router };
