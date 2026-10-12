@@ -10,7 +10,7 @@ export const CARDS: Record<string, CardDef> = {
   T001: { name: '无中生有', type: '锦囊', cost: 1, desc: '摸2张牌' },
   T003: { name: '过河拆桥', type: '锦囊', cost: 1, tgt: 'any', desc: '弃置一名敌人最多2点护甲' },
   T005: { name: '南蛮入侵', type: '锦囊', cost: 2, aoe: true, desc: '对所有敌人各造成1点伤害（视为杀；各目标可分别闪）' },
-  T012: { name: '以逸待劳', type: '锦囊', cost: 1, desc: '获得5点护甲' },
+  T012: { name: '以逸待劳', type: '锦囊', cost: 1, desc: '获得3点护甲' },
   T013: { name: '知己知彼', type: '锦囊', cost: 0, tgt: 'any', desc: '查看一名敌人的下2个意图；摸1张牌' },
   D001: { name: '乐不思蜀', type: '延时锦囊', cost: 1, tgt: 'any', desc: '置入目标判定区。其回合开始判定：若不为♥，跳过出杀/锦囊' },
   SH01: { name: '义勇', type: '锦囊·蜀', cost: 1, desc: '本回合下一张杀伤害+1，且无视距离' },

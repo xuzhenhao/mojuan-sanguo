@@ -1,6 +1,6 @@
 import { CARDS, STARTER_DECK } from '../data/cards';
 import { BATTLES, ENEMIES, ENEMY_CARDS, MAX_FLASH_MARKS } from '../data/enemies';
-import { COMBO_LONGHU, HEROES, RULES } from '../data/heroes';
+import { ARMOR, COMBO_LONGHU, HEROES, RULES } from '../data/heroes';
 import { AFFIXES } from '../data/affixes';
 import { rndInt, shuffle, type Rng } from './rng';
 import {
@@ -201,6 +201,11 @@ export class Game {
     p.aogu = 0;
     p.yiyong = 0;
     p.lianShan = 0;
+    // 难度方案 D ①：回合开始护甲最多保留 RULES.armorKeep 点（首回合不削，保留龙虎会开场护甲）
+    if (this.turn > 1 && p.armor > RULES.armorKeep) {
+      this.log(`护甲保留上限：${p.armor}→${RULES.armorKeep}`);
+      p.armor = RULES.armorKeep;
+    }
     this.nuUse = 0;
     this.aoguUsed = false;
     const n = RULES.drawPerTurn + (this.turn === 1 ? RULES.firstTurnBonus : 0);
@@ -237,14 +242,14 @@ export class Game {
       if (old) this.discard.push(old);
       p.equip[d.slot] = c;
       this.log(`装备【${d.name}】`);
-      if (hasMod(c, 'E_W01')) p.armor += 3;
+      if (hasMod(c, 'E_W01')) p.armor += ARMOR.affixJiangu;
       if (hasMod(c, 'E_W03')) this.drawN(2);
     } else this.toDiscard(c);
     if (wasSha) c.asSha = true; // 结算期间保留“当杀”标记
     if (wasSha || d.sha) ok = await this.playerSha(c, tgt!, d.sha ? (d.bonus ?? 0) : 0, red);
     else if (d.tao) {
       this.heal(1 + (hasMod(c, 'E_P01') ? 1 : 0));
-      if (hasMod(c, 'E_P02')) p.armor += 3;
+      if (hasMod(c, 'E_P02')) p.armor += ARMOR.affixHuichun;
     } else if (d.jiu) {
       p.jiu = hasMod(c, 'E_P03') ? 2 : 1;
       this.log('饮酒：下一张杀伤害+' + p.jiu);
@@ -252,8 +257,8 @@ export class Game {
       this.drawN(2 + (hasMod(c, 'E_T04') ? 1 : 0));
       this.log('无中生有：摸牌');
     } else if (c.id === 'T012') {
-      p.armor += 5;
-      this.log('以逸待劳：护甲+5');
+      p.armor += ARMOR.yiyidailao;
+      this.log(`以逸待劳：护甲+${ARMOR.yiyidailao}`);
     } else if (c.id === 'SH01') {
       p.yiyong = 1;
       this.log('义勇：下一张杀+1且无视距离');
