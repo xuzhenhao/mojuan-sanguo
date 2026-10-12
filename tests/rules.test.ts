@@ -41,7 +41,7 @@ describe('敌人意图（无攻击力：伤害全部来自牌）', () => {
   it('精英进化杀[锋锐] = 2 点并显示词条', () => {
     const e = enemy('E1E1');
     const i = enemyIntent(e);
-    expect(i.dmg).toBe(4); // 平衡 v2：[杀+, 杀, 杀]
+    expect(i.dmg).toBe(3); // design-v1 §13：[杀+, 杀]
     expect(i.txt).toContain('杀[锋锐]');
   });
   it('意图循环、乐不思蜀跳过伤害、备闪/咒无伤害', () => {

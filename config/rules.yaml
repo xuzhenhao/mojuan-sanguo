@@ -74,11 +74,11 @@ map:
   paths: 4 # 随机游走路线数
   distinctStarts: 2 # 前 N 条路线起点必须不同列（10.3 第 2 条）
   fixedLayers: { 1: BATTLE, 8: REST } # 固定层（Boss 层固定为 BOSS，不在此列）
-  # 按层段的类型权重（10.4，V0.5.3 定稿）；未列出的层用 0 权重会导致生成失败
+  # 按层段的类型权重（10.4；数值定稿 design-v1 §13）；未列出的层用 0 权重会导致生成失败
   weights:
-    - { layers: [2, 3], BATTLE: 60, ELITE: 0, EVENT: 25, REST: 0, SHOP: 5, CHEST: 10 }
-    - { layers: [4, 5], BATTLE: 45, ELITE: 15, EVENT: 15, REST: 10, SHOP: 10, CHEST: 5 }
-    - { layers: [6, 7], BATTLE: 35, ELITE: 20, EVENT: 15, REST: 10, SHOP: 15, CHEST: 5 }
+    - { layers: [2, 3], BATTLE: 65, ELITE: 0, EVENT: 22, REST: 0, SHOP: 5, CHEST: 8 }
+    - { layers: [4, 5], BATTLE: 50, ELITE: 15, EVENT: 12, REST: 8, SHOP: 10, CHEST: 5 }
+    - { layers: [6, 7], BATTLE: 40, ELITE: 22, EVENT: 12, REST: 8, SHOP: 13, CHEST: 5 }
   constraints:
     minLayerFor: { ELITE: 4, REST: 4 } # 约束 1：第 4 层之前不出现
     noConsecutive: [ELITE, REST, SHOP] # 约束 2：同一路线上不连续出现同类

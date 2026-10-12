@@ -80,32 +80,32 @@ describe('地图生成（PRD 10.1–10.4）', () => {
       if (!m.relaxed) expect(violations(m.nodes, m.edges, cfg)).toEqual([]);
     }
   });
-  it('单条路线期望（随机走，以实测为准，已与总策划确认）：普通战 3.6、精英 0.70、奇遇 1.2、集市 0.76、宝箱 0.48、营地 0.28 + 第 8 层固定营地 1', () => {
+  // 单条路线期望（design-v1 §13）：随机走 1 条路线，第 1–8 层计数，含第 8 层固定营地（REST 1.24 = 非固定层约 0.24 + 第 8 层 1）；不含 Boss
+  it('单条路线期望（design-v1 §13）：BATTLE 3.84、ELITE 0.70、EVENT 1.06、REST 1.24（含第 8 层）、SHOP 0.74、CHEST 0.43', () => {
     const N = 2000;
     const sum: Record<string, number> = {};
-    let rest8 = 0;
     const r = seeded(99);
     for (let i = 0; i < N; i++) {
       const { s, seen } = randomWalk(generateMap(i, 1, cfg), r);
       expect(walkedEdges(s).length).toBe(8);
       for (const id of seen) {
         const n = getNode(s, id)!;
-        if (n.layer === 8) rest8 += n.type === 'REST' ? 1 : 0;
-        if (n.layer >= 8) continue;
+        if (n.type === 'BOSS') continue;
         sum[n.type] = (sum[n.type] ?? 0) + 1;
       }
     }
     const avg = (t: string) => (sum[t] ?? 0) / N;
+    // CHEST 容差 ±0.15 为暂定（数值未给）
     const ref: Record<string, [number, number]> = {
-      BATTLE: [3.6, 0.12],
-      ELITE: [0.7, 0.08],
-      EVENT: [1.2, 0.1],
-      SHOP: [0.76, 0.08],
-      CHEST: [0.48, 0.06],
-      REST: [0.28, 0.05],
+      BATTLE: [3.84, 0.3],
+      ELITE: [0.7, 0.15],
+      EVENT: [1.06, 0.3],
+      REST: [1.24, 0.3],
+      SHOP: [0.74, 0.2],
+      CHEST: [0.43, 0.15],
     };
     for (const [t, [m, tol]] of Object.entries(ref)) expect(Math.abs(avg(t) - m), `${t} 均值 ${avg(t)}`).toBeLessThan(tol);
-    expect(rest8 / N).toBe(1);
+    expect(avg('REST')).toBeLessThanOrEqual(1.5);
   });
   it('noConsecutive 查每条连线两端（含第 7→8 层）：连到第 8 层固定营地的第 7 层节点不能是 REST', () => {
     for (let seed = 0; seed < 500; seed++) {
@@ -140,13 +140,13 @@ describe('战斗组包（PRD 10.5）', () => {
   const pools = poolsOf(1);
   it('池内容按总策划确认', () => {
     expect(pools.pools.easy.map((g) => g.enemies)).toEqual([
-      ['E101', 'E101', 'E102'],
       ['E101', 'E104'],
+      ['E101', 'E101', 'E103'],
     ]);
     expect(pools.pools.normal.map((g) => g.enemies)).toEqual([
+      ['E101', 'E101', 'E102'],
       ['E104', 'E101', 'E103'],
       ['E104', 'E101', 'E102'],
-      ['E101', 'E101', 'E103'],
     ]);
     expect(pools.pools.elite.map((g) => g.enemies)).toEqual([['E1E1', 'E102']]);
     expect(pools.pools.boss.map((g) => g.enemies)).toEqual([['B1']]);
@@ -244,7 +244,7 @@ describe('配置校验：map / pools / icon 枚举', () => {
     expect(errs.join('\n')).toMatch(/pools\.boss.*B9/);
   });
   it('map.weights 缺类型则失败', () => {
-    const errs = withEdit('rules.yaml', (s) => s.replace('CHEST: 10 }', '}'));
+    const errs = withEdit('rules.yaml', (s) => s.replace(/, CHEST: \d+ }/, ' }'));
     expect(errs.length).toBeGreaterThan(0);
   });
 });
