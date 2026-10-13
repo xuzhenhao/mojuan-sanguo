@@ -37,7 +37,8 @@ function assertInConfig(full: Set<string>) {
     }
     if (typeof v === 'object') {
       const o = v as Record<string, unknown>;
-      for (const k of ['name', 'shortName', 'title']) {
+      // #107：首领登场台词 intro.line / intro.phaseLine 也用书法字体
+      for (const k of ['name', 'shortName', 'title', 'line', 'phaseLine']) {
         if (typeof o[k] === 'string') for (const ch of o[k] as string) names.add(ch);
       }
       for (const x of Object.values(o)) walk(x);
@@ -72,8 +73,8 @@ function subset(label: string, textFile: string, out: string) {
 const full = new Set(charsOf('full'));
 const core = charsOf('core');
 const ext = charsOf('ext');
-if (core.length !== 256 || full.size !== 715 || ext.length !== 459) {
-  console.error(`✘ 字表长度异常：core=${core.length} full=${full.size} ext=${ext.length}（期望 256/715/459）`);
+if (core.length !== 256 || full.size !== 721 || ext.length !== 465) {
+  console.error(`✘ 字表长度异常：core=${core.length} full=${full.size} ext=${ext.length}（期望 256/721/465）`);
   process.exit(1);
 }
 assertInConfig(full);

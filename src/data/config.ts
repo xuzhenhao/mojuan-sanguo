@@ -76,6 +76,8 @@ export interface EnemyCfg {
   armorStart?: number;
   desc?: string;
   abilities?: Ability[];
+  /** 首领登场台词（#107）：line = 登场墨带；phaseLine = 阶段 2 切换 */
+  intro?: { line?: string; phaseLine?: string };
 }
 export interface ConfigBundle {
   rules: {
