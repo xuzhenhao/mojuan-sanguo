@@ -262,7 +262,7 @@ if (wantDebugRevive(query, import.meta.env.DEV))
 const debugEpi = wantDebugEpiphany(query, import.meta.env.DEV);
 if (debugEpi)
   setTimeout(() => {
-    if (battleScene?.g) void triggerDebugEpiphany(battleScene.g, debugEpi);
+    if (battleScene?.g) void triggerDebugEpiphany(battleScene.g, debugEpi, Number(query.epiN) || undefined);
   }, 1200);
 if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overlays, engine), 800);
 

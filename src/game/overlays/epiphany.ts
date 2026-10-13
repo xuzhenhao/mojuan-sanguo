@@ -289,8 +289,10 @@ function affixRow(c: Ctx2DLike, r: Rect, a: AffixDef, dia: number, namePx: numbe
   const right = r.x + r.w - 20;
   const icon = effPx >= 16 ? 16 : 13;
   let px = effPx;
-  while (px > 11 && measure(c, a.d, BRUSH(px), px) > right - (nx + nw + 10) - icon - 4) px--;
+  const room = right - (nx + nw + 10) - icon - 4;
+  while (px > 11 && measure(c, a.d, BRUSH(px), px) > room) px--;
   const ew = measure(c, a.d, BRUSH(px), px);
+  if (ew > room) return { nx, nw }; // 已有行 169 宽放不下效果：只显示名称（长按看详情）
   label(c, a.d, right, cy + px * 0.36, BRUSH(px), T.paper, 'right');
   STAMP_ICONS.draw(c, CAT_ICON[a.cat], { x: right - ew - 4 - icon, y: cy - icon / 2, w: icon, h: icon }, T.paper3);
   return { nx, nw };

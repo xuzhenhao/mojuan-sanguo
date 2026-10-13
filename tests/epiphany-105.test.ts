@@ -276,3 +276,13 @@ describe('#105 视觉规格（docs/art/specs/spec-105-epiphany.md）', () => {
     expect(order).toEqual(['respond:none']); // 打开响应时灵光一闪已关闭
   });
 });
+
+describe('#105 调试 epiN', () => {
+  it('epiN=2：只给 2 条候选', async () => {
+    let n = 0;
+    const { g } = mkGame({ epiphany: async (_c, o) => ((n = o.length), null) });
+    g.startBattle();
+    await triggerDebugEpiphany(g, 'default', 2);
+    expect(n).toBe(2);
+  });
+});

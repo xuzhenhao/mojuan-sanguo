@@ -607,6 +607,7 @@ export class Game {
       if (i >= 0) c.mods[i] = a.id;
       else addAffix(c, a.id);
       this.log(`灵光一闪！【${def(c).name}】获得「${a.n}」`);
+      this.io.update(); // 牌面词条标记立即重绘（#105 验收 8）
     }
   }
 
