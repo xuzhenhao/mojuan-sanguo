@@ -1,3 +1,4 @@
+import { testNow } from './helpers';
 /** #118：所有可点区域的命中框 ≥ 44×44 dp（视觉尺寸不变，只扩大命中框） */
 import { afterEach, describe, expect, it } from 'vitest';
 import { hitBox, hitDebug, hitInside, markHit, MIN_HIT } from '../src/engine/hit';
@@ -45,7 +46,7 @@ function pageButtons(): Record<string, Rect[]> {
   const rest = new RestScene({ ...rs.env, run: () => ({ head: () => st, save() {}, restConfig: MAP_CONFIG.rest }) });
   rest.enter(rs.ctx, { kind: 'rest', layer: 3, fixed: false });
   out.rest = [...rest.buttons().map((b) => b.rect), ...RestScene.ACTIONS.map((_, i) => rest.optRect(i))];
-  const bt = new BattleScene({ overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
+  const bt = new BattleScene({ now: testNow, overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
   bt.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
   const L = bt.layout() as unknown as Record<string, unknown>;
   out.battle = [L.endTurn as Rect];

@@ -16,8 +16,8 @@ describe('#151 dev 参数 ?revive=1', () => {
     expect(asked).toBe(1);
     expect(g.over).toBe(false);
   });
-  it('entry 用 import.meta.env.DEV 门控', async () => {
+  it('boot（#201 起由 entry 移入）用 import.meta.env.DEV 门控', async () => {
     const { readFileSync } = await import('node:fs');
-    expect(readFileSync('src/platform/web/entry.ts', 'utf8')).toContain('wantDebugRevive(query, import.meta.env.DEV)');
+    expect(readFileSync('src/game/boot.ts', 'utf8')).toContain('wantDebugRevive(query, import.meta.env.DEV)');
   });
 });

@@ -82,8 +82,8 @@ export interface BattleDeps {
   hooks?: BattleOverlayHooks;
   /** 战斗结束（胜利大印播完后）回调：交给流程发 battle_end */
   onEnd?(win: boolean): void;
-  /** 动效时钟（ms），入口传 platform.now */
-  now?(): number;
+  /** 动效时钟（ms），必填：入口传 platform.now，单测注入假时钟（#201 组长决定，无回退） */
+  now(): number;
   /** 是否减少动态（默认读 prefers-reduced-motion）：#129 濒死红边、#106 复活动画均立即切换 */
   reducedMotion?(): boolean;
   safe?: Rect;
@@ -163,7 +163,7 @@ export class BattleScene implements Scene<BattleParams> {
   private respondImpl: BattleIO['respond'] | null = null;
 
   private dyingEdge = newDyingEdge();
-  constructor(private deps: BattleDeps = {}) {
+  constructor(private deps: BattleDeps) {
     // 设置「动画速度」（#108）：表现队列所有时长除以倍速
     if (deps.animSpeed && deps.animSpeed > 0) this.q.speed = deps.animSpeed;
     const ov = deps.overlays;
@@ -803,9 +803,9 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (before || this.press) this.ctx.invalidate('main');
   }
-  /** 动效时钟：入口注入 platform.now；未注入（单测）回退 ES 内置 Date.now，不碰平台全局 performance（#200） */
+  /** 动效时钟：一律走注入的 deps.now（入口为 platform.now），不碰平台全局 performance（#200/#201） */
   fxNow() {
-    return this.deps.now?.() ?? Date.now();
+    return this.deps.now();
   }
   reducedMotion() {
     return this.deps.reducedMotion?.() ?? prefersReducedMotion();
@@ -832,7 +832,7 @@ export class BattleScene implements Scene<BattleParams> {
       hitTest: (at) => self.hitTest(at),
       drawElement: (s, el, st) => self.drawElement(s.ctx, el, st),
       invalidate: () => self.ctx.invalidate('main'),
-      now: () => self.deps.now?.() ?? 0,
+      now: () => self.deps.now(),
     };
   }
   rectOf(el: BattleElement): Rect | null {
