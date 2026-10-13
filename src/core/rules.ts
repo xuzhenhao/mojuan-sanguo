@@ -2,7 +2,8 @@ import { AFFIXES, EPIPHANY, RARITY_WEIGHT } from '../data/affixes';
 import { CARDS } from '../data/cards';
 import { ENEMY_CARDS } from '../data/enemies';
 import { RULES } from '../data/heroes';
-import type { AffixDef, CardInst, Enemy } from './types';
+import { CONFIG } from '../data/config';
+import type { AffixDef, CardInst, Enemy, EnemyAct } from './types';
 import type { Rng } from './rng';
 
 /** 纯函数规则集：不依赖 DOM / 平台，可直接单测 */
@@ -53,8 +54,19 @@ export function trickTip(e: Pick<Enemy, 'trickOverrides'>, id: string) {
 }
 
 /** 敌人意图：本回合将出的牌与总伤害（伤害全部来自牌） */
+/** 复活（PRD 4.4.1 / subpages §2.1）：还有次数且天命 < 5 才弹复活层 */
+export const REVIVE_TIANMING_MAX = 5;
+export function reviveAllowed(reviveLeft: number, tianming: number) {
+  return reviveLeft > 0 && tianming < REVIVE_TIANMING_MAX;
+}
+/** 复活后体力 = max(hpMin, ceil(maxHp × hpRatio))（rules.revive） */
+export function reviveHp(maxHp: number, rv: { hpRatio: number; hpMin: number } = CONFIG.rules.revive) {
+  return Math.max(rv.hpMin, Math.ceil(maxHp * rv.hpRatio));
+}
+
+const FLASH_ONLY: EnemyAct[] = ['闪'];
 export function enemyIntent(e: Enemy, skipAtk = false) {
-  const acts = e.pat[e.step % e.pat.length];
+  const acts = e.reviveFlash ? FLASH_ONLY : e.pat[e.step % e.pat.length];
   let dmg = 0;
   const cnt: Record<string, number> = {};
   for (const a of acts) {

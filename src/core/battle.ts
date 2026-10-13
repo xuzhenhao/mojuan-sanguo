@@ -19,6 +19,8 @@ import {
   pick3,
   playerShaDamage,
   RANK_CH,
+  reviveAllowed,
+  reviveHp,
   SUIT_CH,
 } from './rules';
 import type { AffixDef, BattleDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, PlayerDelayed, Slot } from './types';
@@ -85,7 +87,20 @@ export interface BattleIO {
   playerDelayed?(ev: PlayerDelayedEvent): void;
   hurt?(): void;
   enemyHit?(e: Enemy): void;
+  /**
+   * 复活层（PRD 4.4.1，#106）：体力归 0、濒死未救回且可复活时询问玩家；true = 复活，false = 放弃。
+   * 不提供则视为不弹层（直接战败）。
+   */
+  revive?(ev: ReviveEvent): Promise<boolean>;
   onBattleEnd(win: boolean): void;
+}
+
+export interface ReviveEvent {
+  /** 选复活前剩余次数 */
+  left: number;
+  /** 复活后体力 / 护甲 */
+  hp: number;
+  armor: number;
 }
 
 export interface Settings {
@@ -126,6 +141,13 @@ export class Game {
   epiCount = 0;
   sincePity = 0;
   over = false;
+  /** 本局剩余复活次数（由 RunSession 从 RunState 写入；直达调试默认 0 = 不弹复活） */
+  reviveLeft = 0;
+  /** 天命档（≥5 无复活） */
+  tianming = 0;
+  /** 正在结算敌方回合 / 本敌方回合因复活被取消（PRD 4.4 ①） */
+  private inEnemyTurn = false;
+  private enemyTurnCancelled = false;
   /** 本回合已使用的杀张数（虓烈 / 破阵） */
   shaIndex = 0;
   effects = new Effects(this);
@@ -618,6 +640,23 @@ export class Game {
     return skipAtk;
   }
   async enemyTurn() {
+    this.inEnemyTurn = true;
+    this.enemyTurnCancelled = false;
+    try {
+      await this.enemyTurnBody();
+    } finally {
+      this.inEnemyTurn = false;
+    }
+    if (this.enemyTurnCancelled) {
+      this.enemyTurnCancelled = false;
+      this.log('复活：本敌方回合剩余出牌取消');
+    }
+    if (!this.over) this.playerTurn();
+  }
+  private async enemyTurnBody() {
+    const cut = () => this.over || this.enemyTurnCancelled;
+    /** 本回合开始时已被复活替换为 [闪] 的敌人（打完本回合清除；被替换的那一步不补打） */
+    const flashTurn = new Set(this.en.filter((e) => e.reviveFlash));
     this.io.update();
     await this.io.sleep(400);
     const order = [...this.front(), ...this.alive().filter((e) => e.row === 'back')];
@@ -625,27 +664,27 @@ export class Game {
     this.extraActs.clear();
     for (const e of this.en) if (e.hp <= 0) this.dropDelayedFrom(e);
     for (const e of order) {
-      if (e.hp <= 0 || this.over) continue;
+      if (e.hp <= 0 || cut()) continue;
       const skipAtk = await this.resolveJudgeArea(e);
-      if (e.hp <= 0 || this.over) continue;
+      if (e.hp <= 0 || cut()) continue;
       const eak = CONFIG.rules.enemyArmorKeep;
       if (eak != null && this.turn > 1 && e.armor > eak) {
         this.log(`${e.name}护甲保留上限：${e.armor}→${eak}`);
         e.armor = eak;
       }
       await this.effects.emit('enemy_turn_start', this.effects.enemySources(e), { owner: e });
-      if (e.hp <= 0 || this.over) continue;
+      if (e.hp <= 0 || cut()) continue;
       this.checkPhase(e);
       await this.resolvePlayerJudge(e);
-      if (this.over) return;
-      if (CONFIG.rules.mechanics.moying && e.tier !== '小怪' && this.p.hp >= this.p.maxHp) {
+      if (cut()) continue;
+      if (CONFIG.rules.mechanics.moying && !e.reviveFlash && e.tier !== '小怪' && this.p.hp >= this.p.maxHp) {
         this.extraActs.set(e, [...(this.extraActs.get(e) ?? []), '杀']);
         this.log(`${e.name}·墨影：你体力已满，本回合多出 1 张【杀】`);
       }
       this.io.enemyHit?.(e);
       await this.io.sleep(300);
       for (const a of [...enemyIntent(e).acts, ...((this.extraActs.get(e) ?? []) as EnemyAct[])]) {
-        if (this.over || e.hp <= 0) break;
+        if (cut() || e.hp <= 0) break;
         if (a.startsWith('锦囊:')) {
           if (!skipAtk) await this.enemyTrick(e, a.slice(3));
           this.io.update();
@@ -694,16 +733,17 @@ export class Game {
         await this.io.sleep(250);
       }
       e.step++;
+      if (flashTurn.has(e)) e.reviveFlash = false;
       e.noSha = false;
       e.redirect = false;
       this.io.update();
       await this.io.sleep(350);
       if (this.over) return;
     }
+    for (const e of flashTurn) if (e.hp <= 0) e.reviveFlash = false;
     this.alive().forEach((e) => {
       e.marks = Math.min(MAX_FLASH_MARKS, Math.max(e.marks, e.flash));
     });
-    if (!this.over) this.playerTurn();
   }
   // ---------- Boss 机制：阶段 / 召唤 / 敌方延时锦囊 ----------
   /**
@@ -876,10 +916,31 @@ export class Game {
       this.heal(1 + (def(c).tao ? this.effects.cardStat(c, 'heal_amount') : 0));
       this.io.update();
     }
+    if (this.p.hp <= 0 && this.canRevive() && this.io.revive) {
+      const rv = CONFIG.rules.revive;
+      if (await this.io.revive({ left: this.reviveLeft, hp: reviveHp(this.p.maxHp), armor: rv.armor })) {
+        this.doRevive();
+        return;
+      }
+    }
     if (this.p.hp <= 0) {
       this.over = true;
       this.io.onBattleEnd(false);
     }
+  }
+  canRevive() {
+    return reviveAllowed(this.reviveLeft, this.tianming);
+  }
+  /** 选「复活」（PRD 4.4 / 4.4.1）：扣次数、回体力 + 护甲；敌方回合中则取消剩余出牌；下一敌方回合全员只出闪 */
+  doRevive() {
+    const rv = CONFIG.rules.revive;
+    this.reviveLeft--;
+    this.p.hp = reviveHp(this.p.maxHp);
+    this.p.armor += rv.armor;
+    for (const e of this.alive()) e.reviveFlash = true;
+    if (this.inEnemyTurn) this.enemyTurnCancelled = true;
+    this.log(`将星未陨：复活，体力 ${this.p.hp}，护甲 +${rv.armor}`);
+    this.io.update();
   }
   checkWin() {
     if (this.over) return true;
