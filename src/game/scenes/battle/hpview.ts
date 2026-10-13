@@ -73,8 +73,12 @@ export function fitNameCached(name: string, cardW: number, measure: (t: string, 
 export function clearNameFitCache() {
   nameCache.clear();
 }
-/** 等 document.fonts 里的霞鹜文楷（族名 Brush）可用后：清牌名字号缓存与量宽缓存，再重绘（加载前量的是回退字体宽度） */
-export function refitAfterBrush(fonts: Pick<FontFaceSet, 'load'>, redraw: () => void): Promise<void> {
+/** 字体加载抽象（#200）：H5 传 document.fonts，微信端传 wx.loadFont 的包装；只要求 load 返回 Promise */
+export interface FontLoader {
+  load(font: string): Promise<unknown>;
+}
+/** 等霞鹜文楷（族名 Brush）可用后：清牌名字号缓存与量宽缓存，再重绘（加载前量的是回退字体宽度） */
+export function refitAfterBrush(fonts: FontLoader, redraw: () => void): Promise<void> {
   return fonts.load('20px "Brush"').then(
     () => {
       clearNameFitCache();
