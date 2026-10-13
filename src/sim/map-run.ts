@@ -3,6 +3,7 @@
  * 奇遇/商店/宝箱按期望值折算；卡牌奖励折算成开场护甲 +k（k=0 版完全不计）。
  */
 import { seeded } from '../core/rng';
+import { reviveAllowed, reviveHp } from '../core/rules';
 import { availableNodes, generateMap, getNode, hashSeed, moveTo, type NodeType } from '../core/run/map';
 import { drawEncounter, newEncounterState } from '../core/run/encounters';
 import { applyRestHeal } from '../core/run/rest';
@@ -42,7 +43,12 @@ export interface MapRunResult {
   nodes: Record<NodeType, number>;
 }
 
-export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Promise<MapRunResult> {
+export interface MapRunOpts {
+  /** 天命档（≥5 无复活，PRD 4.4 / subpages §2.1；与 core Game.canRevive 同一判断） */
+  tianming?: number;
+}
+
+export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef, o: MapRunOpts = {}): Promise<MapRunResult> {
   const h = resolveHeroes(h0);
   const cfg = MAP_CONFIG;
   const pools = poolsOf(1);
@@ -58,7 +64,8 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Prom
   let gold = 60;
   let k = 0;
   let nextArmor = 0;
-  let revive = CONFIG.rules.revive.count;
+  const rvCount = CONFIG.rules.revive.count;
+  let revive = reviveAllowed(rvCount, o.tianming ?? 0) ? rvCount : 0;
   let revived = false;
   let bossHp: number | null = null;
   let goldBeforeBoss: number | null = null;
@@ -74,12 +81,12 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Prom
     nextArmor = 0;
     const base = { ...h, battleIdx: boss ? BATTLES.length - 1 : 0, encounter: { name: enemies.name, en: enemies.enemies }, maxHp };
     let r = await runBattle({ ...base, seed: hashSeed(seed, 'sim-battle', fights++), hp, armorStart: armor });
-    if (!r.win && revive > 0) {
+    if (!r.win && reviveAllowed(revive, o.tianming ?? 0)) {
       // 复活（4.4.1）：近似为同一场重开，体力 max(hpMin, ceil(上限×hpRatio))，+armor 甲（rules.revive）
       const rv = CONFIG.rules.revive;
       revive--;
       revived = true;
-      const rhp = Math.max(rv.hpMin, Math.ceil(r.maxHp * rv.hpRatio));
+      const rhp = reviveHp(r.maxHp, rv);
       r = await runBattle({ ...base, seed: hashSeed(seed, 'sim-battle', fights++), hp: rhp, armorStart: armor + rv.armor });
     }
     hp = r.hpEnd;
@@ -214,9 +221,9 @@ export const PAIRS: [string, string][] = [
   ['H08', 'H07'],
 ];
 
-export async function mapBatch(n: number, seed: number, h: HeroOpts, coef: RewardCoef) {
+export async function mapBatch(n: number, seed: number, h: HeroOpts, coef: RewardCoef, o: MapRunOpts = {}) {
   const rs: MapRunResult[] = [];
-  for (let i = 0; i < n; i++) rs.push(await runMap(seed * 1000 + i, h, coef));
+  for (let i = 0; i < n; i++) rs.push(await runMap(seed * 1000 + i, h, coef, o));
   const avg = (f: (r: MapRunResult) => number) => rs.reduce((a, r) => a + f(r), 0) / n;
   const nodes = {} as Record<NodeType, number>;
   for (const t of Object.keys(rs[0].nodes) as NodeType[]) nodes[t] = avg((r) => r.nodes[t]);
