@@ -37,7 +37,7 @@ function assertInConfig(full: Set<string>) {
     }
     if (typeof v === 'object') {
       const o = v as Record<string, unknown>;
-      for (const k of ['name', 'title']) {
+      for (const k of ['name', 'shortName', 'title']) {
         if (typeof o[k] === 'string') for (const ch of o[k] as string) names.add(ch);
       }
       for (const x of Object.values(o)) walk(x);

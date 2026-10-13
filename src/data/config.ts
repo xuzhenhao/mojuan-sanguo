@@ -20,6 +20,8 @@ export interface Ability {
 export interface CardCfg {
   id: string;
   name: string;
+  /** 手牌小牌简称（可选），详情仍用 name */
+  shortName?: string;
   type: string;
   typeLabel?: string;
   slot?: 'weapon' | 'armor' | 'plus_horse' | 'minus_horse';

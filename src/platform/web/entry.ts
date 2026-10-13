@@ -28,6 +28,7 @@ import { resultBridge } from '../../game/result/bridge';
 import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/resume';
 import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
 import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
+import { refitAfterBrush } from '../../game/scenes/battle/hpview';
 
 const root = document.getElementById('app')!;
 const platform = createWebPlatform(root);
@@ -99,7 +100,8 @@ if (typeof FontFace !== 'undefined') {
       .load()
       .then((f) => {
         document.fonts.add(f);
-        engine.invalidateAll();
+        // 牌名字号缓存是按加载前的回退字体量的：等 Brush 可用后清缓存再重绘（#129）
+        return refitAfterBrush(document.fonts, () => engine.invalidateAll());
       })
       .catch((e) => platform.warn(`书法字体 ${kind} 加载失败`, e));
   void loadBrush(wenkaiCoreUrl, 'core').then(() => void loadBrush(wenkaiExtUrl, 'ext'));
@@ -128,6 +130,18 @@ engine.scenes.register(
       measure: () => engine.surfaces.main.ctx,
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
+      nodeType: () => run.inNode?.type,
+      // 仅开发构建：UI 截图验收参数（#129），生产构建整段被摇掉
+      dev: import.meta.env.DEV
+        ? {
+            hp: Number(query.hp) || undefined,
+            maxHp: Number(query.maxHp) || undefined,
+            ehp: Number(query.ehp) || undefined,
+            boss: query.boss === '1',
+            longName: query.longname === '1',
+            detail: query.detail || undefined,
+          }
+        : undefined,
       warn: (m) => platform.warn(m),
       onEnd: (win) => {
         const pend = run.inNode;

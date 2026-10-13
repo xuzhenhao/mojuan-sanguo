@@ -34,7 +34,8 @@ export const C = {
 } as const;
 
 export const FONT = {
-  brush: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
+  /** 霞鹜文楷（FontFace 族名 Brush）；不回退系统楷体（#129 顺带修：原为 Ma Shan Zheng / KaiTi） */
+  brush: '"Brush"',
   num: 'Georgia, "Times New Roman", serif',
   body: '"PingFang SC", "Noto Sans SC", sans-serif',
 };
