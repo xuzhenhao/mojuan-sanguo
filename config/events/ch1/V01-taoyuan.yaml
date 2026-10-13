@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V01
+title: 路边桃园
+art: event/v01
+desc: 道旁桃花正盛，树下石桌尚温，似有人刚在此结义。
+chapters: [1]
+enabled: true
+options:
+  - { text: 歇脚休整, hint: 回 2 体力, result: 回复 2 点体力。, requires: [{ type: hp_below_max }], outcomes: [{ type: heal, value: 2 }] }
+  - { text: 摘桃带走, hint: 加 1 张桃入牌组, result: "获得一张「{card}」。", outcomes: [{ type: add_card, card: B005 }] }
+  - { text: 离开, result: 你没有停留。, outcomes: [{ type: leave }] }

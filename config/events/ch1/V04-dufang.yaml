@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V04
+title: 赌坊
+art: event/v04
+desc: 骰盅声里人声鼎沸，庄家笑着招手：「押一把？」
+chapters: [1]
+enabled: true
+options:
+  - text: 押 30 铜钱
+    hint: 50% 得 70 铜钱
+    resultSuccess: 赢了！得 70 铜钱。
+    resultFail: 血本无归。
+    requires: [{ type: gold_at_least, value: 30 }]
+    outcomes: [{ type: gold, value: -30 }, { type: roll, chance: 0.5, success: [{ type: gold, value: 70 }], fail: [] }]
+  - { text: 不赌, result: 你转身离开。, outcomes: [{ type: leave }] }
