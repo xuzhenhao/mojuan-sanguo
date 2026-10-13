@@ -111,6 +111,15 @@ map:
   moveMs: 500 # 头像沿路径移动
   pulseMs: 1400 # 可走节点脉冲周期
 
+# 奇遇（#174）
+event:
+  startArmorCap: 4 # 开场护甲总上限：事件收编护甲 + 宝物开场护甲叠加后最多 4（PRD 5.x）
+
+# 结算将魂（PRD 14.5；#174，原 settlement.ts SETTLEMENT_CONFIG）
+settlement:
+  soul: { perChapter: 30, perElite: 8, perWin: 2, perBoss: 40, defeatMul: 0.5, tianmingStep: 0.1 } # 将魂 = 章×30 + 精英×8 + 胜场×2 + Boss×40；失败 ×0.5 向下取整；×(1 + 0.1×天命)
+  maxTianming: 10 # 天命上限，达到后不再解锁下一级
+
 # ───────── 暂停/设置浮层（#108，v3/settings.html）：局外偏好，存本机偏好键 mojuan.prefs.v1，不进 RunState ─────────
 # hidden: true = 底层功能未实现，浮层不显示（配置保留）；toggles：开关项默认值；choices：分段选项（options 顺序即显示顺序，default 必须在 options 里）
 settings:

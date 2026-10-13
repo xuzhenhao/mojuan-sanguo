@@ -26,8 +26,8 @@ export interface EventRun {
   nextBattleArmor: number;
 }
 
-/** 开场护甲总上限（PRD 5.x「与宝物叠加时开场护甲总上限 4」） */
-export const START_ARMOR_CAP = 4;
+/** 开场护甲总上限（PRD 5.x「与宝物叠加时开场护甲总上限 4」；rules.event.startArmorCap） */
+export const START_ARMOR_CAP = CONFIG.rules.event.startArmorCap;
 
 export const eventDef = (id: string): EventCfg | undefined => CONFIG.events[id];
 /** 本章启用的事件（按 id 排序，保证抽取可复现） */

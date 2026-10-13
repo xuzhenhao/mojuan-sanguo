@@ -109,6 +109,12 @@ export interface ConfigBundle {
     };
     /** 复活（PRD §4.4.1；仅天命<5） */
     revive: { count: number; hpRatio: number; hpMin: number; armor: number };
+    /** 开放章节数（PRD 10.1；schema 可选，缺省 1） */
+    run?: { chapters: number };
+    /** 奇遇（#174） */
+    event: { startArmorCap: number };
+    /** 结算将魂系数（PRD 14.5；#174） */
+    settlement: SettlementCfg;
     /** 暂停/设置浮层（#108）：局外偏好默认值（存 mojuan.prefs.v1） */
     settings: {
       toggles: Record<string, { label: string; default: boolean; hidden?: boolean }>;
@@ -191,6 +197,12 @@ export const shopPrice = (id: string) => {
 export function atomAmount(abilities: Ability[] | undefined, atom: string): number | undefined {
   for (const a of abilities ?? []) for (const d of a.do) if (d.do === atom) return d.amount;
   return undefined;
+}
+
+/** rules.settlement（PRD 14.5） */
+export interface SettlementCfg {
+  soul: { perChapter: number; perElite: number; perWin: number; perBoss: number; defeatMul: number; tianmingStep: number };
+  maxTianming: number;
 }
 
 /** 宝物的参数化局外效果（config/relics effects，#173）；战斗内效果仍由 core 按能力结算 */
