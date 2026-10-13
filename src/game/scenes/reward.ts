@@ -8,7 +8,6 @@
  * 规则只读 core 与 src/data；数值见 src/data/economy.ts。
  */
 import type { Rng } from '../../core/rng';
-import { seeded } from '../../core/rng';
 import { def } from '../../core/rules';
 import type { BattleKind } from '../../data/economy';
 import type { GestureEvent } from '../../engine/input';
@@ -528,4 +527,3 @@ const wrapShort = (s: string, n: number) => {
 };
 
 /** 直入（?page=reward）用的确定性 RNG */
-export const demoRng = (seed = 45) => seeded(seed);

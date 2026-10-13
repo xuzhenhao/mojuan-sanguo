@@ -287,6 +287,18 @@ export class RunSession {
   get battleNo(): number {
     return (this.st?.stats.battlesWon ?? 0) + 1;
   }
+  /**
+   * 没有 core Game 时（续玩后直接进奖励页 / 节点页）的流程视图：由 RunState 推出。
+   * isLast = 当前奖励节点（或地图当前节点）是 Boss —— 否则 Boss 奖励页刷新后「收入」会回地图而不是结算。
+   */
+  get view(): { battleOver: boolean; alive: boolean; isLast: boolean; battleIdx: number } | null {
+    const s = this.st;
+    if (!s) return null;
+    const pend = s.pendingNode;
+    const id = pend?.type === 'REWARD' ? pend.id.replace(/#reward$/, '') : (s.map?.current ?? null);
+    const type = id ? s.map?.nodes.find((n) => n.id === id)?.type : undefined;
+    return { battleOver: true, alive: s.hp > 0, isLast: type === 'BOSS', battleIdx: this.battleNo - 1 };
+  }
   /** 战斗失败：标记「结束本局」并清 pendingNode，立即写档；刷新 / 续玩直接进结算页，不能重打 */
   endRun(store: RunStateStore | null = this.store) {
     this.update((d) => {

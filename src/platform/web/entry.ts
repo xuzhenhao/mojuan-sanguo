@@ -41,7 +41,8 @@ const run = new RunSession();
 // #122 PR2：本局唯一数据源 RunState，存档只写新键 mojuan.runstate.v1（旧键读到即迁移并删除）
 run.store = platform.storage;
 bindMapRun(run, platform.storage);
-const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : null));
+// 有 core Game 读战斗视图；续玩后（game 未建）由 RunState 推出（奖励 / 事件 / 营地节点都读同一份 state）
+const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : run.view));
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = PAGES;
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
