@@ -148,17 +148,30 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Prom
         }
         const ev = evPool.splice(Math.floor(rEv() * evPool.length), 1)[0];
         const miss = c.max - c.hp;
-        if (ev === 'V01') miss > 0 ? heal(2) : addK(0.1, layer);
-        else if (ev === 'V04') {
+        if (ev === 'V01') {
+          if (miss > 0) heal(2);
+          else addK(0.1, layer);
+        } else if (ev === 'V04') {
           if (gold >= 90) gold += rEv() < 0.5 ? 40 : -30;
         } else if (ev === 'V05') {
-          if (gold >= 75) ((gold -= 75), addK(0.3, layer));
+          if (gold >= 75) {
+            gold -= 75;
+            addK(0.3, layer);
+          }
         } else if (ev === 'V06') {
           if (rEv() < 0.5) heal(2);
-          else ((hp = Math.max(1, c.hp - 1)), addK(0.15, layer));
+          else {
+            hp = Math.max(1, c.hp - 1);
+            addK(0.15, layer);
+          }
         } else if (ev === 'V09') {
-          if (c.hp / c.max <= 0.5) ((maxHp = c.max - 1), (hp = c.max - 1));
-          else if (gold >= 40) ((gold -= 40), heal(3));
+          if (c.hp / c.max <= 0.5) {
+            maxHp = c.max - 1;
+            hp = c.max - 1;
+          } else if (gold >= 40) {
+            gold -= 40;
+            heal(3);
+          }
         } else if (ev === 'V13') {
           if (c.hp / c.max >= 0.6) {
             const d = drawEncounter(seed, 1, 'BATTLE', { ...enc, normalFought: 0 }, pools);
@@ -170,8 +183,10 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Prom
           if (h.main === 'H02' || h.sub === 'H02') addK(0.2, layer);
           else gold += 40;
         } else if (ev === 'V19') {
-          if (gold >= 60 && miss >= 3) ((gold -= 60), (hp = c.max));
-          else heal(2);
+          if (gold >= 60 && miss >= 3) {
+            gold -= 60;
+            hp = c.max;
+          } else heal(2);
         }
         break;
       }
