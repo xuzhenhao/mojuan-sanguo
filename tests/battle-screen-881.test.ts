@@ -41,15 +41,21 @@ describe('§8.8.1 格纹几何', () => {
         }
     }
   });
-  it('回字格：首格含横中线、竖中线和 (6,6)–(20,20) 内框', () => {
+  it('回字格与内容框原点同相位（同 v3-spec 的 userSpaceOnUse pattern）：(52,44) 格的中线和内框', () => {
     const { segs } = screenLayout(390, 844).lattice;
     const has = (x0: number, y0: number, x1: number, y1: number) => segs.some((s) => s.x0 === x0 && s.y0 === y0 && s.x1 === x1 && s.y1 === y1);
-    expect(has(65, 57, 91, 57)).toBe(true);
-    expect(has(78, 44, 78, 70)).toBe(true);
-    expect(has(71, 50, 85, 50)).toBe(true);
-    expect(has(71, 64, 85, 64)).toBe(true);
-    expect(has(71, 50, 71, 64)).toBe(true);
-    expect(has(85, 50, 85, 64)).toBe(true);
+    // 格 x 52–78、y 26–52：横中线 y39 在范围外，竖中线 x65 截成 y44–52；内框 (58,32)–(72,46) 只剩 x≥65、y≥44 部分
+    expect(segs.some((s) => s.y0 === 39 || s.y1 === 39)).toBe(false);
+    expect(has(65, 44, 65, 52)).toBe(true);
+    expect(has(65, 46, 72, 46)).toBe(true);
+    expect(has(72, 44, 72, 46)).toBe(true);
+    // 完整格 x 78–104、y 52–78
+    expect(has(78, 65, 104, 65)).toBe(true);
+    expect(has(91, 52, 91, 78)).toBe(true);
+    expect(has(84, 58, 98, 58)).toBe(true);
+    expect(has(84, 72, 98, 72)).toBe(true);
+    expect(has(84, 58, 84, 72)).toBe(true);
+    expect(has(98, 58, 98, 72)).toBe(true);
   });
 });
 

@@ -55,7 +55,7 @@ export interface ScreenLayout {
   moon: { cx: number; cy: number; r: number; clip: Rect };
 }
 
-/** 回字格线段：每格 横中线 + 竖中线 + 内框 (6,6)–(20,20)，全部截到 r 内 */
+/** 回字格线段：网格从内容框原点起每 cell 一格（与 b.html 的 pattern 同相位），每格 横中线 + 竖中线 + 内框 (6,6)–(20,20)，全部截到 r 内 */
 export function latticeSegs(r: Rect, cell: number): Seg[] {
   const segs: Seg[] = [];
   const xe = r.x + r.w;
@@ -72,8 +72,9 @@ export function latticeSegs(r: Rect, cell: number): Seg[] {
   };
   const a = (6 / 26) * cell;
   const b = (20 / 26) * cell;
-  for (let y = r.y; y < ye; y += cell)
-    for (let x = r.x; x < xe; x += cell) {
+  // 网格相位对齐内容框原点（同 b.html / v3-spec 的 userSpaceOnUse pattern），再截到 r
+  for (let y = Math.floor(r.y / cell) * cell; y < ye; y += cell)
+    for (let x = Math.floor(r.x / cell) * cell; x < xe; x += cell) {
       h(y + cell / 2, x, x + cell);
       v(x + cell / 2, y, y + cell);
       h(y + a, x + a, x + b);
