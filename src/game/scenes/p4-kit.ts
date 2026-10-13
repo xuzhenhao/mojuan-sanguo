@@ -3,6 +3,7 @@
  * render-spec §1 色板、§3.8 按钮、§3.9 面板；运行时不用 shadowBlur/filter（§10），发光用半透明叠色近似。
  * 大牌和圆章经 BakeCache 烘焙成位图（§12.2），每帧 1 次 drawImage。
  */
+import { markHit } from '../../engine/hit';
 import { def, RANK_CH, SUIT_CH } from '../../core/rules';
 import type { Rarity } from '../../core/types';
 import { CONFIG } from '../../data/config';
@@ -181,6 +182,7 @@ export interface Button {
   font?: string;
 }
 export function drawButton(c: Ctx2DLike, b: Button) {
+  markHit(b.rect);
   const ga = c.globalAlpha;
   if (b.disabled) c.globalAlpha = ga * 0.45;
   c.fillStyle = T.lac1;

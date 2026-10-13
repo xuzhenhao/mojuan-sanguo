@@ -2,6 +2,7 @@
  * 战斗页绘制原语（B 金漆屏风令牌，render-spec §1–§3）。只依赖 Ctx2DLike 的最小子集；
  * 浏览器上下文额外提供的 arc / textAlign 等按需探测使用，测试替身没有也能跑通。
  */
+import { markHit } from '../../../engine/hit';
 import type { Ctx2DLike, Rect } from '../../../engine/types';
 
 export const C = {
@@ -134,6 +135,7 @@ export function arrow(ctx: Ctx2DLike, ax: number, ay: number, bx: number, by: nu
 
 /** 按钮（3.8）：primary/confirm/secondary，含 disabled */
 export function button(ctx: Ctx2DLike, r: Rect, label: string, kind: 'primary' | 'confirm' | 'secondary' = 'primary', disabled = false, size = 20) {
+  markHit(r);
   const base = { primary: '#9C3A2B', confirm: '#3E7A62', secondary: '#4A3B2D' }[kind];
   const a = ctx.globalAlpha;
   if (disabled) ctx.globalAlpha = a * 0.45;

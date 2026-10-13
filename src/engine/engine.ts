@@ -219,8 +219,11 @@ export class Engine {
         this.hooks.backdrop(s.ctx, this.viewport.width, this.viewport.height);
       }
       s.ctx.setTransform(...layerTransform(this.viewport, k));
+      // #118：场景绘制裁剪到 390×844 内容框（边距 / 底纹不裁；弹层遮罩按 §4.0 全屏，不在裁剪内）
+      const clipped = clipToContent(s.ctx);
       if (this.scenes.current) this.scenes.draw(s.name, s, dt);
       this.hooks.draw?.(s.name, s, dt);
+      if (clipped) (s.ctx as ClipCtx).restore!();
       if (s.name === 'main') this.overlays.draw(s, dt, (sf, sc) => this.paintScrim(sf, sc));
     }
     if (anim === 'tick' && !mainFull) {
@@ -243,4 +246,16 @@ export class Engine {
       (this.overlay ? WebGLOverlay.needsFrame(this.fx) : false)
     );
   }
+}
+
+type ClipCtx = Ctx2DLike & { save?(): void; restore?(): void; beginPath?(): void; rect?(x: number, y: number, w: number, h: number): void; clip?(): void };
+/** 在当前（设计坐标）矩阵下把绘制裁到内容框 0,0,DESIGN_W,DESIGN_H；上下文不支持裁剪（测试替身）时返回 false */
+export function clipToContent(ctx: Ctx2DLike): boolean {
+  const c = ctx as ClipCtx;
+  if (!c.save || !c.restore || !c.beginPath || !c.rect || !c.clip) return false;
+  c.save();
+  c.beginPath();
+  c.rect(0, 0, DESIGN_W, DESIGN_H);
+  c.clip();
+  return true;
 }

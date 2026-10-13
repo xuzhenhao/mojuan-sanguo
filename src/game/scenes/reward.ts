@@ -13,6 +13,7 @@ import type { BattleKind } from '../../data/economy';
 import type { GestureEvent } from '../../engine/input';
 import type { Scene, SceneContext } from '../../engine/scene';
 import type { Surface, SurfaceName } from '../../engine/surfaces';
+import { markHit } from '../../engine/hit';
 import type { Rect, Vec2 } from '../../engine/types';
 import { inside } from '../overlays/theme';
 import { cardDetail, LongPressDetail, openDetail, type DetailContent } from '../overlays/detail';
@@ -396,6 +397,8 @@ export class RewardScene implements Scene<RewardParams | undefined> {
         if (rr.w > 40) label(c, '墨', rr.x + rr.w / 2, rr.y + rr.h / 2 + 12, BRUSH(36), T.goldLo, 'center');
         return;
       }
+      // #118：选项牌可点（选中 / 再点收入 / 长按详情），开发构建 ?debug=hit 登记描边
+      markHit(r);
       const taken = this.st.cardTaken === f;
       const dim = (this.st.cardTaken && !taken) || this.st.skipped;
       const ga = c.globalAlpha;
@@ -415,6 +418,7 @@ export class RewardScene implements Scene<RewardParams | undefined> {
   private drawRelicBar(s: Surface) {
     const c = s.ctx;
     const r = this.relicBar();
+    markHit(r);
     const taken = this.st.relicTaken;
     const choose = this.st.offer.relicPick === 'choose';
     const id = taken ?? this.st.offer.relics[0];
