@@ -43,6 +43,20 @@ import { CONFIG } from '../../../data/config';
 import { drawBossIntro, INTRO_MS, introFrame, SKIP_FADE_MS, type IntroData, type IntroKind } from './boss-intro';
 import type { SeenBosses } from '../../prefs/seen-bosses';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
+import { costDisplay, createLingFx, drawCostBadge, drawTallyEnergy, lingViewFromSlot, onLingDelta, tickLingFx, type LingFx, type LingView } from './ling';
+import {
+  advanceTutorial,
+  createLingTutorial,
+  drawLingTutorial,
+  ensureTutorialHand,
+  hitTutorial,
+  onTutorialPlay,
+  skipTutorial,
+  tutorialHandHighlightIndex,
+  tutorialStep,
+  type LingTutorialState,
+} from './ling-tutorial';
+import { lingQaFx, lingQaOverride, lingQaTutorial, type LingQaCase } from './debug-ling';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
 import { drawScreenBg } from './screen';
 import { drawNameBand, drawPortrait, nameBandRect } from '../../portrait';
@@ -84,6 +98,12 @@ export interface BattleDeps {
   onEnd?(win: boolean): void;
   /** 动效时钟（ms），必填：入口传 platform.now，单测注入假时钟（#201 组长决定，无回退） */
   now(): number;
+  /** #231：开启「产令连打」教程（战斗教程 2） */
+  lingTutorial?: boolean;
+  /** #231 / 截图：覆盖军令视图字段 */
+  lingOverride?: Partial<LingView>;
+  /** #231：本局宝物 id（R02 虎符等）；未传则读空 */
+  relics?: string[];
   /** 是否减少动态（默认读 prefers-reduced-motion）：#129 濒死红边、#106 复活动画均立即切换 */
   reducedMotion?(): boolean;
   safe?: Rect;
@@ -163,9 +183,13 @@ export class BattleScene implements Scene<BattleParams> {
   private respondImpl: BattleIO['respond'] | null = null;
 
   private dyingEdge = newDyingEdge();
+  /** #231 虎符回令 / 溢出 / 「满」/ 飘字 */
+  private lingFx: LingFx = createLingFx();
+  private lingTutorial: LingTutorialState | null = null;
   constructor(private deps: BattleDeps) {
     // 设置「动画速度」（#108）：表现队列所有时长除以倍速
     if (deps.animSpeed && deps.animSpeed > 0) this.q.speed = deps.animSpeed;
+    if (deps.lingTutorial) this.lingTutorial = createLingTutorial();
     const ov = deps.overlays;
     if (ov) {
       // P1b #64：响应弹窗。布局全部取自 rectOf，保证与绘制/命中一致
@@ -220,15 +244,28 @@ export class BattleScene implements Scene<BattleParams> {
       this.g.startBattle();
     } else {
       const hs = this.deps.heroes?.();
-      this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main ?? hs?.main, sub: p.sub ?? hs?.sub });
+      this.g = new Game(seeded(p.seed ?? 20261012), this.io, {
+        autoShan: false,
+        main: p.main ?? hs?.main,
+        sub: p.sub ?? hs?.sub,
+        relics: this.deps.relics ?? [],
+      });
       this.g.reviveLeft = CONFIG.rules.revive.count; // 直达战斗（无 RunState）：按每局次数给，便于验收复活层
       this.snap = this.snapshot();
       this.g.startBattle();
     }
     if (!p.game) this.startIntro();
     if (this.deps.dev && !p.game) this.applyDev(this.deps.dev);
+    if (this.lingTutorial && !this.lingTutorial.done) this.seedLingTutorialHand();
     this.snap = this.snapshot();
     ctx.invalidate();
+  }
+
+  /** #231 教程：手牌强制含「待令」产令牌 */
+  seedLingTutorialHand() {
+    let uid = Math.max(0, ...this.g.hand.map((c) => c.uid), this.g.uid) + 1;
+    this.g.hand = ensureTutorialHand(this.g.hand, () => uid++) as typeof this.g.hand;
+    this.g.uid = Math.max(this.g.uid, uid);
   }
   exit() {
     this.deps.overlays?.closeAll('detail');
@@ -362,7 +399,13 @@ export class BattleScene implements Scene<BattleParams> {
         if (ev.t === 'enemy_hp' && ev.delta < 0) void this.q.push('ink_hit', 400, false, { uid: ev.uid });
       } else if (ev.t === 'enemy_die') void this.q.push('enemy_die', 400, false, { uid: ev.uid });
       else if (ev.t === 'draw') void this.q.push('draw', 220 + 60 * (ev.uids.length - 1), false, { uids: ev.uids });
-      else if (ev.t === 'ling' && ev.delta < 0) void this.q.push('tally', 200, false);
+      else if (ev.t === 'ling') {
+        void this.q.push('tally', ev.delta < 0 ? 200 : 400, false, { delta: ev.delta });
+        if (ev.delta > 0) {
+          const L = this.layout();
+          onLingDelta(this.lingFx, this.lingView(), ev.delta, L.tally, this.fxNow(), this.reducedMotion());
+        }
+      }
     }
     this.snap = next;
     this.ctx?.invalidate('main');
@@ -512,6 +555,19 @@ export class BattleScene implements Scene<BattleParams> {
   }
 
   gesture(e: GestureEvent): boolean {
+    if (this.lingTutorial && !this.lingTutorial.done && e.type === 'tap') {
+      const hit = hitTutorial(this.lingTutorial, e.at);
+      if (hit === 'skip') {
+        this.lingTutorial = skipTutorial(this.lingTutorial);
+        this.ctx?.invalidate('main');
+        return true;
+      }
+      if (hit === 'next') {
+        this.lingTutorial = advanceTutorial(this.lingTutorial);
+        this.ctx?.invalidate('main');
+        return true;
+      }
+    }
     const hk = this.deps.hooks;
     if (!hk?.detail && this.lp?.gesture(e)) return true;
     if (e.type === 'cancel') {
@@ -604,7 +660,10 @@ export class BattleScene implements Scene<BattleParams> {
     const g = this.g;
     const err = this.playError(c);
     if (err) {
-      if (err === '军令不足') void this.q.push('shake_cost', 160, false, { uid: c.uid });
+      if (err === '军令不足') {
+        void this.q.push('shake_cost', 160, false, { uid: c.uid });
+        this.lingFx.flashMs = 250;
+      }
       return this.flash(err);
     }
     if (def(c).shan && g.canAsSha(c)) c.asSha = true;
@@ -640,7 +699,16 @@ export class BattleScene implements Scene<BattleParams> {
     const to = tgt ? this.enemyRect(tgt) : this.layout().judge;
     this.mode = 'busy';
     await this.q.push('play_fly', 250, true, { card: c, from, to });
+    const lingBefore = this.g.p.ling;
     await this.run(() => this.g.play(c, tgt, red));
+    // #231 教程：净增令视为产令；否则主动（步骤 2/3 也可点「下一步」）
+    const kind = this.g.p.ling > lingBefore ? 'gain' : 'action';
+    this.notifyLingTutorialPlay(kind);
+    // 步骤「play-gain」时，即使净增为 0（先扣后产），出牌也算完成该步
+    if (this.lingTutorial && !this.lingTutorial.done) {
+      const cur = tutorialStep(this.lingTutorial);
+      if (cur?.id === 'play-gain' && kind === 'action') this.notifyLingTutorialPlay('gain');
+    }
   }
 
   tapSkill(id: string) {
@@ -793,6 +861,7 @@ export class BattleScene implements Scene<BattleParams> {
       (!!this.g && isDying(this.g.p.hp) && this.g.p.hp > 0) ||
       dyingFading(this.dyingEdge);
     this.q.update(dt);
+    tickLingFx(this.lingFx, dt);
     if (this.hintT > 0) this.hintT -= dt;
     if (this.confirmT > 0) this.confirmT -= dt;
     if (this.shakeT > 0) this.shakeT -= dt;
@@ -928,6 +997,17 @@ export class BattleScene implements Scene<BattleParams> {
     }
     this.drawSeal(ctx);
     this.lp?.draw(s);
+    if (this.lingTutorial && !this.lingTutorial.done) {
+      const step = tutorialStep(this.lingTutorial);
+      let hi: Rect | null = null;
+      if (step?.highlight === 'tally') hi = this.layout().tally;
+      else if (step?.highlight === 'gain-card' || step?.highlight === 'action-card') {
+        const hl = this.handLayout();
+        const idx = tutorialHandHighlightIndex(this.g.hand, step.highlight);
+        hi = idx >= 0 ? (hl.rects[idx] ?? null) : null;
+      }
+      drawLingTutorial(s.ctx, this.lingTutorial, hi);
+    }
   }
 
   /** 顶条文案：模板来自 rules.battleTitle（#216），数据读 core 状态，不写死（#55） */
@@ -975,8 +1055,7 @@ export class BattleScene implements Scene<BattleParams> {
     ctx.globalAlpha = st === 'illegal' ? a0 * 0.45 : a0;
     // 费用珠（左上）+ 花色点数（左侧竖排）
     const cost = this.g.costOf(c);
-    circle(ctx, x + 11, r.y + 11, 10, st === 'unaffordable' ? C.cinnabar : C.jade);
-    text(ctx, String(cost), x + 11, r.y + 12, { size: 14, color: C.paper, font: FONT.num, align: 'center', bold: true });
+    drawCostBadge(ctx, x, r.y, costDisplay(c, cost), st === 'unaffordable');
     const red = isRed(c);
     drawSuit(ctx, c.suit, x + 11, r.y + 27, 11, red ? C.cinnabar : C.ink);
     text(ctx, RANK_CH[c.rank], x + 11, r.y + 45, { size: 11, color: red ? C.cinnabar : C.ink, font: FONT.num, align: 'center', bold: true });
@@ -1320,19 +1399,32 @@ export class BattleScene implements Scene<BattleParams> {
     }
   }
 
-  drawTally(ctx: Ctx2DLike) {
-    const L = this.layout();
-    const { ling, maxLing } = this.g.p;
-    const n = Math.min(5, Math.max(maxLing, ling));
-    const k = n > 3 ? 32 : 46;
-    for (let i = 0; i < n; i++) {
-      const y = L.tally.y + i * k;
-      const lit = i >= n - ling;
-      rect(ctx, { x: L.tally.x, y, w: 30, h: k - 4 }, lit ? C.goldMid : '#3A3027');
-      frame(ctx, { x: L.tally.x, y, w: 30, h: k - 4 }, lit ? C.goldHi : C.goldDk, 1);
-      text(ctx, '令', L.tally.x + 15, y + (k - 4) / 2, { size: 16, color: lit ? C.lac1 : '#5a4a3a', font: FONT.brush, align: 'center' });
+  /** #231 教程：打出产令（gain_ling 效果）或普通主动牌时推进步骤 */
+  notifyLingTutorialPlay(kind: 'gain' | 'action') {
+    if (!this.lingTutorial || this.lingTutorial.done) return;
+    this.lingTutorial = onTutorialPlay(this.lingTutorial, kind);
+    this.ctx?.invalidate('main');
+  }
+  /** #231 截图定格（debug `lingQa`） */
+  applyLingQa(kind: LingQaCase, now: number) {
+    this.deps.lingOverride = lingQaOverride(kind);
+    const tut = lingQaTutorial(kind);
+    if (tut) {
+      this.lingTutorial = tut;
+      this.seedLingTutorialHand();
     }
-    text(ctx, `${ling}/${maxLing}`, L.tally.x + 15, L.tally.y - 14, { size: 15, color: C.paper, font: FONT.num, align: 'center', bold: true });
+    const v = this.lingView();
+    const fx = lingQaFx(kind, this.layout().tally, v, now);
+    if (fx) this.lingFx = fx;
+    this.ctx?.invalidate('main');
+  }
+  /** #231：军令视图 ← Game.lingSlot()（#230 LingSlotSnapshot） */
+  lingView(): LingView {
+    const base = lingViewFromSlot(this.g.lingSlot());
+    return this.deps.lingOverride ? { ...base, ...this.deps.lingOverride } : base;
+  }
+  drawTally(ctx: Ctx2DLike) {
+    drawTallyEnergy(ctx, this.layout().tally, this.lingView(), this.lingFx, this.fxNow(), this.reducedMotion());
   }
 
   drawSkills(ctx: Ctx2DLike) {
@@ -1354,7 +1446,8 @@ export class BattleScene implements Scene<BattleParams> {
     text(ctx, `手牌 ${this.g.hand.length}/${this.g.handLimit()}`, 166, b.y + 26, { size: 13, color: C.goldLo, font: FONT.num });
     const enemyTurn = this.mode === 'busy' || this.mode === 'over';
     const label = this.mode === 'discard' ? `弃 ${this.discardPicks.length}/${this.discardNeed}` : this.confirmT > 0 ? '确定？' : '结束回合';
-    const attention = this.mode === 'idle' && this.g.p.ling === 0;
+    // #231：令仍 >0 或还有可出牌时不强推结束回合；仅令=0 且无负担得起的非响应牌时才 attention
+    const attention = this.mode === 'idle' && this.g.p.ling === 0 && !this.g.hand.some((c) => !def(c).shan && !def(c).wuxie && !this.playError(c));
     if (attention) rect(ctx, inset(L.endTurn, -3), 'rgba(244,220,154,0.55)');
     button(ctx, L.endTurn, label, 'primary', enemyTurn || this.mode === 'discard', 19);
   }

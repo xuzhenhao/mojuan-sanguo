@@ -9,6 +9,7 @@ import { FlowMachine, PAGES, viewOf, type FlowEvent, type Page } from './flow';
 import { Router } from './router';
 import { triggerDebugRevive, wantDebugRevive } from './scenes/battle/debug-revive';
 import { triggerDebugEpiphany, wantDebugEpiphany } from './scenes/battle/debug-epiphany';
+import { wantDebugLing } from './scenes/battle/debug-ling';
 import { BattleScene } from './scenes/battle/scene';
 import { SeenBossStore } from './prefs/seen-bosses';
 import { PlaceholderScene } from './scenes/placeholder';
@@ -292,6 +293,12 @@ export function bootGame(platform: Platform, opts: BootOptions) {
     setTimeout(() => {
       if (battleScene?.g) void triggerDebugEpiphany(battleScene.g, debugEpi, Number(query.epiN) || undefined);
     }, 1200);
+  const debugLing = wantDebugLing(query, import.meta.env.DEV);
+  if (debugLing)
+    setTimeout(() => {
+      const sc = battleScene as { applyLingQa?(k: typeof debugLing, n: number): void } | null;
+      sc?.applyLingQa?.(debugLing, platform.now());
+    }, 900);
   if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overlays, engine), 800);
 
   /** H5 启动：在点将页上检查存档，弹「继续本局 / 放弃本局」（flow.md §1，PRD 5.13） */
