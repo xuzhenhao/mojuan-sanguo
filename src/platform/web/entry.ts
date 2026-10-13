@@ -15,7 +15,8 @@ import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { createMapScene } from '../../game/map';
 import { registerP4 } from '../../game/scenes/p4-register';
-import { createWebPlatform, showStatusBar } from './platform';
+import { createWebPlatform, paintPaperBackdrop, showStatusBar } from './platform';
+import { DESIGN_RECT } from '../../engine/viewport';
 import { ResultScene } from '../../game/result/scene';
 import { buildView, type RunOutcome } from '../../game/result/settlement';
 import { MetaStore, RunSaveSlot } from '../../game/result/store';
@@ -29,7 +30,10 @@ const root = document.getElementById('app')!;
 const platform = createWebPlatform(root);
 /** 配置开关：构建变量 VITE_WEBGL=0 可默认关闭；运行时 URL `?webgl=0|1` 优先 */
 const cfg = { ...DEFAULT_RENDER_CONFIG, webgl: import.meta.env.VITE_WEBGL !== '0' };
-const engine = new Engine(platform, {}, cfg);
+/** 底纹层：真实视口 W×H 铺满宣纸色（cover），设计框外的余量不留黑边（render-spec §4.0） */
+const engine = new Engine(platform, { backdrop: paintPaperBackdrop }, cfg);
+/** 场景安全区一律用设计坐标：设备安全区已在引擎缩放时扣除 */
+const designSafe = () => ({ ...DESIGN_RECT });
 
 const run = new RunSession();
 const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : null));
@@ -100,16 +104,15 @@ engine.scenes.register('map', () =>
   ),
 );
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
-const economy = registerP4({ engine, query, safe: () => platform.systemInfo().safeArea, send, run });
+const economy = registerP4({ engine, query, safe: designSafe, send, run });
 // P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）
-const info = platform.systemInfo();
 engine.scenes.register(
   'battle',
   () =>
     new BattleScene({
       overlays: engine.overlays,
       now: () => platform.now(),
-      safe: info.safeArea,
+      safe: designSafe(),
       measure: () => engine.surfaces.main.ctx,
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
@@ -124,7 +127,7 @@ engine.scenes.register(
   () =>
     new BattleOverlayDemoScene({
       overlays: engine.overlays,
-      safe: () => platform.systemInfo().safeArea,
+      safe: designSafe,
       measure: () => engine.surfaces.main.ctx,
       paused: () => engine.scenes.isPaused,
     }),

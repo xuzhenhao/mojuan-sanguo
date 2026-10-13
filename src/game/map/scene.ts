@@ -514,10 +514,9 @@ export class MapScene implements Scene {
       kind: 'popup',
       modal: true,
       rect,
+      scrim: { color: 'rgba(0,0,0,.5)' },
       draw: (sf) => {
         const c = sf.ctx as unknown as C2D;
-        c.fillStyle = 'rgba(0,0,0,.5)';
-        c.fillRect(0, 0, w, h);
         c.fillStyle = '#2a0f0c';
         c.fillRect(rect.x, rect.y, rect.w, rect.h);
         c.strokeStyle = GOLD;
@@ -597,10 +596,9 @@ export class MapScene implements Scene {
       kind: 'popup',
       modal: true,
       rect: box,
+      scrim: { color: 'rgba(0,0,0,.6)' }, // 地图压暗
       draw: (sf) => {
         const c = sf.ctx as unknown as C2D;
-        c.fillStyle = 'rgba(0,0,0,.6)'; // 地图压暗
-        c.fillRect(0, 0, w, h);
         c.fillStyle = '#2a0f0c';
         c.fillRect(box.x, box.y, box.w, box.h);
         c.strokeStyle = GOLD;

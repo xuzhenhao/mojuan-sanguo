@@ -8,7 +8,6 @@ body {
 #app {
   position: relative;
   width: 100vw;
-  max-width: 480px;
   height: 100vh;
   height: 100dvh;
   margin: 0 auto;

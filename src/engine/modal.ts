@@ -9,6 +9,15 @@ import type { GestureEvent } from './input';
 import type { Surface } from './surfaces';
 import type { Rect } from './types';
 
+/** 弹层变暗遮罩：由引擎按真实视口 W×H 全屏绘制（render-spec §4.0，#111），场景不感知真实尺寸 */
+export interface Scrim {
+  color: string;
+  /** 额外透明度（0–1，乘在 color 之上），默认 1 */
+  alpha?: number;
+}
+/** 引擎提供的全屏遮罩绘制：在画弹层面板之前调用 */
+export type ScrimPainter = (s: Surface, scrim: Scrim) => void;
+
 export type OverlayKind = 'popup' | 'detail' | 'response' | 'toast' | 'system';
 
 export interface OverlaySpec<R = unknown> {
@@ -20,6 +29,8 @@ export interface OverlaySpec<R = unknown> {
   pausesScene?: boolean;
   /** 命中区域（逻辑像素），用于“点外部”判断 */
   rect?: Rect;
+  /** 全屏变暗遮罩（可随动画变化）；面板本身仍在 draw 里按设计坐标画 */
+  scrim?: Scrim | (() => Scrim | null);
   draw(s: Surface, dt: number): void;
   /** 返回 true 表示已处理 */
   gesture?(e: GestureEvent, h: OverlayHandle<R>): boolean;
@@ -129,8 +140,13 @@ export class OverlayStack {
     for (const it of this.ordered()) if (it.spec.animating?.() === 'tick') it.spec.tick?.(s);
   }
 
-  draw(s: Surface, dt: number) {
-    for (const it of this.ordered()) it.spec.draw(s, dt);
+  /** 按栈从下到上：先画该层的全屏遮罩（若有），再画面板 */
+  draw(s: Surface, dt: number, scrim?: ScrimPainter) {
+    for (const it of this.ordered()) {
+      const sc = typeof it.spec.scrim === 'function' ? it.spec.scrim() : it.spec.scrim;
+      if (sc && scrim && (sc.alpha ?? 1) > 0) scrim(s, sc);
+      it.spec.draw(s, dt);
+    }
   }
 }
 

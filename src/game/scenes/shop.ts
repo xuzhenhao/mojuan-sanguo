@@ -102,16 +102,13 @@ export class ShopScene implements Scene<ShopParams | undefined> {
   }
 
   // ---------- 布局 ----------
-  get ox() {
-    return (this.ctx.width - 390) / 2;
-  }
   cardRect(i: number): Rect {
-    return { x: this.ox + 22 + i * 121, y: 244, w: CARD_W, h: CARD_H };
+    return { x: 22 + i * 121, y: 244, w: CARD_W, h: CARD_H };
   }
   /** 货架第 i 格圆心（宝物、丹药…，最后一格为删牌服务） */
   goodCenter(i: number, n: number): Vec2 {
     const gap = 360 / n;
-    return { x: this.ox + 15 + gap * (i + 0.5), y: 502 };
+    return { x: 15 + gap * (i + 0.5), y: 502 };
   }
   goodRect(i: number, n: number): Rect {
     const c = this.goodCenter(i, n);
@@ -227,8 +224,8 @@ export class ShopScene implements Scene<ShopParams | undefined> {
     const { width: w, height: h } = this.ctx;
     if (layer === 'bg') {
       drawBackdrop(c, w, h);
-      drawAwning(c, this.ox + 14, 48, 362);
-      drawMerchant(c, this.ox + 40, 100);
+      drawAwning(c, 14, 48, 362);
+      drawMerchant(c, 40, 100);
       // 货架横梁
       for (const y of [445, 597]) {
         vgrad(c, { x: 10, y, w: w - 20, h: 9 }, T.goldMid, T.goldDk);
@@ -241,13 +238,13 @@ export class ShopScene implements Scene<ShopParams | undefined> {
     if (layer !== 'main') return;
     drawTag(c, '集市');
     // 对白
-    const dr = { x: this.ox + 147, y: 115, w: 143, h: 47 };
+    const dr = { x: 147, y: 115, w: 143, h: 47 };
     vgrad(c, dr, 'rgba(42,20,16,.95)', 'rgba(15,7,5,.95)');
     frame3(c, dr, T.goldMid);
     label(c, this.st.dialog, dr.x + dr.w / 2, dr.y + 31, BRUSH(20), T.paper, 'center');
     // 铜钱
-    coin(c, this.ox + 318, 211, 10);
-    label(c, String(this.inv.gold), this.ox + 337, 219, SANS(21), T.paper);
+    coin(c, 318, 211, 10);
+    label(c, String(this.inv.gold), 337, 219, SANS(21), T.paper);
     this.st.cards.forEach((it, i) => this.drawCardSlot(s, it, i));
     this.st.goods.forEach((it, i) => this.drawGood(s, it, i));
     this.drawRemove(s);
@@ -394,10 +391,9 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
   return env.overlays.push<number>({
     id: 'deck-pick',
     kind: 'popup',
+    scrim: { color: 'rgba(5,2,1,.88)' },
     draw: (s) => {
       const c = s.ctx;
-      c.fillStyle = 'rgba(5,2,1,.88)';
-      c.fillRect(0, 0, w, h);
       label(c, title, w / 2, 110, BRUSH(24), T.gold, 'center');
       label(c, '删后至少 8 张，且至少保留 1 张杀类', w / 2, 134, SANS(12), T.paper3, 'center');
       deck.forEach((card, i) => {

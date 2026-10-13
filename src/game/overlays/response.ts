@@ -8,7 +8,7 @@
  * 布局（牌、攻击者、主将的位置）由宿主场景提供，本组件不改战斗页主体布局。
  */
 import type { GestureEvent } from '../../engine/input';
-import type { OverlayHandle, OverlayStack } from '../../engine/modal';
+import type { OverlayHandle, OverlayStack, Scrim } from '../../engine/modal';
 import type { Surface } from '../../engine/surfaces';
 import type { Rect, Vec2 } from '../../engine/types';
 import { def, RANK_CH } from '../../core/rules';
@@ -148,13 +148,13 @@ function drawCard(s: Surface, c: CardInst, r: Rect, sel: boolean) {
   textCenter(g, d.name, r.x + r.w / 2, r.y + r.h - 14, CARD_FONT, C.paper, 22);
 }
 
+/** 响应窗遮罩：随弹出动画淡入（由引擎全屏绘制） */
+export function responseScrim(st: Pick<ResponseState, 'intro'>): Scrim {
+  return { color: C.mask, alpha: Math.min(1, st.intro * 1.25) };
+}
+
 export function drawResponse(s: Surface, lay: ResponseLayout, st: ResponseState) {
   const g = s.ctx;
-  const W = 4096;
-  g.fillStyle = C.mask;
-  g.globalAlpha = Math.min(1, st.intro * 1.25);
-  g.fillRect(0, 0, W, W);
-  g.globalAlpha = 1;
   const geo = responseGeometry(lay, st);
   if (lay.attacker) drawArrow(s, lay.attacker, lay.hero, st.intro);
   for (const it of geo.cards) if (it.legal) drawCard(s, it.card, it.rect, it.card === st.selected);
@@ -249,6 +249,7 @@ export function openResponse(stack: OverlayStack, req: ResponseRequest, o: Respo
     kind: 'response',
     modal: true,
     dismissOnTapOutside: false,
+    scrim: () => responseScrim(st),
     // 弹出动画（250ms）整层重绘；之后倒计时只局部重绘（秒数或进度条像素变化时）
     animating: () => (st.intro < 1 ? true : Number.isFinite(st.left) && st.left > 0 ? 'tick' : false),
     update: (dt) => {

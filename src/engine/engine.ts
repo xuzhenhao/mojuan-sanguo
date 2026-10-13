@@ -6,12 +6,13 @@ import type { Platform } from '../platform/types';
 import { Canvas2DCompositor, WebGLOverlay, type InkFx } from './compositor';
 import { GestureRecognizer, type GestureEvent } from './input';
 import { MainLoop } from './loop';
-import { OverlayStack } from './modal';
+import { OverlayStack, type Scrim } from './modal';
 import { SceneManager } from './scene';
 import { AtlasManager, BakeCache, bakeScale, CANVAS2D_ATLASES, TextureBudget, type BudgetWarning } from './memory';
 import { DEFAULT_RENDER_CONFIG, decideWebGL, effectiveDpr, parseFlag, type RenderConfig, type WebGLDecision } from './settings';
 import { createSurfaces, type Surface, type SurfaceName } from './surfaces';
-import type { CanvasLike } from './types';
+import type { CanvasLike, Ctx2DLike } from './types';
+import { computeViewport, DESIGN_H, DESIGN_W, layerTransform, toDesign, type Viewport } from './viewport';
 
 export interface EngineHooks {
   /** 在对应离屏层上绘制（坐标为逻辑像素，已按 dpr 缩放） */
@@ -19,6 +20,8 @@ export interface EngineHooks {
   gesture?(e: GestureEvent): void;
   /** 是否还有动画需要继续出帧 */
   animating?(): boolean;
+  /** 底纹层：用真实视口 W×H（CSS px，已乘 dpr）铺满，cover；不进场景（render-spec §4.0） */
+  backdrop?(ctx: Ctx2DLike, width: number, height: number): void;
 }
 
 export class Engine {
@@ -27,8 +30,12 @@ export class Engine {
   readonly bakeScale: number;
   /** 资源半尺寸分级是否开启 */
   readonly halfSize: boolean;
-  readonly width: number;
-  readonly height: number;
+  /** 场景设计坐标，恒为 390×844（render-spec §4.0） */
+  readonly width = DESIGN_W;
+  readonly height = DESIGN_H;
+  /** 当前视口：真实尺寸 + 设计坐标缩放/偏移 */
+  viewport: Viewport;
+  private overlayCanvas: CanvasLike | null = null;
   readonly budget: TextureBudget;
   readonly bakes: BakeCache;
   readonly atlases: AtlasManager;
@@ -52,8 +59,7 @@ export class Engine {
     this.dpr = effectiveDpr(info.dpr, cfg.maxDpr);
     this.halfSize = parseFlag(platform.launchQuery().half) ?? cfg.halfSizeAssets;
     this.bakeScale = bakeScale(cfg.lowEnd, this.dpr, this.halfSize);
-    this.width = info.width;
-    this.height = info.height;
+    this.viewport = computeViewport(info.width, info.height, info.safeArea);
     const pxW = Math.round(info.width * this.dpr);
     const pxH = Math.round(info.height * this.dpr);
     this.budget = new TextureBudget(cfg.textureBudgetBytes, cfg.textureWarnBytes, (w) => {
@@ -90,6 +96,7 @@ export class Engine {
         c.width = Math.round(info.width * od);
         c.height = Math.round(info.height * od);
         overlay = new WebGLOverlay(c);
+        this.overlayCanvas = c;
         this.budget.track('screen:webgl-overlay', 'framebuffer', c.width, c.height);
       } catch (e) {
         platform.warn('WebGL 叠加层创建失败，仅使用 2D 渲染', e);
@@ -117,7 +124,8 @@ export class Engine {
       if (!this.overlays.gesture(e) && !this.scenes.gesture(e)) this.hooks.gesture?.(e);
       this.invalidate();
     });
-    const toDp = (ts: { id: number; x: number; y: number }[]) => ts;
+    // 触摸反变换：屏幕 CSS px → 设计坐标 (x-offsetX)/s
+    const toDp = (ts: { id: number; x: number; y: number }[]) => ts.map((t) => ({ id: t.id, ...toDesign(this.viewport, t) }));
     platform.onTouch({
       start: (t) => {
         this.gestures.down(toDp(t), platform.now());
@@ -133,6 +141,50 @@ export class Engine {
       (dt) => this.frame(dt),
       () => this.needsFrame(),
     );
+    platform.onResize?.(() => this.resize());
+  }
+
+  /** 视口变化（resize / visualViewport resize / 横竖屏）：重算缩放、重设画布像素并整屏重绘 */
+  resize() {
+    const info = this.platform.systemInfo();
+    const vp = computeViewport(info.width, info.height, info.safeArea);
+    const old = this.viewport;
+    if (vp.width === old.width && vp.height === old.height && vp.s === old.s && vp.offsetX === old.offsetX && vp.offsetY === old.offsetY) return false;
+    this.viewport = vp;
+    const pxW = Math.round(vp.width * this.dpr);
+    const pxH = Math.round(vp.height * this.dpr);
+    const screen = this.compositor.target;
+    screen.width = pxW;
+    screen.height = pxH;
+    this.budget.track('screen:main', 'framebuffer', pxW, pxH);
+    for (const sf of Object.values(this.surfaces)) {
+      const w = Math.round(pxW * sf.scale);
+      const h = Math.round(pxH * sf.scale);
+      sf.canvas.width = w;
+      sf.canvas.height = h;
+      this.budget.track(`surface:${sf.name}`, 'framebuffer', w, h);
+    }
+    const c = this.overlayCanvas;
+    if (c) {
+      c.width = Math.round((vp.width * this.dpr) / 2);
+      c.height = Math.round((vp.height * this.dpr) / 2);
+      this.budget.track('screen:webgl-overlay', 'framebuffer', c.width, c.height);
+    }
+    this.invalidateAll();
+    return true;
+  }
+
+  /** 弹层遮罩：临时切到屏幕矩阵，按真实 W×H 铺满，再恢复设计坐标矩阵 */
+  paintScrim(s: Surface, sc: Scrim) {
+    const k = this.dpr * s.scale;
+    const ctx = s.ctx;
+    const ga = ctx.globalAlpha;
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.globalAlpha = ga * Math.max(0, Math.min(1, sc.alpha ?? 1));
+    ctx.fillStyle = sc.color;
+    ctx.fillRect(0, 0, this.viewport.width, this.viewport.height);
+    ctx.globalAlpha = ga;
+    ctx.setTransform(...layerTransform(this.viewport, k));
   }
 
   /** 标记某层需要重绘并唤醒主循环 */
@@ -159,14 +211,21 @@ export class Engine {
     for (const s of Object.values(this.surfaces)) {
       if (!s.dirty) continue;
       const k = this.dpr * s.scale;
-      s.ctx.setTransform(k, 0, 0, k, 0, 0);
+      // 整层清空（含设计框外的余量），再按设计坐标绘制
+      s.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      s.ctx.clearRect(0, 0, s.canvas.width, s.canvas.height);
+      if (s.name === 'bg' && this.hooks.backdrop) {
+        s.ctx.setTransform(k, 0, 0, k, 0, 0);
+        this.hooks.backdrop(s.ctx, this.viewport.width, this.viewport.height);
+      }
+      s.ctx.setTransform(...layerTransform(this.viewport, k));
       if (this.scenes.current) this.scenes.draw(s.name, s, dt);
       this.hooks.draw?.(s.name, s, dt);
-      if (s.name === 'main') this.overlays.draw(s, dt);
+      if (s.name === 'main') this.overlays.draw(s, dt, (sf, sc) => this.paintScrim(sf, sc));
     }
     if (anim === 'tick' && !mainFull) {
       const m = this.surfaces.main;
-      m.ctx.setTransform(this.dpr * m.scale, 0, 0, this.dpr * m.scale, 0, 0);
+      m.ctx.setTransform(...layerTransform(this.viewport, this.dpr * m.scale));
       this.overlays.tick(m);
       m.dirty = true; // 只为触发合成（3 次 drawImage），不整层重绘
     }
