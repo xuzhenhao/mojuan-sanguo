@@ -1,64 +1,120 @@
+/** #142 首屏字体门控（#202 起：game/fonts.ts 经 platform.fonts，规则来自 rules.fonts） */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { loadBrushFonts, type FontDeps } from '../src/platform/web/brush-font';
+import { loadGameFonts, fontStack } from '../src/game/fonts';
+import { FONTS, type FontsConfig } from '../src/data/config';
+import { createWebFonts, resolveFontUrl, type WebFontDeps } from '../src/platform/web/fonts';
+import type { PlatformFonts } from '../src/platform/types';
 
-function fake(loads: Record<string, Promise<unknown>>) {
+const CFG: FontsConfig = {
+  gateTimeoutMs: 3000,
+  families: { brush: 'Brush', sans: 'Brush' },
+  fallback: { brush: 'serif', sans: 'sans-serif' },
+  faces: [
+    { family: 'Brush', url: 'c', gate: true },
+    { family: 'Brush', url: 's', gate: true },
+    { family: 'Brush', url: 'e', gate: false },
+  ],
+};
+function setup(loads: Record<string, Promise<boolean>>) {
   let timer: (() => void) | null = null;
-  const created: string[][] = [];
-  const deps: FontDeps = {
-    create: (family, src) => {
-      created.push([family, src]);
-      const url = /url\(([^)]+)\)/.exec(src)![1];
-      return { load: () => loads[url] };
-    },
-    add: vi.fn(),
-    setTimeout: (fn) => (timer = fn),
-    warn: vi.fn(),
-  };
-  return { deps, created, fire: () => timer?.() };
+  const calls: string[] = [];
+  const fonts: PlatformFonts = { load: (_f, u) => (calls.push(u), loads[u] ?? Promise.resolve(true)) };
+  const h = { warn: vi.fn(), onLoaded: vi.fn(), setTimeout: (fn: () => void) => (timer = fn) };
+  return { fonts, h, calls, fire: () => timer?.() };
 }
+const tick = () => new Promise((r) => setTimeout(r, 0));
 
-describe('#142 霞鹜文楷加载门控', () => {
-  it('core 就绪才 resolve(true)，族名只用 Brush，随后加载 ext', async () => {
-    const f = fake({ c: Promise.resolve('C'), e: Promise.resolve('E') });
-    const onLoaded = vi.fn();
-    expect(await loadBrushFonts(f.deps, { core: 'c', ext: 'e' }, onLoaded)).toBe(true);
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(f.created.map((x) => x[0])).toEqual(['Brush', 'Brush']);
-    expect(f.deps.add).toHaveBeenCalledWith('C');
-    expect(onLoaded).toHaveBeenCalled();
+describe('#202 首屏字体门控 loadGameFonts', () => {
+  it('门控字体全部就绪 → true，不打日志；之后后台加载非门控字体', async () => {
+    const s = setup({});
+    expect(await loadGameFonts(s.fonts, CFG, s.h)).toBe(true);
+    await tick();
+    expect(s.calls).toEqual(['c', 's', 'e']);
+    expect(s.h.warn).not.toHaveBeenCalled();
+    expect(s.h.onLoaded).toHaveBeenCalledTimes(2); // 门控就绪 + ext 到位
   });
-  it('core 迟迟不到：超时后放行(false)，字体晚到仍 add + 重绘', async () => {
-    let resolveCore!: (v: unknown) => void;
-    const f = fake({ c: new Promise((r) => (resolveCore = r)) });
-    const onLoaded = vi.fn();
-    const p = loadBrushFonts(f.deps, { core: 'c' }, onLoaded, 10);
-    f.fire();
+  it('任一门控字体失败（false）→ false，回退系统字体，只打一行日志', async () => {
+    const s = setup({ s: Promise.resolve(false) });
+    expect(await loadGameFonts(s.fonts, CFG, s.h)).toBe(false);
+    expect(s.h.warn).toHaveBeenCalledTimes(1);
+    expect(s.h.warn.mock.calls[0][0]).toMatch(/加载失败，回退系统字体（Brush→serif，Brush→sans-serif）/);
+  });
+  it('超时 → false + 一行日志；字体晚到仍重绘', async () => {
+    let late!: (v: boolean) => void;
+    const s = setup({ c: new Promise((r) => (late = r)) });
+    const p = loadGameFonts(s.fonts, CFG, s.h);
+    s.fire();
     expect(await p).toBe(false);
-    resolveCore('C');
-    await new Promise((r) => setTimeout(r, 0));
-    expect(f.deps.add).toHaveBeenCalledWith('C');
-    expect(onLoaded).toHaveBeenCalledTimes(1);
+    expect(s.h.warn).toHaveBeenCalledTimes(1);
+    expect(s.h.warn.mock.calls[0][0]).toMatch(/超过 3000ms 未就绪/);
+    s.h.onLoaded.mockClear();
+    late(true);
+    await tick();
+    expect(s.h.onLoaded).toHaveBeenCalled();
+    expect(s.h.warn).toHaveBeenCalledTimes(1);
   });
-  it('加载失败不 reject，只告警', async () => {
-    const f = fake({ c: { then: (a: unknown, b: (e: unknown) => unknown) => Promise.reject(new Error('x')).then(a as never, b) } as Promise<unknown> });
-    expect(await loadBrushFonts(f.deps, { core: 'c' })).toBe(false);
-    expect(f.deps.warn).toHaveBeenCalled();
+  it('platform.fonts 违约抛错也不 reject', async () => {
+    const s = setup({ c: Promise.reject(new Error('x')) });
+    expect(await loadGameFonts(s.fonts, CFG, s.h)).toBe(false);
   });
-  it('无 FontFace 环境直接放行', async () => {
-    expect(await loadBrushFonts(null, { core: 'c' })).toBe(false);
+  it('字体栈与配置一致：brush→serif，sans→sans-serif', () => {
+    expect(fontStack(CFG, 'brush')).toBe('"Brush", serif');
+    expect(fontStack(CFG, 'sans')).toBe('"Brush", sans-serif');
   });
-  it('entry 首帧挂在字体门控后；调试页也加载 Brush', () => {
-    // #201：门控逻辑在 game/boot.ts，entry 只负责把字体加载交给 bootGame
-    const entry = readFileSync(join(__dirname, '../src/game/boot.ts'), 'utf8');
-    expect(readFileSync(join(__dirname, '../src/platform/web/entry.ts'), 'utf8')).toMatch(/fonts: \(engine\) =>\s*loadBrushFonts\(/);
-    expect(entry).toMatch(/engine\.holdFramesUntil\(fontsReady\)/);
-    expect(entry).toMatch(/framesReleased\.then\(\(\) => engine\.start\(\)\)/);
-    expect(entry).not.toMatch(/^\s*engine\.start\(\);/m);
+});
+
+describe('#202 rules.fonts 配置', () => {
+  it('首屏门控 3s，core 门控、ext 后台，路径为包内相对路径', () => {
+    expect(FONTS.gateTimeoutMs).toBe(3000);
+    expect(FONTS.faces.filter((f) => f.gate).map((f) => f.url)).toEqual(['assets/fonts/wenkai-core.woff2']);
+    expect(FONTS.faces.filter((f) => !f.gate).map((f) => f.url)).toEqual(['assets/fonts/wenkai-ext.woff2']);
+    expect(FONTS.fallback).toEqual({ brush: 'serif', sans: 'sans-serif' });
+  });
+  it('游戏内字体串都带系统回退（与 rules.fonts.families/fallback 一致）', () => {
+    const p4 = readFileSync(join(__dirname, '../src/game/scenes/p4-kit.ts'), 'utf8');
+    expect(p4).toContain(`px ${fontStack(FONTS, 'brush')}`);
+    expect(p4).toContain(`px ${fontStack(FONTS, 'sans')}`);
+    expect(readFileSync(join(__dirname, '../src/engine/fonts.ts'), 'utf8')).toContain(`'${fontStack(FONTS, 'brush')}'`);
+  });
+});
+
+describe('#202 web 字体实现 createWebFonts', () => {
+  const deps = (ok: boolean): WebFontDeps & { added: unknown[]; srcs: string[] } => {
+    const added: unknown[] = [];
+    const srcs: string[] = [];
+    return {
+      added,
+      srcs,
+      create: (_f, src) => (srcs.push(src), { load: () => (ok ? Promise.resolve('F') : Promise.reject(new Error('net'))) }),
+      add: (f) => void added.push(f),
+      resolve: (u) => '/base/' + u,
+    };
+  };
+  it('成功：拼 BASE_URL、add 到 document.fonts、返回 true', async () => {
+    const d = deps(true);
+    expect(await createWebFonts(d).load('Brush', 'assets/fonts/x.woff2')).toBe(true);
+    expect(d.srcs).toEqual(['url(/base/assets/fonts/x.woff2)']);
+    expect(d.added).toEqual(['F']);
+  });
+  it('配置路径映射到打包产物 URL（正式构建不拷 public/）；映射不到才拼 base', () => {
+    for (const f of FONTS.faces) expect(resolveFontUrl(f.url, '/base/')).not.toBe('/base/' + f.url);
+    expect(resolveFontUrl('assets/x.woff2', '/base/', {})).toBe('/base/assets/x.woff2');
+    expect(resolveFontUrl('https://cdn/x.woff2', '/base/', {})).toBe('https://cdn/x.woff2');
+  });
+  it('失败 / 无 FontFace 环境：返回 false，不抛错', async () => {
+    expect(await createWebFonts(deps(false)).load('Brush', 'x')).toBe(false);
+    expect(await createWebFonts(null).load('Brush', 'x')).toBe(false);
+  });
+  it('boot 首帧挂在字体门控后；entry 不再自己加载字体；调试页按配置加载', () => {
+    const boot = readFileSync(join(__dirname, '../src/game/boot.ts'), 'utf8');
+    expect(boot).toMatch(/loadGameFonts\(platform\.fonts, FONTS/);
+    expect(boot).toMatch(/engine\.holdFramesUntil\(fontsReady\)/);
+    expect(boot).toMatch(/framesReleased\.then\(\(\) => engine\.start\(\)\)/);
+    expect(boot).not.toMatch(/^\s*engine\.start\(\);/m);
+    expect(readFileSync(join(__dirname, '../src/platform/web/entry.ts'), 'utf8')).not.toMatch(/loadBrushFonts|FontFace|woff2/);
     const dbg = readFileSync(join(__dirname, '../src/platform/web/debug/main.ts'), 'utf8');
-    expect(dbg).toMatch(/loadBrushFonts\(/);
-    expect(dbg).toMatch(/wenkai-core\.woff2\?url/);
+    expect(dbg).toMatch(/FONTS\.faces/);
   });
 });

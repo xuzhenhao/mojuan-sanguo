@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 /** #107 首领登场演出：台词配置、字表、时间轴、折行、已看过记录、场景接入 */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -104,7 +104,7 @@ describe('#107 已看过的首领（局外偏好）', () => {
 
 function bossScene(storage = mem(), reduced = false) {
   const sc = new BattleScene({
-    now: testNow,
+    now: fakeClock().now,
     overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }),
     debugDefaults: true,
     seenBosses: new SeenBossStore(storage),
@@ -118,7 +118,7 @@ function bossScene(storage = mem(), reduced = false) {
 
 describe('#107 战斗场景接入', () => {
   it('普通战斗不播；首领首次 2000ms、第 2 次 800ms，播完意图 250ms 弹出', () => {
-    const plain = new BattleScene({ now: testNow, debugDefaults: true });
+    const plain = new BattleScene({ now: fakeClock().now, debugDefaults: true });
     plain.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
     expect(plain.q.played).not.toContain('boss_intro');
 

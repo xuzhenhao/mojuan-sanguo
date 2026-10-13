@@ -26,7 +26,8 @@
     "settlement",
     "settings",
     "assets",
-    "battleTitle"
+    "battleTitle",
+    "fonts"
   ],
   "properties": {
     "lingPerTurn": {
@@ -1184,6 +1185,94 @@
           "minLength": 1,
           "pattern": "\\{name\\}",
           "description": "占位符：{n} = 本局战斗序号，{name} = 组包 / Boss 名"
+        }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateTimeoutMs",
+        "families",
+        "fallback",
+        "faces"
+      ],
+      "description": "字体（#202）：族名、包内路径、首屏门控超时与系统回退字族",
+      "properties": {
+        "gateTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "families": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "brush",
+            "sans"
+          ],
+          "properties": {
+            "brush": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sans": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "description": "游戏内书法 / 正文字族名（FontFace family）"
+        },
+        "fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "brush",
+            "sans"
+          ],
+          "properties": {
+            "brush": {
+              "type": "string",
+              "enum": [
+                "serif",
+                "sans-serif"
+              ]
+            },
+            "sans": {
+              "type": "string",
+              "enum": [
+                "serif",
+                "sans-serif"
+              ]
+            }
+          },
+          "description": "字体未就绪时的系统回退字族"
+        },
+        "faces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family",
+              "url",
+              "gate"
+            ],
+            "properties": {
+              "family": {
+                "type": "string",
+                "minLength": 1
+              },
+              "url": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_\\-./]+$"
+              },
+              "gate": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       }
     }

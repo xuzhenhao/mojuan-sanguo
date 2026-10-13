@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/data/config';
 import { OverlayStack } from '../src/engine/modal';
@@ -194,19 +194,19 @@ describe('#108 设置项生效 / 隐藏', () => {
   });
   it('动画速度进战斗表现队列倍速', () => {
     const ov = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
-    expect(new BattleScene({ now: testNow, overlays: ov, animSpeed: 2 }).q.speed).toBe(2);
-    expect(new BattleScene({ now: testNow, overlays: ov }).q.speed).toBe(1);
+    expect(new BattleScene({ now: fakeClock().now, overlays: ov, animSpeed: 2 }).q.speed).toBe(2);
+    expect(new BattleScene({ now: fakeClock().now, overlays: ov }).q.speed).toBe(1);
   });
   it('结束回合确认：开启时第一次点只进入确认态，不结束回合', async () => {
     const ov = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
-    const on = new BattleScene({ now: testNow, overlays: ov, confirmEnd: true, debugDefaults: true });
+    const on = new BattleScene({ now: fakeClock().now, overlays: ov, confirmEnd: true, debugDefaults: true });
     on.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
     const turn0 = on.g.turn;
     await on.tapEndTurn();
     expect((on as unknown as { confirmT: number }).confirmT).toBe(1500);
     expect(on.g.turn).toBe(turn0);
     const off = new BattleScene({
-      now: testNow,
+      now: fakeClock().now,
       overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }),
       confirmEnd: false,
       debugDefaults: true,

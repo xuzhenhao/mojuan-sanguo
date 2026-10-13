@@ -33,20 +33,26 @@ import { pauseFlow } from './result/pause';
 import { SettingsStore, battleSettings } from './prefs/settings';
 import type { Platform } from '../platform/types';
 import type { RenderConfig } from '../engine/settings';
+import { loadGameFonts } from './fonts';
+import { FONTS } from '../data/config';
+import { refitFonts } from './scenes/battle/hpview';
+import { setReducedMotionSource } from './motion';
+import { bindTelemetry, flushTelemetry } from './telemetry';
 
 export interface BootOptions {
   /** 渲染配置（入口按构建变量决定，如 VITE_WEBGL） */
   renderConfig: RenderConfig;
   /** 底纹层绘制（H5：paintPaperBackdrop） */
   backdrop?: EngineHooks['backdrop'];
-  /** 加载书法字体；返回 core 就绪的 Promise（首帧等它，#142）。拿到 engine 以便字体到位后重绘 */
-  fonts(engine: Engine): Promise<unknown>;
   /** 是否显示状态栏（渲染路径 / 纹理内存，#79） */
   statusBar?: boolean;
 }
 
 export function bootGame(platform: Platform, opts: BootOptions) {
   /** 底纹层：真实视口 W×H 铺满宣纸色（cover），设计框外的余量不留黑边（render-spec §4.0） */
+  setReducedMotionSource(() => platform.prefersReducedMotion());
+  bindTelemetry(platform.telemetry, () => platform.now());
+  platform.onHide(flushTelemetry);
   const engine = new Engine(platform, { backdrop: opts.backdrop }, opts.renderConfig);
   /** 场景安全区一律用设计坐标：设备安全区已在引擎缩放时扣除 */
   const designSafe = () => ({ ...DESIGN_RECT });
@@ -114,8 +120,11 @@ export function bootGame(platform: Platform, opts: BootOptions) {
         },
       }),
   );
-  // 书法字体：由各端入口加载（H5 FontFace / 微信 wx.loadFont），首帧等 core 就绪（#142）
-  const fontsReady = opts.fonts(engine);
+  // 字体（#202）：经 platform.fonts 按 rules.fonts 加载；首帧等门控字体（最多 gateTimeoutMs），超时 / 失败回退系统字体
+  const fontsReady = loadGameFonts(platform.fonts, FONTS, {
+    warn: (m) => platform.warn(m),
+    onLoaded: () => refitFonts(() => engine.invalidateAll()),
+  });
   const framesReleased = engine.holdFramesUntil(fontsReady);
   // P3 地图（#44）：局种子取点将出征时 core 建局的种子
   engine.scenes.register('map', () =>
@@ -220,7 +229,7 @@ export function bootGame(platform: Platform, opts: BootOptions) {
       draw(s) {
         const mb = (n: number) => (n / 1048576).toFixed(1);
         s.ctx.fillStyle = '#8c7448';
-        s.ctx.font = '11px "Brush"';
+        s.ctx.font = '11px "Brush", serif';
         s.ctx.fillText?.(
           `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
           16,

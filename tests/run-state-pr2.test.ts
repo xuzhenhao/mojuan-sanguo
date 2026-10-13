@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { RunSession, NULL_IO } from '../src/game/run';
 import { CONFIG } from '../src/data/config';
@@ -82,7 +82,7 @@ describe('#122 PR2：页面流程不写旧键 mojuan.run.v1', () => {
     const r = s.enter(battleId);
     const p = r.params as BattleRouteParams;
     const b = new BattleScene({
-      now: testNow,
+      now: fakeClock().now,
       build: (io, bp) => run.buildBattle(io, { nodeId: bp.nodeId!, nodeType: bp.nodeType!, encounterName: '', enemies: bp.enemies! }, false),
     });
     b.enter({ invalidate() {}, width: 390, height: 844 }, p);
@@ -137,7 +137,7 @@ describe('#122 PR2：战斗中途刷新回到开打前快照（地图 → 战斗
     const p = s.enter(id).params as BattleRouteParams;
     const mk = (rs: RunSession) =>
       new BattleScene({
-        now: testNow,
+        now: fakeClock().now,
         build: (io, bp) => rs.buildBattle(io, { nodeId: bp.nodeId!, nodeType: bp.nodeType!, encounterName: '', enemies: bp.enemies! }, false),
       });
     const b1 = mk(run);

@@ -41,18 +41,16 @@ describe('#201 bootGame', () => {
   }, 30_000);
 
   it('假平台上启动：注册全部页面、字体门控首帧、返回调试句柄', async () => {
-    const fp = fakePlatform({ query: { webgl: '0' } });
-    let release!: () => void;
-    let fontEngine: unknown;
-    const g = bootGame(fp.p, {
-      renderConfig: cfg,
-      fonts: (engine) => ((fontEngine = engine), new Promise<void>((r) => (release = r))),
-    });
-    expect(fontEngine).toBe(g.engine);
+    let release!: (v: boolean) => void;
+    const gate = new Promise<boolean>((r) => (release = r));
+    const fp = fakePlatform({ query: { webgl: '0' }, fonts: () => gate });
+    const g = bootGame(fp.p, { renderConfig: cfg });
+    // #202：boot 直接经 platform.fonts 按 rules.fonts 加载
+    expect(fp.fontLoads.map((x) => x[1])).toEqual(['assets/fonts/wenkai-core.woff2']);
     expect(g.engine.framesHeld).toBe(true);
     for (const p of [...PAGES, 'battle-overlay-demo']) expect(g.engine.scenes.has(p)).toBe(true);
     expect(Object.keys(g).sort()).toEqual(['economy', 'engine', 'flow', 'meta', 'resultBridge', 'router', 'run', 'slot'].sort());
-    release();
+    release(true);
     await Promise.resolve();
     await new Promise((r) => setTimeout(r, 0));
     expect(g.engine.framesHeld).toBe(false);

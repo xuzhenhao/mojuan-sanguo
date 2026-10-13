@@ -175,3 +175,14 @@ battleTitle:
 # devBaseUrl：开发构建（npm run dev）默认根目录，默认也指向测试 OSS。
 # localBaseUrl：仅开发构建且 VITE_ASSET_LOCAL=1 时使用，dev server 在这个站内路径下提供本地 art/out/（先跑 scripts/build-portraits.py 产出 WebP）。
 assets: { baseUrl: 'https://test-oss.xiaobien.com/mojuan/assets/', devBaseUrl: 'https://test-oss.xiaobien.com/mojuan/assets/', localBaseUrl: '/__art-out/' }
+
+# ───────── 字体（#202）：各端经 platform.fonts.load(family, url) 加载；url 为包内相对路径（H5 拼 BASE_URL，微信端拼包内路径） ─────────
+# gate: true 的字体首屏等它就绪（最多 gateTimeoutMs），期间只画墨底不出字；超时或失败回退系统字体（brush→serif，sans→sans-serif），只打一行日志。
+# gate: false 的字体在首屏后后台加载，到位后重绘。
+fonts:
+  gateTimeoutMs: 3000
+  families: { brush: Brush, sans: Brush } # 书法 / 正文都用霞鹜文楷（#142）
+  fallback: { brush: serif, sans: sans-serif }
+  faces:
+    - { family: Brush, url: 'assets/fonts/wenkai-core.woff2', gate: true }
+    - { family: Brush, url: 'assets/fonts/wenkai-ext.woff2', gate: false }

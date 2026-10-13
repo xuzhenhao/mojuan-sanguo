@@ -152,7 +152,7 @@ export async function resumeFlow(ov: OverlayStack, f: DialogFrame, s: ResumeSumm
 export const VERSION_TEXT = '为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。';
 export const VERSION_H = 300;
 /** 霞鹜文楷，不回退系统字体 */
-const wk = (px: number) => `${px}px "Brush"`;
+const wk = (px: number) => `${px}px "Brush", serif`;
 
 /** 只有一个「继续」按钮（居中） */
 export function versionButton(f: DialogFrame): Rect {

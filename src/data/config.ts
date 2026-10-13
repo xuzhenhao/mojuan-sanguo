@@ -139,6 +139,8 @@ export interface ConfigBundle {
     /** 战斗页顶条标题模板（#216） */
     battleTitle: { normal: string; elite: string; boss: string };
     assets: { baseUrl: string; devBaseUrl: string; localBaseUrl: string };
+    /** 字体（#202） */
+    fonts: FontsConfig;
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };
   cards: Record<string, CardCfg>;
@@ -237,6 +239,15 @@ export interface EconomyCfg {
   chestRelicRarity: Record<'N' | 'R' | 'E', number>;
   destinyShopMarkup: number;
 }
+
+/** rules.fonts（#202）：族名、包内路径、首屏门控 */
+export interface FontsConfig {
+  gateTimeoutMs: number;
+  families: { brush: string; sans: string };
+  fallback: { brush: 'serif' | 'sans-serif'; sans: 'serif' | 'sans-serif' };
+  faces: { family: string; url: string; gate: boolean }[];
+}
+export const FONTS: FontsConfig = CONFIG.rules.fonts;
 
 /** rules.settlement（PRD 14.5） */
 export interface SettlementCfg {

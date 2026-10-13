@@ -1,4 +1,5 @@
 /** H5 平台实现（engine-design §4.1）。只有这里和入口文件可以直接访问 window / document。 */
+import { createWebFonts, webFontDeps } from './fonts';
 import type { Canvas2DLike, CanvasLike, Ctx2DLike, TouchPoint } from '../../engine/types';
 import type { Platform, SystemInfo, TouchHandlers } from '../types';
 
@@ -117,6 +118,10 @@ export function createWebPlatform(root: HTMLElement): Platform {
       query: () => query,
     },
     loader: { async load() {} }, // H5：资源组按需加载，P4 实现
+    fonts: createWebFonts(webFontDeps(import.meta.env.BASE_URL)),
+    // H5 暂无上报后端：开发构建打控制台，正式构建丢弃（#202；正式上报见 #181）
+    telemetry: { send: (batch) => void (import.meta.env.DEV && console.debug('[telemetry]', batch)) },
+    prefersReducedMotion: () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches,
     reportError: (e) => console.error('[error]', e),
     warn: (m, d) => console.warn(m, d ?? ''),
   };
