@@ -48,7 +48,7 @@ starterDeck: # 12 张，红 6 / 黑 6
   - { card: B001, suit: S, rank: 7 }
   - { card: B001, suit: C, rank: 8 }
   - { card: B001, suit: C, rank: 9 }
-  - { card: B001, suit: D, rank: 6 }
+  - { card: T012, suit: D, rank: 6 }
   - { card: B004, suit: D, rank: 2 }
   - { card: B004, suit: D, rank: 3 }
   - { card: B005, suit: H, rank: 4 }
