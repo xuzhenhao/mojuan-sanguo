@@ -95,7 +95,15 @@ export interface ConfigBundle {
     rarityWeight: Record<'N' | 'R' | 'E' | 'L', number>;
     pendingValues?: Record<string, number>;
     defaultHeroes: { main: string; sub: string };
-    shop?: { cardPrice: Record<'N' | 'R' | 'E' | 'L', number> };
+    shop?: {
+      cardPrice: Record<'N' | 'R' | 'E' | 'L', number>;
+      relicPrice: Record<'N' | 'R' | 'E', number>;
+      removeBase: number;
+      removeStep: number;
+      shopSlots: { common: number; heroCard: number; relic: number; potion: number };
+    };
+    /** 复活（PRD §4.4.1；仅天命<5） */
+    revive: { count: number; hpRatio: number; hpMin: number; armor: number };
     /** 3 战回归基线（自动对局 / bstat）专用 */
     sim: { baselineBetweenBattleHeal: number };
     /** 真实游戏 / 正式地图 */

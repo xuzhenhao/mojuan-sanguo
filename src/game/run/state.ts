@@ -18,6 +18,7 @@ import type { CardInst } from '../../core/types';
 import type { MapState } from '../../core/run/map';
 import { newEncounterState, type EncounterState } from '../../core/run/encounters';
 import type { RunSave } from '../../core/run/save';
+import { CONFIG } from '../../data/config';
 import { emptyStats, parseStats, type RunStats } from './stats';
 
 /** v2（#122 PR3）：counters 去掉 rewardRefreshUsed（#92 已去掉 H5 奖励刷新） */
@@ -43,7 +44,8 @@ export interface PendingNode {
 }
 
 /** 每局复活次数（PRD 复活；sim map-run 同值） */
-export const REVIVES_PER_RUN = 1;
+/** 每局复活次数（config/rules.yaml revive.count） */
+export const REVIVES_PER_RUN = CONFIG.rules.revive.count;
 /** 一次性宝物（每局限 1 次） */
 export const ONE_SHOT_RELICS: readonly string[] = ['R15'];
 
