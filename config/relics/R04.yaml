@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R04
+name: 孙子残卷
+rarity: R
+desc: "胜利 +10 铜钱"
+effects: { goldBonus: 10 }

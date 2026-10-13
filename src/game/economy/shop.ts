@@ -1,4 +1,5 @@
 /** 集市（PRD 10.7 / 14.2 / 12.2）。纯逻辑；表现见 scenes/shop.ts */
+import { relicEffect } from '../../data/config';
 import type { Rng } from '../../core/rng';
 import type { Suit } from '../../core/types';
 import { ECONOMY } from '../../data/economy';
@@ -31,7 +32,7 @@ function rollGoods(rng: Rng, inv: Inventory): ShopItem[] {
   const out: ShopItem[] = [];
   for (const id of pickRelics(rng, inv.relics, s.relic, ECONOMY.relicRarity))
     out.push({ type: 'relic', id, price: jitter(rng, ECONOMY.relicPrice[relicDef(id).rarity] ?? 100, inv), sold: false });
-  const nPotion = s.potion + (inv.relics.includes('R20') ? 1 : 0); // 米肉账
+  const nPotion = s.potion + relicEffect(inv.relics, 'shopPotionSlots'); // 如 R20 米肉账
   for (let i = 0; i < nPotion; i++) {
     const id = pickPotion(rng);
     out.push({ type: 'potion', id, price: jitter(rng, potionDef(id).price, inv), sold: false });

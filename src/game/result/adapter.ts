@@ -9,7 +9,7 @@ import { CARDS } from '../../data/cards';
 import { HEROES } from '../../data/heroes';
 import { CONFIG } from '../../data/config';
 import { emptyStats, mergeStats, parseStats } from '../run/stats';
-import { SETTLEMENT_CONFIG, type ResultCard, type RunOutcome, type RunStats } from './settlement';
+import { lastChapter, type ResultCard, type RunOutcome, type RunStats } from './settlement';
 import type { ResumeSummary } from './store';
 
 /** 复活「已使用」只按 reviveLeft 实际值判断（PRD 4.4.1：reviveLeft < 每局次数），不能用胜负推断（#106） */
@@ -71,7 +71,7 @@ export function outcomeFromGame(
     layer: win ? 9 : g.battleIdx + 1,
     durationMs: Math.max(0, o.now - o.startedAt),
     tianming: o.tianming ?? 0,
-    chaptersCleared: win ? SETTLEMENT_CONFIG.lastChapter : 0,
+    chaptersCleared: win ? lastChapter() : 0,
     reviveUsed: reviveUsedOf(g.reviveLeft),
     stats,
     deck: g.deckMaster.map((c) => ({ id: c.id, name: CARDS[c.id]?.name ?? c.id, affixes: c.mods.map((m) => g.affixName(m)) })),

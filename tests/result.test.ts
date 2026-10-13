@@ -181,7 +181,7 @@ describe('启动续玩弹窗 → 放弃 → 二次确认 → 败北结算 → �
     await tick();
     tap(dialogButtons(frameCtx, ABANDON_H).right); // 确定放弃
     expect(await p).toBe('abandon');
-    expect(ABANDON_TEXT).toBe('放弃后本局按失败结算，将魂减半，存档将被删除。确定放弃？');
+    expect(ABANDON_TEXT).toBe('放弃后本局按战败结算，存档将被删除。确定放弃？');
   });
   it('继续本局 → continue', async () => {
     const ov = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });

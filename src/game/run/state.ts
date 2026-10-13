@@ -47,7 +47,9 @@ export interface PendingNode {
 /** 每局复活次数（config/rules.yaml revive.count） */
 export const REVIVES_PER_RUN = CONFIG.rules.revive.count;
 /** 一次性宝物（每局限 1 次） */
-export const ONE_SHOT_RELICS: readonly string[] = ['R15'];
+export const ONE_SHOT_RELICS: readonly string[] = Object.values(CONFIG.relics)
+  .filter((r) => r.oneShot)
+  .map((r) => r.id);
 
 // ───────── 卡牌 uid 号段（#122 第 2 点） ─────────
 /** 战斗内临时牌（衍生牌等）号段起点：≥ 此值的 uid 不进牌组、不写存档 */

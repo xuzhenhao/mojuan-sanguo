@@ -30,6 +30,13 @@ export class PresentationQueue {
       this.played.push(id);
     });
   }
+  /** 插到阻塞队列最前（首领登场演出：开战时已排队的步骤等它播完） */
+  pushFront(id: string, durationMs: number, data?: Record<string, unknown>): Promise<void> {
+    return new Promise((resolve) => {
+      this.queue.unshift({ id, durationMs, blocking: true, t: 0, data, done: resolve });
+      this.played.push(id);
+    });
+  }
   /** 当前正在播的阻塞步骤 */
   get current(): Step | null {
     return this.queue[0] ?? null;
@@ -50,6 +57,8 @@ export class PresentationQueue {
 
   update(dt: number) {
     const d = dt * this.speed;
+    // 本帧开始前已在播的非阻塞步骤；阻塞步骤结束时新排的（如登场后的意图弹出）下一帧才计时
+    const free0 = [...this.free];
     let left = d;
     while (this.queue.length && left >= 0) {
       const s = this.queue[0];
@@ -64,7 +73,7 @@ export class PresentationQueue {
       s.done?.();
       if (left <= 0) break;
     }
-    for (const s of [...this.free]) {
+    for (const s of free0) {
       s.t += d;
       if (s.t >= s.durationMs) {
         this.free.splice(this.free.indexOf(s), 1);

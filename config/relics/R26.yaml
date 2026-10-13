@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R26
+name: 俸禄袋
+rarity: N
+desc: "进入新章节时 +15 铜钱"

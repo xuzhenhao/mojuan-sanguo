@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P01
+name: 回春丹
+desc: "回 2 体力"
+price: 50 # 14.2 集市基价（浮动前）

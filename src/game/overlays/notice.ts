@@ -13,7 +13,7 @@ export const NOTICE_MS = 2500;
 export const NOTICE_FADE_MS = 180;
 /** 字体只用霞鹜文楷（Brush），不写任何系统字体回退 */
 export const NOTICE_FONT = '16px "Brush"';
-/** 宽度按内容自适应：最小 200dp，最大 屏宽 − 48dp，水平居中 */
+/** 宽度按内容自适应：最小 200dp，最大 屏宽 − 48dp，水平居中；多条同时在屏时统一取最宽一条的宽度（#136） */
 export const NOTICE_STYLE = { bg: 'rgba(7,3,2,0.9)', line: '#8A6A2A', text: '#F3EBD8', h: 40, padX: 22, gap: 8, minW: 200, sideMargin: 24 } as const;
 /** 同时最多显示条数：新来的在下、旧的往上挤，超出移掉最旧 */
 export const NOTICE_MAX = 2;
@@ -35,7 +35,13 @@ export function noticeRect(textW: number, slot: number, W: number = DESIGN_RECT.
   return { x: (W - w) / 2, y: topOf() + slot * (S.h + S.gap), w, h: S.h };
 }
 /** slot：堆叠序号（0 = 最上面一条） */
-export type NoticeRenderer = (s: Surface, text: string, t: number, slot: number) => void;
+/** stackW：同屏各条文字宽度的最大值（统一胶囊宽度用）；缺省按本条文字宽 */
+export type NoticeRenderer = (s: Surface, text: string, t: number, slot: number, stackW?: number) => void;
+/** 量文字宽（无 measureText 的环境按 16dp/字估） */
+export function measureNotice(c: Ctx2DLike, text: string) {
+  c.font = NOTICE_FONT;
+  return (c as Ctx2DLike & { measureText?(t: string): { width: number } }).measureText?.(text).width ?? text.length * 16;
+}
 
 const alphaAt = (t: number, ms = NOTICE_MS) => Math.max(0, Math.min(1, t / NOTICE_FADE_MS, (ms - t) / NOTICE_FADE_MS));
 
@@ -52,12 +58,11 @@ function capsule(c: Ctx2DLike, x: number, y: number, w: number, h: number) {
   } else c.fillRect(x, y, w, h);
 }
 
-export const formalNotice: NoticeRenderer = (s, text, t, slot) => {
+export const formalNotice: NoticeRenderer = (s, text, t, slot, stackW) => {
   const c = s.ctx;
   const S = NOTICE_STYLE;
   const W = DESIGN_RECT.w; // 弹层用 390 设计坐标（render-spec §4.0）
-  c.font = NOTICE_FONT;
-  const tw = (c as Ctx2DLike & { measureText?(t: string): { width: number } }).measureText?.(text).width ?? text.length * 16;
+  const tw = Math.max(measureNotice(c, text), stackW ?? 0);
   const { x, y, w } = noticeRect(tw, slot, W);
   const ga = c.globalAlpha;
   c.globalAlpha = ga * alphaAt(t);
@@ -86,7 +91,11 @@ const liveOf = (ov: object) => {
   if (!l) lives.set(ov, (l = []));
   return l;
 };
+/** 各条的文字宽（绘制时量，堆叠统一宽度用） */
+const widths = new WeakMap<OverlayHandle, number>();
 let seq = 0;
+/** 当前同屏各条文字宽的最大值（测试用） */
+export const noticeStackWidth = (ov: object) => Math.max(0, ...liveOf(ov).map((x) => widths.get(x) ?? 0));
 export const liveNotices = (ov: object) => liveOf(ov).length;
 
 /** 弹出提示（非模态，不挡输入）；text 为空则不弹。多条同时在屏时依次往下排 */
@@ -103,7 +112,10 @@ export function showNotice(ov: Pick<OverlayStack, 'push'>, text: string | null, 
     id: `notice:${++seq}`,
     kind: 'toast',
     modal: false,
-    draw: (s) => renderer(s, text, t, Math.max(0, live.indexOf(h))),
+    draw: (s) => {
+      widths.set(h, measureNotice(s.ctx, text));
+      renderer(s, text, t, Math.max(0, live.indexOf(h)), noticeStackWidth(ov));
+    },
     animating: () => true,
     update(dt) {
       t += dt;

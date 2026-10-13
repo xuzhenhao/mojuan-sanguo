@@ -358,7 +358,7 @@ export class Game {
     this.en = this.battle.en.map((id) => this.spawnEnemy(id));
     this.log(`—— 第${this.battleIdx + 1}战：${this.battle.name} ——`);
     this.effects.emitSync('battle_start', this.effects.playerSources());
-    if (this.startArmorBonus > 0) this.p.armor = Math.min(this.p.armor + this.startArmorBonus, Math.max(this.p.armor, 4));
+    if (this.startArmorBonus > 0) this.p.armor = Math.min(this.p.armor + this.startArmorBonus, Math.max(this.p.armor, CONFIG.rules.event.startArmorCap));
     this.playerTurn();
   }
   playerTurn() {

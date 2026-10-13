@@ -21,6 +21,8 @@ export const B = {
   jade: '#4F9A7C',
   btnText: '#FFF3DC',
   mask: 'rgba(5,2,1,.72)',
+  /** 续玩 / 放弃 / 暂停设置这类不可逆或打断流程的弹层（#105 规范 .90） */
+  maskDeep: 'rgba(5,2,1,.9)',
 } as const;
 
 /** 书法字（霞鹜文楷，FontFace 族名 Brush）；禁止系统楷体回退 */

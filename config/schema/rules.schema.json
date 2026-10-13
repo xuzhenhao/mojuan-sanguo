@@ -21,7 +21,10 @@
     "sim",
     "map",
     "revive",
-    "economy"
+    "economy",
+    "event",
+    "settlement",
+    "settings"
   ],
   "properties": {
     "lingPerTurn": {
@@ -973,6 +976,155 @@
           "type": "number",
           "minimum": 0,
           "description": "天命 6 集市加价比例"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "description": "奇遇（#174）",
+      "required": [
+        "startArmorCap"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "startArmorCap": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "开场护甲总上限"
+        }
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "description": "结算将魂系数（PRD 14.5；#174）",
+      "required": [
+        "soul",
+        "maxTianming"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "soul": {
+          "type": "object",
+          "required": [
+            "perChapter",
+            "perElite",
+            "perWin",
+            "perBoss",
+            "defeatMul",
+            "tianmingStep"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "perChapter": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每通关一章"
+            },
+            "perElite": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每精英击杀"
+            },
+            "perWin": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每战斗胜利"
+            },
+            "perBoss": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每 Boss 击杀"
+            },
+            "defeatMul": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "败北/放弃倍率（向下取整）"
+            },
+            "tianmingStep": {
+              "type": "number",
+              "minimum": 0,
+              "description": "每级天命加成"
+            }
+          }
+        },
+        "maxTianming": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "天命上限"
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "description": "暂停/设置浮层（#108）：局外偏好默认值",
+      "required": [
+        "toggles",
+        "choices"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "toggles": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "label",
+              "default"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "default": {
+                "type": "boolean"
+              },
+              "hidden": {
+                "type": "boolean",
+                "description": "底层功能未实现时为 true：浮层不显示该项"
+              }
+            }
+          }
+        },
+        "choices": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "label",
+              "options",
+              "default"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "options": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 3,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "default": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hidden": {
+                "type": "boolean",
+                "description": "底层功能未实现时为 true：浮层不显示该项"
+              }
+            }
+          }
         }
       }
     }
