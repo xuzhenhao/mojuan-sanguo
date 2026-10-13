@@ -34,9 +34,9 @@ export const C = {
 } as const;
 
 export const FONT = {
-  brush: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
-  num: 'Georgia, "Times New Roman", serif',
-  body: '"PingFang SC", "Noto Sans SC", sans-serif',
+  brush: '"Brush"',
+  num: '"Brush"',
+  body: '"Brush"',
 };
 
 type Ext = Ctx2DLike & {

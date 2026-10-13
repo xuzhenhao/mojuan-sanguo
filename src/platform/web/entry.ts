@@ -169,7 +169,7 @@ if (showStatusBar(platform.launchQuery(), location.pathname))
     draw(s) {
       const mb = (n: number) => (n / 1048576).toFixed(1);
       s.ctx.fillStyle = '#8c7448';
-      s.ctx.font = '11px sans-serif';
+      s.ctx.font = '11px "Brush"';
       s.ctx.fillText?.(
         `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
         16,

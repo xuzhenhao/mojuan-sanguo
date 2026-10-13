@@ -1,6 +1,6 @@
 /**
  * 数字字体接口（render-spec §2：数字用位图字体）。
- * 位图数字图集尚未交付：默认 `SERIF_DIGITS` 用衬线数字占位（不用 sans-serif 系统字），
+ * 位图数字图集尚未交付：默认 `SERIF_DIGITS` 用霞鹜文楷数字占位（#142：不回退任何系统字体），
  * 资源到位后实现 `NumFont`（按字符取图集帧）并 `setNumFont()` 替换，调用方不变。
  */
 import type { Ctx2DLike } from '../../engine/types';
@@ -12,7 +12,7 @@ export interface NumFont {
   measure(c: Ctx2DLike, s: string, px: number): number;
 }
 
-const font = (px: number) => `bold ${px}px "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, "Times New Roman", serif`;
+const font = (px: number) => `bold ${px}px "Brush"`;
 
 export const SERIF_DIGITS: NumFont = {
   measure(c, s, px) {
