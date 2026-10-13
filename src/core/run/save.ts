@@ -57,7 +57,7 @@ export type ResumeResult =
   | { kind: 'silent_upgrade'; save: RunSave } // 不在战斗中：静默用新配置
   | { kind: 'rollback_battle'; save: RunSave; dialog: 'version' }; // 战斗从第 1 回合重开，弹 version 对话框
 
-export const VERSION_DIALOG_TEXT = '游戏已更新。为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。';
+export const VERSION_DIALOG_TEXT = '为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。';
 
 export function resumeRun(s: RunSave, currentConfigVersion: string): ResumeResult {
   if (s.configVersion === currentConfigVersion) return { kind: 'ok', save: s };

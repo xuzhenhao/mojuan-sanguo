@@ -100,6 +100,8 @@ export class RestScene implements Scene<RestParams> {
   result: RestResult | null = null;
   /** 选牌/铭刻流程进行中（防连点） */
   busy = false;
+  /** 选牌层 / 确认框 / 结果层打开中：底层三张选项卡不画（#136） */
+  sub = false;
   readonly log: string[] = [];
   constructor(private env: RestEnv) {}
 
@@ -111,6 +113,7 @@ export class RestScene implements Scene<RestParams> {
     this.selected = null;
     this.result = null;
     this.busy = false;
+    this.sub = false;
     this.track('rest_enter', { fixed: !!p?.fixed, layer: p?.layer });
     if (this.env.debugState) this.openDebug(this.env.debugState);
   }
@@ -126,9 +129,14 @@ export class RestScene implements Scene<RestParams> {
       const pool = temperPool(card, deck);
       const view = st === 'replace' ? { ...card, mods: pool.slice(0, MAX_AFFIXES).map((a) => a.id) } : card;
       const a = temperPool(view, deck)[0] ?? pool[0];
-      if (a) void temperDialog(this.env, w, h, view, a, st === 'replace');
-    } else if (st === 'result') void resultPanel(this.env, w, h, card, `已淬炼：${temperPool(card, deck)[0]?.n ?? ''}`);
-    else if (st === 'done') {
+      if (a) {
+        this.sub = true;
+        void temperDialog(this.env, w, h, view, a, st === 'replace');
+      }
+    } else if (st === 'result') {
+      this.sub = true;
+      void resultPanel(this.env, w, h, card, `已淬炼：${temperPool(card, deck)[0]?.n ?? ''}`);
+    } else if (st === 'done') {
       this.selected = 'temper';
       this.result = { action: 'temper', text: `「${def(card).name}」铭刻词条「${temperPool(card, deck)[0]?.n ?? ''}」` };
     }
@@ -208,6 +216,8 @@ export class RestScene implements Scene<RestParams> {
   async perform(a: RestAction): Promise<boolean> {
     if (this.result || this.blocked(a)) return false;
     this.busy = true;
+    this.sub = a !== 'heal';
+    if (this.sub) this.ctx.invalidate('main');
     try {
       const r = a === 'heal' ? this.heal() : a === 'temper' ? await this.temper() : await this.burn();
       if (!r) return false;
@@ -217,6 +227,7 @@ export class RestScene implements Scene<RestParams> {
       return true;
     } finally {
       this.busy = false;
+      this.sub = false;
       this.ctx.invalidate('main');
     }
   }
@@ -285,7 +296,7 @@ export class RestScene implements Scene<RestParams> {
     if (layer !== 'main') return;
     drawTag(c, '营地');
     this.drawHp(c);
-    RestScene.ACTIONS.forEach((a, i) => this.drawOption(c, a, i));
+    if (!this.sub) RestScene.ACTIONS.forEach((a, i) => this.drawOption(c, a, i));
     if (this.result) {
       const r = { x: 24, y: 584, w: w - 48, h: 64 };
       vgrad(c, r, 'rgba(42,20,16,.95)', 'rgba(15,7,5,.95)');
