@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FlowMachine } from '../src/game/flow';
-import { RestScene, type RestRun } from '../src/game/scenes/rest';
+import { FULL_SCRIM, POPUP_SCRIM, REPLACE_BTN_GAP, REPLACE_BTN_H, RestScene, type RestRun } from '../src/game/scenes/rest';
 import { MAP_CONFIG } from '../src/data/map';
 import type { CardInst } from '../src/core/types';
 import { center, flush, p4env, surface, tap } from './p4-helpers';
@@ -30,12 +30,13 @@ const tapDlg = (o: OverlayStack, which: 'ok' | 'no' | number) => {
   const r = o.top()!.rect!;
   if (which === 'ok') o.gesture(tap(r.x + r.w - 24 - 64, r.y + r.h - 64 + 22));
   else if (which === 'no') o.gesture(tap(r.x + 24 + 64, r.y + r.h - 64 + 22));
-  else o.gesture(tap(r.x + r.w / 2, r.y + 290 + which * 52 + 22));
+  else o.gesture(tap(r.x + r.w / 2, r.y + 292 + which * (REPLACE_BTN_H + REPLACE_BTN_GAP) + REPLACE_BTN_H / 2));
 };
 /** 结果面板：点任意处关闭 */
 const closeResult = async (o: OverlayStack) => {
   await flush();
   expect(o.top()?.id).toBe('rest-result');
+  expect((o.top()?.scrim as { color: string } | undefined)?.color).toBe(FULL_SCRIM);
   o.draw(surface(), 16);
   o.gesture(tap(10, 10));
   await flush();
@@ -63,8 +64,9 @@ describe('营地页 rest（#90）', () => {
     expect(s.blocked('temper')).toBe('本次营地已行动');
     expect(await s.perform('burn')).toBe(false);
     s.draw('main', surface());
-    // #done：「确定」置灰，只有「离开」可点
-    expect(btn(s, 'ok').disabled).toBe(true);
+    // #done：隐藏「确定」，只留「离开」（靠右、主按钮样式）
+    expect(s.buttons().map((b) => [b.id, b.kind])).toEqual([['leave', 'primary']]);
+    expect(btn(s, 'leave').rect.x + btn(s, 'leave').rect.w).toBe(390 - 10);
     tapBtn(s, 'leave');
     expect(t.done).toBe(1);
     expect(events[0]).toMatch(/^rest_enter:.*"fixed":false/);
@@ -94,6 +96,7 @@ describe('营地页 rest（#90）', () => {
     tapBtn(s, 'ok');
     await flush();
     expect(t.overlays.top()?.id).toBe('deck-pick');
+    expect((t.overlays.top()?.scrim as { color: string } | undefined)?.color).toBe(FULL_SCRIM); // 全屏选牌近不透明
     // 酒（第 12 张）无可用词条：点了只 toast
     t.overlays.gesture(tap(...center(pickRect(11))));
     expect(t.overlays.ids()).toEqual(['deck-pick', 'toast:此牌暂无可用词条']);
@@ -144,6 +147,8 @@ describe('营地页 rest（#90）', () => {
     a.t.overlays.gesture(tap(...center(pickRect(0))));
     await flush();
     expect(a.t.overlays.top()?.id).toBe('rest-replace');
+    expect((a.t.overlays.top()?.scrim as { color: string } | undefined)?.color).toBe(POPUP_SCRIM);
+    a.t.overlays.draw(surface(), 16);
     tapDlg(a.t.overlays, 'ok'); // 未选旧词条：「淬炼」禁用
     expect(a.t.overlays.top()?.id).toBe('rest-replace');
     tapDlg(a.t.overlays, 1); // 选第 2 条
@@ -196,5 +201,14 @@ describe('营地页 rest（#90）', () => {
     expect(s.blocked('burn')).toMatch(/视频/);
     expect(s.blocked('temper')).toBeNull();
     s.draw('main', surface());
+  });
+  it('UI 验收：遮罩 .92 / .70，替换按钮高 52 且两行文字在按钮内', () => {
+    expect(FULL_SCRIM).toBe('rgba(5,2,1,.92)');
+    expect(POPUP_SCRIM).toBe('rgba(5,2,1,.70)');
+    expect(REPLACE_BTN_H).toBe(52);
+    // 主文字基线 mid-3（15px 字顶 ≈ mid-14）、副文字基线 mid+14（11px），都在 [y+4, y+h-4] 内框里
+    const mid = REPLACE_BTN_H / 2;
+    expect(mid - 3 - 12).toBeGreaterThanOrEqual(4);
+    expect(mid + 14 + 2).toBeLessThanOrEqual(REPLACE_BTN_H - 4);
   });
 });

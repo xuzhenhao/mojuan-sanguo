@@ -168,7 +168,8 @@ export class RestScene implements Scene<RestParams> {
   buttons(): Button[] {
     const { width: w, height: h } = this.ctx;
     const y = h - BAR_H + 15;
-    // #done（render-spec §8.7）：「确定」置灰，只有「离开」可点（离开 = 回地图）
+    // #done（render-spec §8.7 + UI 验收）：隐藏「确定」，只留「离开」，靠右、主按钮样式（离开 = 回地图）
+    if (this.result) return [{ id: 'leave', rect: { x: w - 126, y, w: 116, h: 44 }, text: '离开', kind: 'primary', font: BRUSH(18) }];
     return [
       { id: 'leave', rect: { x: w - 222, y, w: 86, h: 44 }, text: '离开', kind: 'secondary', font: BRUSH(18) },
       {
@@ -176,7 +177,7 @@ export class RestScene implements Scene<RestParams> {
         rect: { x: w - 126, y, w: 116, h: 44 },
         text: '确定',
         kind: 'primary',
-        disabled: !!this.result || !this.selected || !!this.blocked(this.selected) || this.busy,
+        disabled: !this.selected || !!this.blocked(this.selected) || this.busy,
         font: BRUSH(18),
       },
     ];
@@ -236,6 +237,7 @@ export class RestScene implements Scene<RestParams> {
         confirm: null,
         reject: () => '此牌暂无可用词条',
         tag: (c) => (c.mods.length >= MAX_AFFIXES ? '可替换' : null),
+        scrim: FULL_SCRIM,
       }).result;
       if (uid === undefined) return null;
       const card = deck.find((c) => c.uid === uid)!;
@@ -257,7 +259,7 @@ export class RestScene implements Scene<RestParams> {
   private async burn(): Promise<RestResult | null> {
     const inv = this.inv;
     const { width: w, height: h } = this.ctx;
-    const uid = await pickDeckCard(this.env, w, h, inv, '焚稿·删一张牌', { ok: (c) => canBurn(inv.deck, c.uid, ECONOMY.minDeck) }).result;
+    const uid = await pickDeckCard(this.env, w, h, inv, '焚稿·删一张牌', { ok: (c) => canBurn(inv.deck, c.uid, ECONOMY.minDeck), scrim: FULL_SCRIM }).result;
     if (uid === undefined) return null;
     const i = inv.deck.findIndex((c) => c.uid === uid);
     if (i < 0 || !canBurn(inv.deck, uid, ECONOMY.minDeck)) return null;
@@ -342,62 +344,26 @@ function drawFire(c: Surface['ctx'], cx: number, y: number) {
   c.fillRect(cx - 40, y + 124, 80, 8);
 }
 
-export interface ChoiceOpt {
-  id: string;
-  text: string;
-  kind: Button['kind'];
-}
-/** 必选浮层（不可点外部关闭）：结果为选项 id */
-export function choice(env: Env, w: number, h: number, title: string, lines: string[], opts: ChoiceOpt[]) {
-  const pw = 320;
-  const m = env.measure();
-  const wrapped = lines.flatMap((l) => wrap(m, l, pw - 48, 14));
-  const ph = 70 + wrapped.length * 20 + 20 + opts.length * 52;
-  const r = { x: (w - pw) / 2, y: Math.max(60, (h - ph) / 2 - 20), w: pw, h: ph };
-  const btn = (i: number): Button => ({
-    id: opts[i].id,
-    rect: { x: r.x + 30, y: r.y + 70 + wrapped.length * 20 + 14 + i * 52, w: pw - 60, h: 44 },
-    text: opts[i].text,
-    kind: opts[i].kind,
-    font: BRUSH(18),
-  });
-  const bs = opts.map((_, i) => btn(i));
-  return env.overlays.push<string>({
-    id: `rest-choice:${title}`,
-    kind: 'popup',
-    rect: r,
-    scrim: { color: 'rgba(5,2,1,.72)' },
-    draw: (s) => {
-      const c = s.ctx;
-      vgrad(c, r, 'rgba(42,20,16,.98)', 'rgba(15,7,5,.98)');
-      frame3(c, r);
-      label(c, title, r.x + pw / 2, r.y + 40, BRUSH(24), T.gold, 'center');
-      wrapped.forEach((ln, k) => label(c, ln, r.x + 24, r.y + 76 + k * 20, SANS(14), T.paper));
-      for (const b of bs) drawButton(c, b);
-    },
-    gesture: (e, hd) => {
-      if (e.type !== 'tap') return true;
-      const b = bs.find((x) => inside(x.rect, e.at));
-      if (b) hd.close(b.id);
-      return true;
-    },
-  });
-}
-
 const PANEL_W = 320;
+/** render-spec §8.7 + UI 验收：全屏层（选牌 / 结果）近不透明，下层选项和大字不透出；小弹窗（确认 / 替换）约 .70 */
+export const FULL_SCRIM = 'rgba(5,2,1,.92)';
+export const POPUP_SCRIM = 'rgba(5,2,1,.70)';
+/** 替换按钮：高 52，主文字 15 + 副文字（词条效果）11，两行在按钮内上下居中 */
+export const REPLACE_BTN_H = 52;
+export const REPLACE_BTN_GAP = 8;
 /**
  * 淬炼词条确认（#confirm）/ 满词条替换（#replace），render-spec §8.7。
  * 结果：'ok' 铭刻 / 'back' 再想想 / 'skip' 放弃（替换模式）/ 旧词条 id（替换模式选中后点「淬炼」）
  */
 export function temperDialog(env: Env, w: number, h: number, card: CardInst, a: AffixDef, full: boolean) {
-  const ph = full ? 470 : 380;
+  const ph = full ? 500 : 380;
   const r = { x: (w - PANEL_W) / 2, y: Math.max(40, (h - ph) / 2 - 20), w: PANEL_W, h: ph };
   const cardR = { x: r.x + (PANEL_W - CARD_W) / 2, y: r.y + 58, w: CARD_W, h: CARD_H };
   let sel: string | null = null;
   const olds = full
     ? card.mods.map((m, i): Button => ({
         id: m,
-        rect: { x: r.x + 24, y: r.y + 290 + i * 52, w: PANEL_W - 48, h: 44 },
+        rect: { x: r.x + 24, y: r.y + 292 + i * (REPLACE_BTN_H + REPLACE_BTN_GAP), w: PANEL_W - 48, h: REPLACE_BTN_H },
         text: `替换「${affix(m)?.n ?? m}」`,
         kind: 'secondary',
         font: BRUSH(15),
@@ -423,7 +389,7 @@ export function temperDialog(env: Env, w: number, h: number, card: CardInst, a: 
     id: full ? 'rest-replace' : 'rest-confirm',
     kind: 'popup',
     rect: r,
-    scrim: { color: 'rgba(5,2,1,.72)' },
+    scrim: { color: POPUP_SCRIM },
     draw: (s) => {
       const c = s.ctx;
       vgrad(c, r, 'rgba(42,20,16,.98)', 'rgba(15,7,5,.98)');
@@ -438,10 +404,7 @@ export function temperDialog(env: Env, w: number, h: number, card: CardInst, a: 
       label(c, a.d, r.x + PANEL_W / 2, r.y + 262, SANS(13), T.paper, 'center');
       if (full) {
         label(c, `此牌已有 ${MAX_AFFIXES} 条词条，选择要替换的一条`, r.x + PANEL_W / 2, r.y + 282, SANS(12), T.paper3, 'center');
-        for (const b of olds) {
-          drawButton(c, { ...b, kind: sel === b.id ? 'confirm' : 'secondary' });
-          label(c, affix(b.id)?.d ?? '', b.rect.x + b.rect.w / 2, b.rect.y + b.rect.h + 2, SANS(10), T.paper3, 'center');
-        }
+        for (const b of olds) drawReplaceButton(c, b, sel === b.id);
         label(c, '放弃也算本次营地已行动', r.x + PANEL_W / 2, r.y + r.h - 8, SANS(11), T.paper3, 'center');
       }
       drawButton(c, noB);
@@ -466,7 +429,7 @@ export function resultPanel(env: Env, w: number, h: number, card: CardInst, text
   return env.overlays.push<void>({
     id: 'rest-result',
     kind: 'popup',
-    scrim: { color: 'rgba(5,2,1,.72)' },
+    scrim: { color: FULL_SCRIM },
     animating: () => true,
     update(dt) {
       t += dt;
@@ -474,8 +437,7 @@ export function resultPanel(env: Env, w: number, h: number, card: CardInst, text
     draw: (s) => {
       const c = s.ctx;
       const dy = Math.sin((t / 2200) * Math.PI * 2) * 8;
-      circle(c, cx, cy + dy, 110, 'rgba(233,200,119,.16)');
-      circle(c, cx, cy + dy, 80, 'rgba(244,220,154,.18)');
+      glow(c, cx, cy + dy, 130);
       const g = gx(c);
       g.save?.();
       g.translate?.(cx - CARD_W / 2, cy - CARD_H / 2 + dy);
@@ -489,4 +451,25 @@ export function resultPanel(env: Env, w: number, h: number, card: CardInst, text
       return true;
     },
   });
+}
+
+/** 替换按钮：两行（「替换「xx」」15 + 词条效果 11）都在按钮内、上下居中；选中用确认色 */
+export function drawReplaceButton(c: Surface['ctx'], b: Button, selected: boolean) {
+  drawButton(c, { ...b, text: '', kind: selected ? 'confirm' : 'secondary' });
+  const cx = b.rect.x + b.rect.w / 2;
+  const mid = b.rect.y + b.rect.h / 2;
+  label(c, b.text, cx, mid - 3, BRUSH(15), T.paper, 'center');
+  label(c, affix(b.id)?.d ?? '', cx, mid + 14, SANS(11), selected ? T.paper : T.paper3, 'center');
+}
+
+/** 结果光晕：中心金色、向外淡出的径向渐变（不画实心圆，避免和下层圆章叠影） */
+export function glow(c: Surface['ctx'], x: number, y: number, r: number) {
+  const g = gx(c);
+  if (!g.createRadialGradient) return;
+  const rg = g.createRadialGradient(x, y, 0, x, y, r);
+  rg.addColorStop(0, 'rgba(244,220,154,.55)');
+  rg.addColorStop(0.45, 'rgba(233,200,119,.22)');
+  rg.addColorStop(1, 'rgba(233,200,119,0)');
+  (c as unknown as { fillStyle: unknown }).fillStyle = rg;
+  c.fillRect(x - r, y - r, r * 2, r * 2);
 }

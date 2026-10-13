@@ -387,6 +387,8 @@ export interface DeckPickOpts {
   reject?(c: CardInst): string | null;
   /** 卡右上角金签（如淬炼满词条「可替换」，render-spec §8.7） */
   tag?(c: CardInst): string | null;
+  /** 遮罩色（默认 .88；营地全屏选牌 .92，下层选项不透出） */
+  scrim?: string;
 }
 const BURN_CONFIRM = { title: '焚稿', line: (c: CardInst) => `删除「${def(c).name}」？`, ok: '删除' };
 
@@ -407,7 +409,7 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
   return env.overlays.push<number>({
     id: 'deck-pick',
     kind: 'popup',
-    scrim: { color: 'rgba(5,2,1,.88)' },
+    scrim: { color: o.scrim ?? 'rgba(5,2,1,.88)' },
     draw: (s) => {
       const c = s.ctx;
       label(c, title, w / 2, 110, BRUSH(24), T.gold, 'center');
