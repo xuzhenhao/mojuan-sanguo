@@ -1,0 +1,89 @@
+/**
+ * 地图页装配：从配置建 MapSession（同一局复用），创建 MapScene。
+ * 局种子：URL ?seed= 优先（H5 调试，PRD 10.1），其次续玩存档，否则新随机。
+ */
+import type { Engine } from '../../engine/engine';
+import { MAP_CONFIG, enemyGlyph, enemyName, poolsOf } from '../../data/map';
+import { CONFIG } from '../../data/config';
+import type { FlowEvent } from '../flow';
+import type { MapRouteParams } from './route';
+import { MapScene } from './scene';
+import { MapSession, type HudInfo } from './session';
+
+let session: MapSession | null = null;
+
+export function mapSession(engine: Engine, chapter = 1, seed?: number): MapSession {
+  const q = engine.platform.launchQuery().seed;
+  const runSeed = seed ?? (q != null && q !== '' ? Number(q) >>> 0 : (MapSession.savedSeed() ?? Math.floor(engine.platform.now() * 1000) >>> 0));
+  if (!session || session.runSeed !== runSeed || session.chapter !== chapter) {
+    const d = CONFIG.rules.defaultHeroes;
+    session = new MapSession(
+      runSeed,
+      chapter,
+      MAP_CONFIG,
+      poolsOf(chapter),
+      undefined,
+      () => {
+        const h = defaultHud();
+        return {
+          schema: 1,
+          version: '0.2.0',
+          configVersion: 'dev',
+          heroMain: d.main,
+          heroSub: d.sub,
+          hp: h.hp,
+          maxHp: h.maxHp,
+          gold: h.gold,
+          deck: [],
+          relics: [],
+          potions: [],
+          battleState: null,
+          battleStartSnapshot: null,
+        };
+      },
+      undefined,
+      MAP_CONFIG.rest,
+    );
+  }
+  return session;
+}
+/** 新建局时调用（点将出征），丢弃旧地图 */
+export function resetMapSession() {
+  session = null;
+}
+
+/** HUD 数据源：局状态接入前的默认值（主将 = 默认主将，体力取其上限） */
+export function defaultHud(): HudInfo {
+  const h = CONFIG.heroes[CONFIG.rules.defaultHeroes.main];
+  const hp = h?.hp ?? 8;
+  return { hp, maxHp: hp, gold: 99, potions: [null, null, null], hero: h?.name ?? '将' };
+}
+
+export function createMapScene(
+  engine: Engine,
+  go: (e: FlowEvent, p: MapRouteParams) => void,
+  hud?: () => HudInfo,
+  runSeed: () => number | undefined = () => undefined,
+) {
+  const s = mapSession(engine, 1, runSeed());
+  // HUD 体力/铜钱读本局存档（营地回血后即时反映）
+  hud ??= () => {
+    const h = s.head();
+    return { ...defaultHud(), hp: h.hp, maxHp: h.maxHp, gold: h.gold };
+  };
+  const boss = s.state.boss;
+  return new MapScene({
+    session: s,
+    hud,
+    bossName: enemyName(boss).split('·')[0],
+    bossGlyph: enemyGlyph(boss),
+    overlays: engine.overlays,
+    bakes: engine.bakes,
+    bakeScale: engine.bakeScale,
+    createOffscreen: (w, h) => engine.platform.createOffscreen(w, h),
+    go,
+    layerSpacing: MAP_CONFIG.layerSpacing,
+    moveMs: MAP_CONFIG.moveMs,
+    pulseMs: MAP_CONFIG.pulseMs,
+  });
+}
