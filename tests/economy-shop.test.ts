@@ -2,17 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { seeded } from '../src/core/rng';
 import { canRemove } from '../src/game/economy/inventory';
 import { buy, canBuy, openShop, refreshCost, refreshShop, removePrice, removeService } from '../src/game/economy/shop';
-import { demoInventory } from '../src/game/economy/session';
+import { makeTestInventory } from './test-inventory';
 
 describe('集市（10.7）', () => {
   it('货架：3 卡 + 1 宝物 + 2 丹药（设计稿占位）', () => {
-    const st = openShop(seeded(9), demoInventory());
+    const st = openShop(seeded(9), makeTestInventory());
     expect(st.cards).toHaveLength(3);
     expect(st.goods.filter((g) => g.type === 'relic')).toHaveLength(1);
     expect(st.goods.filter((g) => g.type === 'potion')).toHaveLength(2);
   });
   it('购买扣钱、售出后空着；买不起 / 丹药满拒绝', () => {
-    const inv = demoInventory({ gold: 500 });
+    const inv = makeTestInventory({ gold: 500 });
     const st = openShop(seeded(10), inv);
     const it = st.cards[0];
     expect(buy(inv, st, it)).toBe('ok');
@@ -30,7 +30,7 @@ describe('集市（10.7）', () => {
     ).toBe('potion_full');
   });
   it('刷新：首次免费，之后 25；已售格补货', () => {
-    const inv = demoInventory({ gold: 100 });
+    const inv = makeTestInventory({ gold: 100 });
     const rng = seeded(11);
     const st = openShop(rng, inv);
     st.cards[0].sold = true;
@@ -42,7 +42,7 @@ describe('集市（10.7）', () => {
     expect(inv.gold).toBe(75);
   });
   it('删牌：50 起每次 +25，进店限 1 次；删后不少于 8 张', () => {
-    const inv = demoInventory({ gold: 500 });
+    const inv = makeTestInventory({ gold: 500 });
     const st = openShop(seeded(12), inv);
     const uid = inv.deck.find((c) => canRemove(inv, c.uid))!.uid;
     expect(removePrice(inv)).toBe(50);
@@ -60,7 +60,7 @@ describe('定价读配置（#70）与 RunSession 背包', () => {
     const { CONFIG } = await import('../src/data/config');
     const { cardPrice } = await import('../src/game/economy/pools');
     const rng = seeded(21);
-    const inv = demoInventory();
+    const inv = makeTestInventory();
     const base = CONFIG.rules.shop!.cardPrice.N;
     for (let i = 0; i < 30; i++) {
       const p = cardPrice(rng, 'B001', inv);

@@ -5,7 +5,7 @@ import { enemyIntent } from '../src/core/rules';
 import { generateMap, moveTo } from '../src/core/run/map';
 import { MAP_CONFIG } from '../src/data/map';
 import { RunSession } from '../src/game/run';
-import { demoInventory } from '../src/game/economy/session';
+import { makeTestInventory } from './test-inventory';
 import { openShop } from '../src/game/economy/shop';
 import {
   allocCardUid,
@@ -248,9 +248,9 @@ describe('进节点快照 / 节点中途刷新（§5）', () => {
     const store = mem();
     const s1 = begin(77);
     s1.enterNode({ id: 'L2C1', type: 'SHOP' }, store);
-    const shelf1 = openShop(s1.rng('economy'), demoInventory());
+    const shelf1 = openShop(s1.rng('economy'), makeTestInventory());
     const { s: s2, r } = reload(store);
-    const shelf2 = openShop(s2.rng('economy'), demoInventory());
+    const shelf2 = openShop(s2.rng('economy'), makeTestInventory());
     expect(shelf2).toEqual(shelf1);
     expect(r.ok && noticeText(r.notice, s2.inNode)).toBe('已回到进入此处前');
     for (const type of ['EVENT', 'SHOP', 'CHEST', 'REST']) expect(noticeText('node_restart', { id: 'x', type })).toBe('已回到进入此处前');

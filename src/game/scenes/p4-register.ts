@@ -6,8 +6,8 @@
 import type { Engine } from '../../engine/engine';
 import type { BattleKind } from '../../data/economy';
 import type { FlowEvent } from '../flow';
-import { EconomySession } from '../economy/session';
-import type { RunSession } from '../run';
+import { RunSession } from '../run';
+import { CONFIG } from '../../data/config';
 import { RewardScene } from './reward';
 import { ShopScene } from './shop';
 import { ChestScene } from './chest';
@@ -18,21 +18,40 @@ export interface P4Deps {
   query: Record<string, string | undefined>;
   safe(): { x: number; y: number; w: number; h: number };
   send(e: FlowEvent): void;
-  /** 共享经济会话（RunSession 接入后由其提供） */
-  economy?: EconomySession;
   /** 本局 RunSession（#122 PR2）：有局时背包 / 经济随机流 / 节点完成都走它；没有局（?page= 直达）用演示背包 */
   run?: Pick<RunSession, 'active' | 'inventory' | 'rng' | 'completeNode' | 'store'>;
+}
+
+/** 直达调试局：主副将取默认，?seed= / ?gold= / ?potions= 写进 RunState；不绑定存储 */
+export function debugRun(q: Record<string, string | undefined>) {
+  let r: RunSession | null = null;
+  return (): RunSession => {
+    if (r) return r;
+    r = new RunSession();
+    const h = CONFIG.rules.defaultHeroes;
+    r.start({ main: h.main, sub: h.sub, seed: num(q.seed) ?? 45 });
+    const gold = num(q.gold);
+    const pots = num(q.potions) ?? 0;
+    r.update((s) => {
+      if (gold !== undefined) s.gold = gold;
+      const ids = ['P01', 'P03', 'P07'];
+      for (let i = 0; i < Math.min(pots, s.potions.length); i++) s.potions[i] = ids[i];
+    });
+    return r;
+  };
 }
 
 const num = (s: string | undefined) => (s !== undefined && s !== '' && !Number.isNaN(Number(s)) ? Number(s) : undefined);
 
 export function registerP4(d: P4Deps) {
   const q = d.query;
-  const econ = d.economy ?? new EconomySession({ seed: num(q.seed), gold: num(q.gold), potions: num(q.potions) });
   const { engine } = d;
   const live = () => !!d.run?.active;
-  const inv = () => (live() ? d.run!.inventory : econ.inventory);
-  const rng = () => (live() ? d.run!.rng('economy') : econ.rng);
+  /** ?page= 直达调试：没有正式局时临时开一个不落盘的 RunSession（#122 PR3 删演示背包，一律走 RunSession） */
+  const dbg = debugRun(q);
+  const cur = () => (live() ? d.run! : dbg());
+  const inv = () => cur().inventory;
+  const rng = () => cur().rng('economy');
   /** 节点结算完成：立刻写档（RunSession.completeNode），再交给流程 */
   const done = (e: FlowEvent) => () => {
     if (live()) d.run!.completeNode(d.run!.store ?? undefined);
@@ -51,5 +70,5 @@ export function registerP4(d: P4Deps) {
   engine.scenes.register('shop', () => new ShopScene({ ...env, inventory: inv, rng, done: done({ type: 'shop_done' }) }));
   const force = q.chest === 'gold' || q.chest === 'relic' ? q.chest : undefined;
   engine.scenes.register('chest', () => new ChestScene({ ...env, inventory: inv, rng, done: done({ type: 'chest_done' }), force }));
-  return econ;
+  return { debug: dbg };
 }
