@@ -110,15 +110,12 @@ export const ECONOMY = {
   /** Boss 额外宝物三选一（总策划定）：只出 Boss 级，不足 3 件用 E 补；不含 N/R/L */
   bossRelicPool: 'Boss' as RelicDef['rarity'],
   bossRelicFill: 'E' as RelicDef['rarity'],
-  /** 14.2 卡牌价格 */
-  cardPrice: { N: 40, R: 60, E: 90, L: 130 } as Record<Rarity, number>,
+  // 14.2 卡牌价格：config/rules.yaml shop.cardPrice 与卡牌 shopPrice（#70）
   /** 14.2 宝物价格 */
   relicPrice: { N: 70, R: 100, E: 140 } as Partial<Record<RelicDef['rarity'], number>>,
   /** 14.2 价格随机浮动 ±10%，取整到 5（删牌、刷新不浮动） */
   priceJitter: 0.1,
   priceRound: 5,
-  /** 过渡兜底：#70 合入后卡牌配置有 shopPrice，届时删除本项与 cardPrice（改读 rules.shop.cardPrice） */
-  fixedCardPrice: { T002: 40 } as Record<string, number>,
   /** 10.7 删牌服务：50，本局每用一次 +25 */
   removeBase: 50,
   removeStep: 25,
