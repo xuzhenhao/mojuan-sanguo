@@ -54,7 +54,7 @@ describe('主将 dying 脉动（render-spec §3.3）', () => {
   it('dying 时持续重绘', () => {
     const { sc } = reds(1, 0);
     let inv = 0;
-    sc.ctx = { width: 390, height: 844, invalidate: () => inv++ } as never;
+    (sc as unknown as { ctx: unknown }).ctx = { width: 390, height: 844, invalidate: () => inv++ };
     sc.update(16);
     expect(inv).toBeGreaterThan(0);
   });
