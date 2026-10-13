@@ -245,15 +245,14 @@ export class BattleScene implements Scene<BattleParams> {
     const bottomPad = Math.max(14, h - (safe.y + safe.h));
     const bar: Rect = { x: 0, y: h - 56 - bottomPad + 14, w, h: 56 + bottomPad - 14 };
     const handArea: Rect = { x: 12, y: bar.y - 6 - CARD_H, w: w - 24, h: CARD_H };
-    const extra = Math.max(0, Math.min(24, h - 844)); // 长屏：前后排间距最多 +24
     const top = safe.y;
-    const main: Rect = { x: w - 138 - 14, y: Math.min(top + 478 + extra, handArea.y - 188 - 8), w: 138, h: 188 };
+    const main: Rect = { x: w - 138 - 14, y: Math.min(top + 478, handArea.y - 188 - 8), w: 138, h: 188 };
     const sub: Rect = { x: main.x - 64, y: main.y + 22, w: 76, h: 104 };
     return {
       top: { x: 0, y: top + 10, w, h: 26 },
       backY: top + 58,
-      frontY: top + 200 + extra,
-      judge: { x: (w - 220) / 2, y: top + 388 + extra, w: 220, h: 80 },
+      frontY: top + 200,
+      judge: { x: (w - 220) / 2, y: top + 388, w: 220, h: 80 },
       tally: { x: 18, y: main.y + 40, w: 30, h: 42 * 3 + 8 },
       skills: { x: 70, y: main.y + 4, w: 104, h: 34 },
       main,

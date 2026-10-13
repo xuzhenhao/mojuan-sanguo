@@ -22,7 +22,8 @@ export interface DialogFrame {
 const CN = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 
 function box(f: DialogFrame, h: number): { k: number; r: Rect } {
-  const k = Math.min(f.width / 390, f.height / 844);
+  // 引擎已统一等比缩放（render-spec §4.0），场景坐标即 dp
+  const k = 1;
   const w = 350 * k;
   return { k, r: { x: (f.width - w) / 2, y: (f.height - h * k) / 2, w, h: h * k } };
 }

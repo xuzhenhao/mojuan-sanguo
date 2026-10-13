@@ -1,5 +1,5 @@
 /** H5 平台实现（engine-design §4.1）。只有这里和入口文件可以直接访问 window / document。 */
-import type { Canvas2DLike, CanvasLike, TouchPoint } from '../../engine/types';
+import type { Canvas2DLike, CanvasLike, Ctx2DLike, TouchPoint } from '../../engine/types';
 import type { Platform, SystemInfo, TouchHandlers } from '../types';
 
 function readSafeArea(w: number, h: number) {
@@ -40,8 +40,10 @@ export function createWebPlatform(root: HTMLElement): Platform {
   const query = parseQuery(location.search);
 
   const info = (): SystemInfo => {
-    const width = root.clientWidth || window.innerWidth;
-    const height = root.clientHeight || window.innerHeight;
+    // render-spec §4.0：优先用 visualViewport（移动端地址栏伸缩时更准确）
+    const vv = window.visualViewport;
+    const width = Math.round(vv?.width ?? 0) || root.clientWidth || window.innerWidth;
+    const height = Math.round(vv?.height ?? 0) || root.clientHeight || window.innerHeight;
     return { width, height, dpr: window.devicePixelRatio || 1, safeArea: readSafeArea(width, height), capsule: null, platform: 'web' };
   };
   const pts = (e: PointerEvent): TouchPoint[] => {
@@ -78,6 +80,21 @@ export function createWebPlatform(root: HTMLElement): Platform {
       screen.addEventListener('pointerup', (e) => h.end(pts(e)));
       screen.addEventListener('pointercancel', (e) => h.cancel(pts(e)));
     },
+    onResize(cb) {
+      let pending = false;
+      const fire = () => {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(() => {
+          pending = false;
+          cb();
+        });
+      };
+      window.addEventListener('resize', fire);
+      window.addEventListener('orientationchange', fire);
+      window.visualViewport?.addEventListener('resize', fire);
+      screen.ownerDocument.defaultView?.matchMedia?.('(orientation: portrait)').addEventListener?.('change', fire);
+    },
     onShow: (cb) => document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && cb()),
     onHide: (cb) => document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && cb()),
     raf: (cb) => requestAnimationFrame(cb),
@@ -103,6 +120,18 @@ export function createWebPlatform(root: HTMLElement): Platform {
     reportError: (e) => console.error('[error]', e),
     warn: (m, d) => console.warn(m, d ?? ''),
   };
+}
+
+/** 宣纸底纹（cover 铺满真实视口）：纵向渐变 + 细纹，与各页纸色一致 */
+export function paintPaperBackdrop(ctx: Ctx2DLike, w: number, h: number) {
+  const c = ctx as unknown as CanvasRenderingContext2D;
+  const g = c.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#EFE3C6');
+  g.addColorStop(1, '#BFAE88');
+  c.fillStyle = g;
+  c.fillRect(0, 0, w, h);
+  c.fillStyle = 'rgba(120,96,60,.05)';
+  for (let y = 0; y < h; y += 6) c.fillRect(0, y, w, 1);
 }
 
 /** 调试状态栏（WebGL/dpr/纹理内存）：正式入口默认隐藏；`?debug=1` 或部署路径含 /debug/ 时显示（#79） */

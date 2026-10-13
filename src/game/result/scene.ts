@@ -57,15 +57,10 @@ export class ResultScene implements Scene {
     return this.v;
   }
 
-  /** dp → 逻辑像素：等比缩放到屏幕内并居中（长屏内容整体垂直居中，render-spec §6） */
-  private get k() {
-    return Math.min(this.ctx.width / 390, this.ctx.height / 844);
-  }
+  /** 等比缩放已由引擎统一处理（render-spec §4.0），场景内 dp 即绘制坐标，k 恒为 1 */
+  private readonly k = 1;
   rect(r: Rect): Rect {
-    const k = this.k;
-    const ox = (this.ctx.width - 390 * k) / 2;
-    const oy = (this.ctx.height - 844 * k) / 2;
-    return { x: ox + r.x * k, y: oy + r.y * k, w: r.w * k, h: r.h * k };
+    return { x: r.x, y: r.y, w: r.w, h: r.h };
   }
   private pt(x: number, y: number): Vec2 {
     const r = this.rect({ x, y, w: 0, h: 0 });

@@ -104,11 +104,11 @@ describe('结算页 8 项（PRD 14.5）', () => {
     sc.exit();
     expect(ov.size).toBe(0);
   });
-  it('宽屏/长屏下内容等比居中，热区跟随', () => {
+  it('场景内不再自行缩放：rect 即设计坐标（缩放由引擎统一做，#111）', () => {
     const sc = new ResultScene({ view: () => buildView(demoOutcome(true), EMPTY_META), leave() {} });
-    sc.enter({ width: 780, height: 2000, invalidate() {} });
+    sc.enter(frameCtx);
     const r = sc.rect(RESULT_LAYOUT.back);
-    expect(r.w).toBeCloseTo(280);
+    expect(r).toEqual(RESULT_LAYOUT.back);
     expect(sc.hit({ x: r.x + 5, y: r.y + 5 })).toBe('back');
   });
 });
