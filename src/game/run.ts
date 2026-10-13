@@ -99,7 +99,7 @@ export class RunSession {
       potionSlots: ECONOMY.potionSlots,
       tianming: o.tianming,
       configVersion: o.configVersion,
-      startedAt: o.now,
+      startedAt: o.now ?? Date.now(),
     });
     this.st = st0;
     this.game = new Game(this.rng('battle'), io, { autoShan: false, main: p.main, sub: p.sub });
