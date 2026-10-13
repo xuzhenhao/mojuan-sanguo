@@ -330,7 +330,7 @@
 | 选「放弃」/ 无次数 | 选「放弃」，或 `reviveLeft = 0` 时体力归 0（不弹层），即战败：节点标记「结束本局」写入存档，续玩直接进结果页（P5 败北，将魂 ×0.5） |
 | 敌方反应 | 见下方引文，与 4.4「敌人意图改为闪」①–④ 一致 |
 | 结算页 | 「复活 已使用/未使用」按 `reviveLeft` 实际值显示（`reviveLeft < REVIVES_PER_RUN` 即已使用），**不能用胜负推断**。现 `src/game/result/adapter.ts:92` 的 `reviveUsed: !win` 是错的，随 #106 一起改 |
-| 存档 / 刷新 | `reviveLeft` 随 RunState 存档；旧档缺该字段按默认 `REVIVES_PER_RUN` 补。flow.md 对「弹层未选时刷新」没有单独规则，按 `docs/specs/runstate-migration.md` §5：中途刷新一律回到**进节点快照**（本场开打前），节点未完成、`reviveLeft` 恢复为进节点时的值，随机流一并恢复 |
+| 存档 / 刷新 | `reviveLeft` 随 RunState 存档；旧档缺该字段按默认 `REVIVES_PER_RUN` 补。**裁定（#128）**：复活层不是存档点，弹层打开时刷新回到本节点进入前的快照（本场开打前），节点未完成、`reviveLeft` 恢复为进节点时的值，随机流一并恢复，重进结果完全一致，见 `docs/specs/runstate-migration.md` §5（subpages-v05 §2.3、flow.md 已同步） |
 
 **敌方反应**（flow.md 第 142 行原文）：
 
