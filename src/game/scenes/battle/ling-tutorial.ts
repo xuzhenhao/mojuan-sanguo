@@ -7,6 +7,7 @@ import type { Ctx2DLike, Rect } from '../../../engine/types';
 import type { OverlayStack } from '../../../engine/modal';
 import { C, FONT, button, frame, rect, text } from './paint';
 import { DESIGN_RECT } from '../../../engine/viewport';
+import { CONFIG } from '../../../data/config';
 
 /** 文案键（字体收集走 #205/#228；书法仅标题，正文 SANS） */
 export const LING_TUTORIAL_TEXT = {
@@ -28,6 +29,60 @@ export function tutorialCopyOk(s: string) {
 }
 
 export type LingTutorialHighlight = 'tally' | 'gain-card' | 'action-card' | null;
+
+/** 产令牌：abilities 含 gain_ling（教程默认用 T017 待令） */
+export const TUTORIAL_GAIN_CARD_ID = 'T017';
+
+export function isGainLingCard(cardId: string): boolean {
+  const abs = CONFIG.cards[cardId]?.abilities ?? [];
+  return abs.some((a) => a.do?.some((d) => d.do === 'gain_ling'));
+}
+
+/** 在手牌中定位高亮下标：产令优先待令；主动牌取第一张非产令、非响应 */
+
+/** 强制手牌含产令「待令」+ 至少一张主动牌（杀），供教程步骤 2/3 高亮 */
+export function ensureTutorialHand(hand: { uid: number; id: string; suit: string; rank: number; mods: string[] }[], nextUid: () => number) {
+  const out = hand.map((c) => ({ ...c, mods: [...c.mods] }));
+  if (!out.some((c) => isGainLingCard(c.id))) {
+    out.unshift({ uid: nextUid(), id: TUTORIAL_GAIN_CARD_ID, suit: 'H', rank: 5, mods: [] });
+  } else {
+    // 把待令/产令挪到可见位置（靠前）
+    const i =
+      out.findIndex((c) => c.id === TUTORIAL_GAIN_CARD_ID) >= 0
+        ? out.findIndex((c) => c.id === TUTORIAL_GAIN_CARD_ID)
+        : out.findIndex((c) => isGainLingCard(c.id));
+    if (i > 0) {
+      const [c] = out.splice(i, 1);
+      out.unshift(c);
+    }
+  }
+  // 保证有一张非产令主动牌（杀）方便步骤 3
+  if (!out.some((c) => c.id === 'B001')) {
+    out.push({ uid: nextUid(), id: 'B001', suit: 'S', rank: 7, mods: [] });
+  }
+  return out;
+}
+
+export function tutorialHandHighlightIndex(hand: { id: string }[], highlight: LingTutorialHighlight): number {
+  if (!hand.length) return -1;
+  if (highlight === 'gain-card') {
+    const prefer = hand.findIndex((c) => c.id === TUTORIAL_GAIN_CARD_ID);
+    if (prefer >= 0) return prefer;
+    return hand.findIndex((c) => isGainLingCard(c.id));
+  }
+  if (highlight === 'action-card') {
+    return hand.findIndex((c) => {
+      const d = CONFIG.cards[c.id];
+      if (!d) return false;
+      if (isGainLingCard(c.id)) return false;
+      if (d.tags?.includes('response')) return false;
+      // 闪 / 无懈
+      if ((d.tags ?? []).some((t) => t === 'shan' || t === 'wuxie')) return false;
+      return true;
+    });
+  }
+  return -1;
+}
 
 export interface LingTutorialState {
   step: number;

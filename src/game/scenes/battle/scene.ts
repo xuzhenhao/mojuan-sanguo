@@ -48,9 +48,11 @@ import {
   advanceTutorial,
   createLingTutorial,
   drawLingTutorial,
+  ensureTutorialHand,
   hitTutorial,
   onTutorialPlay,
   skipTutorial,
+  tutorialHandHighlightIndex,
   tutorialStep,
   type LingTutorialState,
 } from './ling-tutorial';
@@ -254,8 +256,16 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (!p.game) this.startIntro();
     if (this.deps.dev && !p.game) this.applyDev(this.deps.dev);
+    if (this.lingTutorial && !this.lingTutorial.done) this.seedLingTutorialHand();
     this.snap = this.snapshot();
     ctx.invalidate();
+  }
+
+  /** #231 教程：手牌强制含「待令」产令牌 */
+  seedLingTutorialHand() {
+    let uid = Math.max(0, ...this.g.hand.map((c) => c.uid), this.g.uid) + 1;
+    this.g.hand = ensureTutorialHand(this.g.hand, () => uid++) as typeof this.g.hand;
+    this.g.uid = Math.max(this.g.uid, uid);
   }
   exit() {
     this.deps.overlays?.closeAll('detail');
@@ -993,8 +1003,8 @@ export class BattleScene implements Scene<BattleParams> {
       if (step?.highlight === 'tally') hi = this.layout().tally;
       else if (step?.highlight === 'gain-card' || step?.highlight === 'action-card') {
         const hl = this.handLayout();
-        const idx = step.highlight === 'gain-card' ? 0 : Math.min(1, hl.rects.length - 1);
-        hi = hl.rects[idx] ?? null;
+        const idx = tutorialHandHighlightIndex(this.g.hand, step.highlight);
+        hi = idx >= 0 ? (hl.rects[idx] ?? null) : null;
       }
       drawLingTutorial(s.ctx, this.lingTutorial, hi);
     }
@@ -1399,7 +1409,10 @@ export class BattleScene implements Scene<BattleParams> {
   applyLingQa(kind: LingQaCase, now: number) {
     this.deps.lingOverride = lingQaOverride(kind);
     const tut = lingQaTutorial(kind);
-    if (tut) this.lingTutorial = tut;
+    if (tut) {
+      this.lingTutorial = tut;
+      this.seedLingTutorialHand();
+    }
     const v = this.lingView();
     const fx = lingQaFx(kind, this.layout().tally, v, now);
     if (fx) this.lingFx = fx;

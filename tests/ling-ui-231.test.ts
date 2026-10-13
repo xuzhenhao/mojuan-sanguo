@@ -7,7 +7,10 @@ import {
   onTutorialPlay,
   skipTutorial,
   tutorialCopyOk,
+  tutorialHandHighlightIndex,
   tutorialStep,
+  ensureTutorialHand,
+  TUTORIAL_GAIN_CARD_ID,
 } from '../src/game/scenes/battle/ling-tutorial';
 import type { LingSlotSnapshot } from '../src/core/juling';
 import { Game, type BattleIO } from '../src/core/battle';
@@ -78,6 +81,22 @@ describe('#231 虎符 UI', () => {
     t = onTutorialPlay(t, 'action');
     expect(tutorialStep(t)?.id).toBe('wrap');
     expect(skipTutorial(createLingTutorial()).done).toBe(true);
+  });
+
+  it('教程手牌强制待令，步骤2高亮产令而非杀', () => {
+    let uid = 1;
+    const hand = ensureTutorialHand(
+      [
+        { uid: uid++, id: 'B001', suit: 'S', rank: 7, mods: [] },
+        { uid: uid++, id: 'B004', suit: 'H', rank: 2, mods: [] },
+      ],
+      () => uid++,
+    );
+    expect(hand[0].id).toBe(TUTORIAL_GAIN_CARD_ID);
+    expect(tutorialHandHighlightIndex(hand, 'gain-card')).toBe(0);
+    expect(hand[tutorialHandHighlightIndex(hand, 'gain-card')].id).not.toBe('B001');
+    const ai = tutorialHandHighlightIndex(hand, 'action-card');
+    expect(hand[ai].id).toBe('B001');
   });
 
   it('Game.lingSlot 供 UI；R02 虎符回合 +1 令写 lingDelta；P03 提神剂同', () => {
