@@ -14,10 +14,17 @@ import {
   deserializeRunState,
   RNG_STREAMS,
   serializeRunState,
+  allocCardUid,
+  loadRunStateFrom,
   type LoadOpts,
   type LoadResult,
+  type PendingNode,
+  type RunStateStore,
+  type StoreLoad,
   type RngStream,
   type RunState,
+  RUN_STATE_KEY,
+  writeRunStateTo,
 } from './run/state';
 
 /** 占位 IO：战斗页接入前不做任何表现 */
@@ -47,6 +54,8 @@ export class RunSession {
   game: Game | null = null;
   params: RunParams | null = null;
   private st: RunState | null = null;
+  /** 进节点快照（序列化文本）：节点内中途存档一律写它 */
+  private checkpoint: string | null = null;
   private rngs: Partial<Record<RngStream, StatefulRng>> = {};
 
   start(p: RunParams, io: BattleIO = NULL_IO, o: StartOpts = {}): Game {
@@ -102,6 +111,49 @@ export class RunSession {
   serialize(): string {
     return serializeRunState(this.synced());
   }
+  /** 分配永久卡 uid（RunState.nextUid）；战斗内临时牌用 state.ts 的 tempUidAllocator */
+  allocUid(): number {
+    let uid = 0;
+    this.update((d) => {
+      uid = allocCardUid(d);
+    });
+    return uid;
+  }
+  /** 当前是否在节点内（已进未完成） */
+  get inNode(): PendingNode | null {
+    return this.st?.pendingNode ?? null;
+  }
+  /**
+   * 进节点（任何类型）：标记 pendingNode 并记下完整快照（含三条 rng 状态），有 store 则立即写档。
+   * 调用方应先把地图 moveTo / 组包写进 RunState（update），再调用本函数。
+   */
+  enterNode(node: PendingNode, store?: RunStateStore) {
+    this.update((d) => {
+      d.pendingNode = { id: node.id, type: node.type };
+    });
+    this.checkpoint = serializeRunState(this.synced());
+    store?.set(RUN_STATE_KEY, this.checkpoint);
+  }
+  /** 节点结算完成：清 pendingNode 并立即写档 */
+  completeNode(store?: RunStateStore) {
+    this.update((d) => {
+      d.pendingNode = null;
+    });
+    this.checkpoint = null;
+    if (store) writeRunStateTo(store, this.synced());
+  }
+  /** 写档：节点内只写进节点快照（中途不存），节点外写当前状态 */
+  save(store: RunStateStore) {
+    if (this.st?.pendingNode && this.checkpoint) store.set(RUN_STATE_KEY, this.checkpoint);
+    else writeRunStateTo(store, this.synced());
+  }
+  /** 从存储读档（新键优先，旧键迁移一次） */
+  load(store: RunStateStore, o: LoadOpts = {}): StoreLoad {
+    const r = loadRunStateFrom(store, o);
+    if (!r.ok) return r;
+    this.adopt(r.state);
+    return { ...r, state: cloneRunState(r.state) };
+  }
   /**
    * 读档恢复 RunState 与随机流。失败（损坏 / 版本更新）不改当前会话。
    * PR1 不重建 core Game（game 置 null，由 PR2 用 RunState 建战斗）。
@@ -109,15 +161,20 @@ export class RunSession {
   resume(text: string | null | undefined, o: LoadOpts = {}): LoadResult {
     const r = deserializeRunState(text, o);
     if (!r.ok) return r;
-    this.st = r.state;
+    this.adopt(r.state);
+    return { ...r, state: cloneRunState(r.state) };
+  }
+  private adopt(st: RunState) {
+    this.st = cloneRunState(st);
     this.rngs = {};
     this.game = null;
-    this.params = { main: r.state.heroMain, sub: r.state.heroSub, seed: r.state.runSeed };
-    return { ...r, state: cloneRunState(r.state) };
+    this.checkpoint = st.pendingNode ? serializeRunState(st) : null;
+    this.params = { main: st.heroMain, sub: st.heroSub, seed: st.runSeed };
   }
   /** 结束本局（结算 / 放弃） */
   clear() {
     this.st = null;
+    this.checkpoint = null;
     this.rngs = {};
     this.game = null;
     this.params = null;
