@@ -12,6 +12,7 @@ import {
   EPIPHANY_PANEL_ALPHA,
   epiphanyBadgeRect,
   BADGE_RESERVE,
+  CARD_GLOW,
   EPIPHANY_TEXT,
   SEL_MS,
   drawRarity,
@@ -300,5 +301,11 @@ describe('#105 调试 epiN', () => {
     expect(b.x).toBeGreaterThanOrEqual(r.x);
     expect(b.y + b.h).toBeLessThanOrEqual(r.y + r.h);
     expect(BADGE_RESERVE).toBe(26);
+  });
+  it('UI 复核 v3：大牌外发光为两层描边 3px@.40 + 7px@.18', () => {
+    expect(CARD_GLOW).toEqual([
+      { out: 3, alpha: 0.4 },
+      { out: 7, alpha: 0.18 },
+    ]);
   });
 });

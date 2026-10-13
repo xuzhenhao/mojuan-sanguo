@@ -272,6 +272,20 @@ function glow(c: Ctx2DLike, r: Rect, color: string, a: number) {
   c.globalAlpha = ga;
 }
 
+/** 大牌外发光（UI 复核 v3，不用 blur）：外扩 3px @.40 + 外扩 7px @.18 两层描边 */
+export const CARD_GLOW = [
+  { out: 3, alpha: 0.4 },
+  { out: 7, alpha: 0.18 },
+] as const;
+function cardGlow(c: Ctx2DLike, r: Rect) {
+  const ga = c.globalAlpha;
+  for (const { out, alpha } of CARD_GLOW) {
+    c.globalAlpha = ga * alpha;
+    stroke(c, { x: r.x - out, y: r.y - out, w: r.w + out * 2, h: r.h + out * 2 }, T.gold, 2);
+  }
+  c.globalAlpha = ga;
+}
+
 function measure(c: Ctx2DLike, s: string, font: string, px: number): number {
   c.font = font;
   return (gx(c).measureText?.(s).width as number | undefined) ?? s.length * px;
@@ -379,7 +393,7 @@ export function drawEpiphany(s: Surface, w: number, _h: number, info: EpiphanyIn
   if (cardA > 0) {
     const sc = reduced ? 1 : 0.8 + 0.2 * easeBack(clamp01((t - INK_MS) / (EPIPHANY_INTRO_MS - INK_MS)));
     c.globalAlpha = ga * cardA;
-    glow(c, L.card, T.gold, 0.9);
+    cardGlow(c, L.card);
     g.save?.();
     g.translate?.(cx, cy);
     g.scale?.(sc, sc);
