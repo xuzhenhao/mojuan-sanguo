@@ -47,14 +47,8 @@ export function registerP4(d: P4Deps) {
     'reward',
     () => new RewardScene({ ...env, inventory: inv, rng: () => econ.rng, done: () => d.send({ type: 'reward_done' }), defaultKind: kind }),
   );
-  engine.scenes.register(
-    'shop',
-    () => new ShopScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'shop_done' }) }),
-  );
+  engine.scenes.register('shop', () => new ShopScene({ ...env, inventory: inv, rng: () => econ.rng, done: () => d.send({ type: 'shop_done' }) }));
   const force = q.chest === 'gold' || q.chest === 'relic' ? q.chest : undefined;
-  engine.scenes.register(
-    'chest',
-    () => new ChestScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'chest_done' }), force }),
-  );
+  engine.scenes.register('chest', () => new ChestScene({ ...env, inventory: inv, rng: () => econ.rng, done: () => d.send({ type: 'chest_done' }), force }));
   return econ;
 }
