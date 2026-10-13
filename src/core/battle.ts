@@ -663,8 +663,12 @@ export class Game {
     this.effects.reset('enemy_turn');
     this.extraActs.clear();
     for (const e of this.en) if (e.hp <= 0) this.dropDelayedFrom(e);
+    /** PRD 4.4 ⑤（V0.5.12）：已开始出手 / 已推进步数的敌人 */
+    const started = new Set<Enemy>();
+    const stepped = new Set<Enemy>();
     for (const e of order) {
       if (e.hp <= 0 || cut()) continue;
+      started.add(e);
       const skipAtk = await this.resolveJudgeArea(e);
       if (e.hp <= 0 || cut()) continue;
       const eak = CONFIG.rules.enemyArmorKeep;
@@ -732,7 +736,10 @@ export class Game {
         this.io.update();
         await this.io.sleep(250);
       }
-      e.step++;
+      // 只出闪的回合：上回合因复活未出手的敌人，保留的那一步不消耗（PRD 4.4 ⑤）
+      if (flashTurn.has(e) && e.reviveKeep) e.reviveKeep = false;
+      else e.step++;
+      stepped.add(e);
       if (flashTurn.has(e)) e.reviveFlash = false;
       e.noSha = false;
       e.redirect = false;
@@ -741,6 +748,15 @@ export class Game {
       if (this.over) return;
     }
     for (const e of flashTurn) if (e.hp <= 0) e.reviveFlash = false;
+    if (this.enemyTurnCancelled) {
+      // PRD 4.4 ⑤：正在出手的敌人本步算用掉；未出手的敌人本步保留，在只出闪那回合之后先打出
+      for (const e of order) {
+        if (e.hp <= 0) continue;
+        if (started.has(e)) {
+          if (!stepped.has(e)) e.step++;
+        } else e.reviveKeep = true;
+      }
+    }
     this.alive().forEach((e) => {
       e.marks = Math.min(MAX_FLASH_MARKS, Math.max(e.marks, e.flash));
     });

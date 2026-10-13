@@ -61,7 +61,8 @@ describe('#106 core：复活流程', () => {
     await g.enemyTurn();
     expect(g.p.hp).toBe(hp); // 不出杀
     expect(g.alive().map((e) => e.marks)).toEqual([MAX_FLASH_MARKS, 1]);
-    expect(g.alive().map((e) => e.step)).toEqual(steps.map((s) => s + 1)); // 被替换的一步不补打
+    // a 出过手：被替换的一步不补打；b 未出手：保留的一步不消耗（PRD 4.4 ⑤）
+    expect(g.alive().map((e) => e.step)).toEqual([steps[0] + 1, steps[1]]);
     for (const e of g.alive()) {
       expect(e.reviveFlash).toBeFalsy();
       expect(enemyIntent(e).acts).toEqual(e.pat[e.step % e.pat.length]);
@@ -96,5 +97,25 @@ describe('#106 core：复活流程', () => {
     await g.enemyTurn();
     expect(g.p.hp).toBe(hp);
     expect(g.alive().every((e) => e.marks === 1)).toBe(true);
+  });
+  it('PRD 4.4 ⑤（V0.5.12）：未出手敌人的保留步在只出闪回合之后先打出，之后接原意图', async () => {
+    const { g } = setup(true);
+    const [a, b] = g.en;
+    a.pat = [['杀', '杀'], ['闪'], ['闪']];
+    b.pat = [['杀'], ['闪'], ['闪']];
+    await g.enemyTurn(); // a 第一张杀击倒 → 复活，b 未出手
+    expect([a.step, b.step]).toEqual([1, 0]);
+    expect(b.reviveKeep).toBe(true);
+    await g.enemyTurn(); // 只出闪
+    expect([a.step, b.step]).toEqual([2, 0]);
+    expect(b.reviveKeep).toBeFalsy();
+    expect(enemyIntent(b).acts).toEqual(['杀']); // 保留的那一步
+    expect(enemyIntent(a).acts).toEqual(['闪']); // a 接原意图第 3 步
+    const logged: string[] = [];
+    const log = g.log.bind(g);
+    g.log = (t: string) => (logged.push(t), log(t));
+    await g.enemyTurn();
+    expect(logged.some((t) => t.includes(`${b.name}对你出【杀】`))).toBe(true); // b 打出保留的杀（可能被护主等判定挡下）
+    expect([a.step, b.step]).toEqual([3, 1]);
   });
 });
