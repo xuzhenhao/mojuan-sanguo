@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from '../src/engine/engine';
-import { decideWebGL, DEFAULT_RENDER_CONFIG, effectiveDpr, parseFlag } from '../src/engine/settings';
+import { decideWebGL, DEFAULT_RENDER_CONFIG, effectiveDpr, parseFlag, renderScaleFromBenchmark } from '../src/engine/settings';
 import { fakePlatform } from './engine-fakes';
 
 describe('WebGL 开关', () => {
@@ -96,5 +96,16 @@ describe('WebGL 开启：叠加层', () => {
   });
   it('默认配置为开启', () => {
     expect(DEFAULT_RENDER_CONFIG.webgl).toBe(true);
+  });
+});
+
+describe('#206 renderScaleFromBenchmark', () => {
+  it('未知 / 负数保持默认；低档降 maxDpr 并开 lowEnd', () => {
+    expect(renderScaleFromBenchmark(undefined)).toEqual({ maxDpr: 2, lowEnd: false });
+    expect(renderScaleFromBenchmark(-1)).toEqual({ maxDpr: 2, lowEnd: false });
+    expect(renderScaleFromBenchmark(22, 'android')).toEqual({ maxDpr: 1.5, lowEnd: true });
+    expect(renderScaleFromBenchmark(23, 'android')).toEqual({ maxDpr: 2, lowEnd: false });
+    expect(renderScaleFromBenchmark(29, 'ios')).toEqual({ maxDpr: 1.5, lowEnd: true });
+    expect(renderScaleFromBenchmark(30, 'ios')).toEqual({ maxDpr: 2, lowEnd: false });
   });
 });

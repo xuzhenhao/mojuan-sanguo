@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checkDir, DEBUG_MARKER } from '../scripts/size-check';
+import { checkDir, DEBUG_MARKER, parseSizeCheckArgs, TARGET } from '../scripts/size-check';
 import { freeOncePerRunAds, parseQuery } from '../src/platform/web/platform';
 
 describe('size-check', () => {
@@ -16,10 +16,35 @@ describe('size-check', () => {
     writeFileSync(join(d, 'a.js'), `x="${DEBUG_MARKER}"`);
     expect(checkDir(d).errors[0]).toMatch(/调试版/);
   });
-  it('超过 4MB 报错', () => {
+  it('H5：超过 4MB 报错，超过 2.5MB 仅告警', () => {
     const d = mkdtempSync(join(tmpdir(), 'sz-'));
     writeFileSync(join(d, 'big.bin'), Buffer.alloc(4 * 1024 * 1024 + 1));
-    expect(checkDir(d).errors[0]).toMatch(/4MB/);
+    expect(checkDir(d, 'h5').errors[0]).toMatch(/4MB/);
+    const mid = mkdtempSync(join(tmpdir(), 'sz-'));
+    writeFileSync(join(mid, 'mid.bin'), Buffer.alloc(TARGET + 1));
+    const r = checkDir(mid, 'h5');
+    expect(r.errors).toEqual([]);
+    expect(r.warnings[0]).toMatch(/2\.5MB/);
+  });
+  it('#206 wechat：超过 2.5MB 即失败（非告警）', () => {
+    const d = mkdtempSync(join(tmpdir(), 'sz-wx-'));
+    writeFileSync(join(d, 'game.js'), 'wx.createCanvas()');
+    writeFileSync(join(d, 'fat.bin'), Buffer.alloc(TARGET + 1));
+    const r = checkDir(d, 'wechat');
+    expect(r.errors[0]).toMatch(/2\.5MB.*工程门槛/);
+    expect(r.warnings).toEqual([]);
+  });
+  it('#206 wechat：超过 4MB 报硬限', () => {
+    const d = mkdtempSync(join(tmpdir(), 'sz-wx4-'));
+    writeFileSync(join(d, 'fat.bin'), Buffer.alloc(4 * 1024 * 1024 + 1));
+    expect(checkDir(d, 'wechat').errors[0]).toMatch(/4MB 硬限/);
+  });
+  it('parseSizeCheckArgs：--target 与默认目录', () => {
+    expect(parseSizeCheckArgs([])).toEqual({ target: 'h5', dir: 'dist' });
+    expect(parseSizeCheckArgs(['--target', 'wechat'])).toEqual({ target: 'wechat', dir: 'dist-wechat' });
+    expect(parseSizeCheckArgs(['--target=wechat', 'out'])).toEqual({ target: 'wechat', dir: 'out' });
+    expect(parseSizeCheckArgs(['my-dist'])).toEqual({ target: 'h5', dir: 'my-dist' });
+    expect(() => parseSizeCheckArgs(['--target', 'ios'])).toThrow(/h5\|wechat/);
   });
 });
 

@@ -1,9 +1,9 @@
 /**
  * 微信小游戏平台（#204）：实现 Platform（画布/触摸/生命周期/systemInfo/存储/launchQuery）。
  * 不引入 weapp-adapter；不采集 openid 或任何用户信息。
- * 字体加载见 createWechatFonts（#205）；埋点 transport 占位见 telemetry.ts（正式对接 #208）。
+ * 字体加载见 createWechatFonts（#205）；benchmark→渲染倍率见 fetchBenchmarkLevel（#206）；埋点 transport 占位见 telemetry.ts（#208）。
  */
-export { createWechatPlatform, paintWechatBackdrop } from './platform';
+export { createWechatPlatform, fetchBenchmarkLevel, paintWechatBackdrop } from './platform';
 export { createWechatFonts } from './fonts';
 export type { WxFontApi, WechatFonts } from './fonts';
 export { createWechatStorage, estimateBytes, STORAGE_WARN_BYTES } from './storage';
