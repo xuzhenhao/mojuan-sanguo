@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 C1：轻杀 ─────────
+id: T018
+name: 轻杀
+shortName: 轻杀
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: N
+desc: "本回合你使用的下一张杀费用 −1（最低 0）。"
+abilities:
+  - id: qingsha
+    name: 轻杀
+    desc: 本回合下一张杀费用 −1。
+    trigger: { when: play }
+    do:
+      - { do: apply_status, target: self, status: sha_cost_next, amount: 1 }

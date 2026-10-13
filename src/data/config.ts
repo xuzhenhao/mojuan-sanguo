@@ -142,6 +142,17 @@ export interface ConfigBundle {
     /** 字体（#202） */
     fonts: FontsConfig;
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
+    /** 军令留令（M3 · #230） */
+    juling?: { perTurn: number; carryMax: number; hardCap: number; maxGainPerTurn: number };
+    /** 费用护栏（M3 · #230） */
+    cost?: {
+      floor?: number;
+      zeroCostPerTurn?: number | null;
+      reduceStackMax?: number;
+      zeroCostExemptTags?: string[];
+    };
+    /** 循环护栏与投放（M3 · #230） */
+    loop?: { maxPlaysPerTurn?: number; chapterRarity?: Record<number | string, Array<'N' | 'R' | 'E' | 'L'>> };
   };
   cards: Record<string, CardCfg>;
   affixes: AffixCfg[];

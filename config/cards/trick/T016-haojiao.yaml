@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 G1：号角（0 费产令，M4 白名单） ─────────
+id: T016
+name: 号角
+shortName: 号角
+type: 锦囊
+tags: [trick, loop, m4_exempt]
+cost: 0
+rarity: N
+desc: "获得 1 点军令。不受 0 费同名限次限制。"
+abilities:
+  - id: haojiao
+    name: 号角
+    desc: 获得 1 点军令。
+    trigger: { when: play }
+    do:
+      - { do: gain_ling, target: self, amount: 1 }

@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 C3：减费（史诗；第 2 章起） ─────────
+id: T023
+name: 减费
+shortName: 减费
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: E
+desc: "本回合你使用的锦囊费用 −1（最低 0）。（第 2 章起投放）"
+abilities:
+  - id: jianfei
+    name: 减费
+    desc: 本回合锦囊费用 −1。
+    trigger: { when: play }
+    do:
+      - { do: apply_status, target: self, status: trick_cost_turn, amount: 1 }

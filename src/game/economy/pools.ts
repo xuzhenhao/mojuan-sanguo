@@ -2,6 +2,7 @@
 import type { Rng } from '../../core/rng';
 import type { Rarity, Suit } from '../../core/types';
 import { CONFIG, relicEffect, rewardWeight, shopPrice, type CardCfg } from '../../data/config';
+import { loopCardAllowedInChapter } from '../../core/juling';
 import { ECONOMY, POTIONS, RELICS, type BattleKind, type Range, type RelicDef } from '../../data/economy';
 import type { Inventory } from './inventory';
 
@@ -31,8 +32,9 @@ export const heroFaction = (id: string) => (CONFIG.heroes[id] as { faction?: str
  * 卡牌奖励池（14.8，按 6.8 过滤）：专属牌只出主/副将的；势力牌只出主将势力的（权重 ×1.5）。
  * 卡牌配置 rewardWeight（#70，默认 1，0 = 不进奖励池）在同稀有度内按权重抽取。
  */
-export function cardPool(inv: Pick<Inventory, 'main' | 'sub'>, kind: 'any' | 'common' | 'hero' = 'any') {
+export function cardPool(inv: Pick<Inventory, 'main' | 'sub'> & { chapter?: number }, kind: 'any' | 'common' | 'hero' = 'any') {
   const fac = heroFaction(inv.main);
+  const chapter = inv.chapter ?? 1;
   return Object.values(CONFIG.cards as Record<string, CardCfgX>)
     .filter((c) => {
       if (c.exclusiveHero) return kind !== 'common' && (c.exclusiveHero === inv.main || c.exclusiveHero === inv.sub);
@@ -40,6 +42,7 @@ export function cardPool(inv: Pick<Inventory, 'main' | 'sub'>, kind: 'any' | 'co
       return kind !== 'hero';
     })
     .filter((c) => rewardWeight(c.id) > 0)
+    .filter((c) => loopCardAllowedInChapter(c, chapter))
     .map((c) => ({ id: c.id, rarity: c.rarity as Rarity, weight: rewardWeight(c.id) * (c.faction ? ECONOMY.factionMul : 1) }));
 }
 

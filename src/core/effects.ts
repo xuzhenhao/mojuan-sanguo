@@ -175,7 +175,7 @@ export const ATOMS: Record<string, Atom> = {
     }
   },
   gain_ling(g, a, ctx) {
-    g.p.ling += amt(a, ctx);
+    g.addLing(amt(a, ctx));
   },
   negate_trick(_g, _a, ctx, src) {
     ctx.negatedBy = src.ab.id;
@@ -216,6 +216,15 @@ export const ATOMS: Record<string, Atom> = {
       case 'empty_draw':
         p.status[a.status] = 1;
         break;
+      case 'pending_ling':
+      case 'sha_cost_next':
+      case 'sha_cost_turn':
+      case 'trick_cost_next':
+      case 'trick_cost_turn': {
+        const n = Math.max(1, a.amount ?? 1);
+        p.status[a.status] = (p.status[a.status] ?? 0) + n;
+        break;
+      }
       case 'no_sha':
         if (t) {
           t.noSha = true;

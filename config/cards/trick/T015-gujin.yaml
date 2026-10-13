@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 G1：鼓进（产令+过牌） ─────────
+id: T015
+name: 鼓进
+shortName: 鼓进
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: N
+desc: "获得 1 点军令并摸 1 张牌。"
+abilities:
+  - id: gujin
+    name: 鼓进
+    desc: 获得 1 点军令并摸 1 张牌。
+    trigger: { when: play }
+    do:
+      - { do: gain_ling, target: self, amount: 1 }
+      - { do: draw, target: self, amount: 1 }
