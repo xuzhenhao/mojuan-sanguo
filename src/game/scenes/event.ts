@@ -251,7 +251,7 @@ export class EventScene implements Scene<EventParams> {
       y += 26;
     }
     for (const ch of r.changes) {
-      label(c, ch.text, w / 2, y + 6, SANS(15), ch.kind === 'card-' || ch.text.includes('→') ? T.paper : T.jadeHi, 'center');
+      label(c, ch.text, w / 2, y + 6, SANS(15), changeColor(ch), 'center');
       y += 26;
     }
     c.globalAlpha = ga;
@@ -301,4 +301,18 @@ export function eventRunOf(r: {
         if (v.eventsSeen) d.eventsSeen = [...v.eventsSeen];
       }) as never),
   };
+}
+
+/**
+ * 结果数值色（UI 验收）：所有收益（得牌 / 数值上涨 / 铜钱增加 / 护甲）= goldHi（选项标题仍是 gold）；
+ * 下降：体力（含上限）朱砂，其余与失去的牌用纸色。
+ */
+export function changeColor(ch: { kind: string; text: string }): string {
+  if (ch.kind === 'card+' || ch.kind === 'armor') return T.goldHi;
+  if (ch.kind === 'card-') return T.paper;
+  const m = /(\d+)→(\d+)/.exec(ch.text);
+  if (!m) return T.paper;
+  const up = Number(m[2]) > Number(m[1]);
+  if (up) return T.goldHi;
+  return ch.kind === 'hp' || ch.kind === 'maxHp' ? T.cinnHi : T.paper;
 }

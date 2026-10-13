@@ -307,3 +307,17 @@ describe('#91 奇遇页', () => {
     expect(f.send({ type: 'event_battle' })).toBe('battle');
   });
 });
+
+describe('#91 结果数值色', () => {
+  it('收益 goldHi；体力下降朱砂；无绿色', async () => {
+    const { changeColor } = await import('../src/game/scenes/event');
+    const { T } = await import('../src/game/scenes/p4-kit');
+    expect(changeColor({ kind: 'card+', text: '+ 桃' })).toBe(T.goldHi);
+    expect(changeColor({ kind: 'gold', text: '铜钱 50→120' })).toBe(T.goldHi);
+    expect(changeColor({ kind: 'hp', text: '体力 3→5' })).toBe(T.goldHi);
+    expect(changeColor({ kind: 'armor', text: '下一战开场护甲 +3' })).toBe(T.goldHi);
+    expect(changeColor({ kind: 'hp', text: '体力 4→3' })).toBe(T.cinnHi);
+    expect(changeColor({ kind: 'maxHp', text: '体力上限 8→7' })).toBe(T.cinnHi);
+    expect(changeColor({ kind: 'gold', text: '铜钱 50→20' })).toBe(T.paper);
+  });
+});
