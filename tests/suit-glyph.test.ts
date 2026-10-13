@@ -45,3 +45,14 @@ describe('花色不用字符（Brush 无字形）', () => {
     expect(r.texts.filter((s) => SUITS.test(s))).toEqual([]);
   });
 });
+
+describe('→ − ✗ ✓ × 画矢量（Brush 无字形）', () => {
+  it('glyphLabel：符号不进 fillText，其余文字照常', async () => {
+    const { glyphLabel } = await import('../src/game/overlays/glyphs');
+    const r = recCtx();
+    glyphLabel(r.ctx as never, '体力 4→3', 100, 50, '15px "Brush"', 15, '#fff', 'center');
+    glyphLabel(r.ctx as never, '− 杀', 100, 80, '15px "Brush"', 15, '#fff');
+    expect(r.texts).toEqual(['体力 4', '3', ' 杀']);
+    expect(r.paths.filter((p) => p === 'stroke')).toHaveLength(2);
+  });
+});
