@@ -757,10 +757,13 @@ export class BattleScene implements Scene<BattleParams> {
   }
 
   update(dt: number) {
-    const lethalPulse = this.g?.alive().some((e) => {
-      const it = enemyIntent(e);
-      return it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
-    });
+    // 致命光晕：减少动态时为常亮（不脉冲），不需要逐帧重绘
+    const lethalPulse =
+      !this.reducedMotion() &&
+      this.g?.alive().some((e) => {
+        const it = enemyIntent(e);
+        return it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
+      });
     const before =
       this.q.busy ||
       !!this.drag ||
@@ -1007,11 +1010,14 @@ export class BattleScene implements Scene<BattleParams> {
     const ir = this.intentRect(e)!;
     const it = enemyIntent(e);
     const lethal = it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
-    const pulse = lethal ? 0.55 + 0.45 * Math.sin(((this.deps.now?.() ?? performance.now()) / 1200) * Math.PI * 2) : 1;
     if (lethal) {
       const a0 = ctx.globalAlpha;
-      ctx.globalAlpha = a0 * pulse;
-      rect(ctx, { x: ir.x - 4, y: ir.y - 4, w: ir.w + 8, h: ir.h + 8 }, 'rgba(255,80,50,0.35)');
+      const k = lethalGlowAlpha(this.deps.now?.() ?? performance.now(), this.reducedMotion());
+      // 发光 = 叠层半透明描边（#105 大卡写法，不用模糊阴影）：外 7px α.18 + 内 3px α.40
+      for (const g of LETHAL_GLOW) {
+        ctx.globalAlpha = a0 * k * g.alpha;
+        frame(ctx, { x: ir.x - g.out, y: ir.y - g.out, w: ir.w + g.out * 2, h: ir.h + g.out * 2 }, C.cinnGlow, g.width);
+      }
       ctx.globalAlpha = a0;
     }
     const fx = this.reviveFx && this.reviveFx.prev.has(e.uid) ? reviveFxFrame(this.reviveFx, e.uid, this.fxNow(), this.reducedMotion()) : null;
@@ -1431,4 +1437,14 @@ export class BattleScene implements Scene<BattleParams> {
     text(ctx, this.ended ? '胜' : '败', cx, cy + 2, { size: 64 * k, color: C.paper, font: FONT.brush, align: 'center' });
     ctx.globalAlpha = 1;
   }
+}
+
+/** 致命意图光晕叠层（先画外层宽描边，再画内层）：out = 描边中线距意图牌外沿 */
+export const LETHAL_GLOW = [
+  { width: 7, alpha: 0.18, out: 4 },
+  { width: 3, alpha: 0.4, out: 2 },
+] as const;
+/** 致命意图光晕强度：正常 1.2s 脉冲（.55–1）；减少动态时常亮 1（#136） */
+export function lethalGlowAlpha(now: number, reduced: boolean) {
+  return reduced ? 1 : 0.55 + 0.45 * Math.sin((now / 1200) * Math.PI * 2);
 }

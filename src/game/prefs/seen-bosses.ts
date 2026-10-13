@@ -3,21 +3,15 @@
  * 跨局保存在本机偏好键里（不进 RunState、不动存档版本）：首次 2s 完整演出，第 2 次起 0.8s。
  */
 import type { StorageAdapter } from '../../platform/types';
+import { PREFS_KEY, readPrefs } from './store';
 
-export const PREFS_KEY = 'mojuan.prefs.v1';
+export { PREFS_KEY };
 
 interface PrefsShape {
   seenBosses?: string[];
 }
 
-function read(storage: StorageAdapter): PrefsShape {
-  try {
-    const v = JSON.parse(storage.get(PREFS_KEY) ?? 'null') as unknown;
-    return v && typeof v === 'object' && !Array.isArray(v) ? (v as PrefsShape) : {};
-  } catch {
-    return {};
-  }
-}
+const read = (storage: StorageAdapter): PrefsShape => readPrefs(storage) as PrefsShape;
 
 export interface SeenBosses {
   has(id: string): boolean;

@@ -5,22 +5,14 @@
  */
 import { CONFIG } from '../../data/config';
 import type { StorageAdapter } from '../../platform/types';
+import { PREFS_KEY, readPrefs } from './store';
 
-export const PREFS_KEY = 'mojuan.prefs.v1';
+export { PREFS_KEY };
 
 export type SettingsCfg = (typeof CONFIG)['rules']['settings'];
 export interface Settings {
   toggles: Record<string, boolean>;
   choices: Record<string, string>;
-}
-
-function readPrefs(storage: StorageAdapter): Record<string, unknown> {
-  try {
-    const v = JSON.parse(storage.get(PREFS_KEY) ?? 'null') as unknown;
-    return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
 }
 
 export function defaultSettings(cfg: SettingsCfg = CONFIG.rules.settings): Settings {
