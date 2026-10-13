@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R11
+name: 玉玺残印
+rarity: L
+desc: "战斗胜利回 2"

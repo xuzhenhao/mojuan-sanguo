@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "relic.schema.json",
+  "title": "宝物（一件一文件：relics/<ID>.yaml，PRD 12.1；#173）",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "rarity",
+    "desc"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^R\\d{2}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rarity": {
+      "enum": [
+        "N",
+        "R",
+        "E",
+        "L",
+        "Boss"
+      ]
+    },
+    "desc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "oneShot": {
+      "type": "boolean",
+      "description": "每局限触发 1 次（触发后记入 RunState）"
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "局外经济/营地的参数化效果（战斗内效果由 core 结算，不在此）",
+      "properties": {
+        "goldBonus": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "每场战斗胜利铜钱 +N"
+        },
+        "eliteGoldBonus": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "精英战奖励铜钱 +N"
+        },
+        "shopDiscount": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "集市价格 −比例（多件相加）"
+        },
+        "shopPotionSlots": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "集市丹药槽 +N"
+        },
+        "restHeal": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "营地疗伤 +N"
+        }
+      }
+    }
+  }
+}

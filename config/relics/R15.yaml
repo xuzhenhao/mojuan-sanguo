@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R15
+name: 七星灯
+rarity: E
+desc: "每局 1 次免死回 1"
+oneShot: true # 每局限 1 次

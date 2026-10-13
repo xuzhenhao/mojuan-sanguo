@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R05
+name: 草船借箭符
+rarity: E
+desc: "首回合敌方第 1 张杀无效"

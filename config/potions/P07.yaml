@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P07
+name: 凝神丸
+desc: "1 张无懈入手"
+price: 35 # 14.2 集市基价（浮动前）

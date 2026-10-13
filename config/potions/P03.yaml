@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P03
+name: 提神剂
+desc: "本回合 +1 令"
+price: 40 # 14.2 集市基价（浮动前）

@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R29
+name: 鼓吹
+rarity: N
+desc: "精英奖励 +20 铜钱"
+effects: { eliteGoldBonus: 20 }

@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R03
+name: 青囊书
+rarity: R
+desc: "营地额外回 2"
+effects: { restHeal: 2 }
