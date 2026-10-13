@@ -147,7 +147,7 @@ export async function resumeFlow(ov: OverlayStack, f: DialogFrame, s: ResumeSumm
 
 // ───────── PRD §21.4 配置版本不一致（#122 PR3，flow.md:75，mockup v3/version.html） ─────────
 /** 文案必须一字不差（flow.md:75 / PRD §21.4） */
-export const VERSION_TEXT = '游戏已更新。为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。';
+export const VERSION_TEXT = '为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。';
 export const VERSION_H = 300;
 /** 霞鹜文楷，不回退系统字体 */
 const wk = (px: number) => `${px}px "Brush"`;

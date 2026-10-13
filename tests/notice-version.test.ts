@@ -89,7 +89,7 @@ describe('toast 位置 / 宽度 / 堆叠（UI 验收）', () => {
 
 describe('§21.4 配置版本不一致', () => {
   it('文案一字不差，只有「继续」一个按钮', async () => {
-    expect(VERSION_TEXT).toBe('游戏已更新。为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。');
+    expect(VERSION_TEXT).toBe('为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。');
     const o = ov();
     const f = { width: 390, height: 844 };
     const h = showVersionDialog(o, f);
