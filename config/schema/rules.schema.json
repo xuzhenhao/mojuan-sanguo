@@ -20,7 +20,8 @@
     "mechanics",
     "sim",
     "map",
-    "revive"
+    "revive",
+    "settings"
   ],
   "properties": {
     "lingPerTurn": {
@@ -688,6 +689,79 @@
           "type": "integer",
           "minimum": 0,
           "description": "复活附带护甲"
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "description": "暂停/设置浮层（#108）：局外偏好默认值",
+      "required": [
+        "toggles",
+        "choices"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "toggles": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "label",
+              "default"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "default": {
+                "type": "boolean"
+              },
+              "hidden": {
+                "type": "boolean",
+                "description": "底层功能未实现时为 true：浮层不显示该项"
+              }
+            }
+          }
+        },
+        "choices": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "label",
+              "options",
+              "default"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "options": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 3,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "default": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hidden": {
+                "type": "boolean",
+                "description": "底层功能未实现时为 true：浮层不显示该项"
+              }
+            }
+          }
         }
       }
     }

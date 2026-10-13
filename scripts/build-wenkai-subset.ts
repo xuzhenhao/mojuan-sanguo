@@ -73,8 +73,8 @@ function subset(label: string, textFile: string, out: string) {
 const full = new Set(charsOf('full'));
 const core = charsOf('core');
 const ext = charsOf('ext');
-if (core.length !== 256 || full.size !== 721 || ext.length !== 465) {
-  console.error(`✘ 字表长度异常：core=${core.length} full=${full.size} ext=${ext.length}（期望 256/721/465）`);
+if (core.length !== 256 || full.size !== 729 || ext.length !== 473) {
+  console.error(`✘ 字表长度异常：core=${core.length} full=${full.size} ext=${ext.length}（期望 256/729/473）`);
   process.exit(1);
 }
 assertInConfig(full);

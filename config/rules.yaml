@@ -110,3 +110,17 @@ map:
   layerSpacing: 62 # 卷轴每层高度 dp
   moveMs: 500 # 头像沿路径移动
   pulseMs: 1400 # 可走节点脉冲周期
+
+# ───────── 暂停/设置浮层（#108，v3/settings.html）：局外偏好，存本机偏好键 mojuan.prefs.v1，不进 RunState ─────────
+# hidden: true = 底层功能未实现，浮层不显示（配置保留）；toggles：开关项默认值；choices：分段选项（options 顺序即显示顺序，default 必须在 options 里）
+settings:
+  toggles:
+    autoDodge: { label: 自动出闪, default: false }
+    endTurnConfirm: { label: 结束回合确认, default: false }
+    highContrastHand: { label: 高对比手牌, default: false, hidden: true }
+    hurtVibrate: { label: 受伤震动, default: true, hidden: true }
+    sound: { label: 音乐 / 音效, default: true, hidden: true }
+  choices:
+    animSpeed: { label: 动画速度, options: ['1x', '1.5x', '2x'], default: '1x' }
+    responseSec: { label: 响应时限, options: ['5', '8', '12'], default: '8' }
+    quality: { label: 画质, options: ['低', '中', '高'], default: '中', hidden: true }
