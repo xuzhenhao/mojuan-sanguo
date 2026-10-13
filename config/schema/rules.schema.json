@@ -20,7 +20,9 @@
     "mechanics",
     "sim",
     "map",
-    "revive"
+    "revive",
+    "event",
+    "settlement"
   ],
   "properties": {
     "lingPerTurn": {
@@ -688,6 +690,88 @@
           "type": "integer",
           "minimum": 0,
           "description": "复活附带护甲"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "description": "奇遇（#174）",
+      "required": [
+        "startArmorCap"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "startArmorCap": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "开场护甲总上限"
+        }
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "description": "结算将魂系数（PRD 14.5；#174）",
+      "required": [
+        "soul",
+        "lastChapter",
+        "maxTianming"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "soul": {
+          "type": "object",
+          "required": [
+            "perChapter",
+            "perElite",
+            "perWin",
+            "perBoss",
+            "defeatMul",
+            "tianmingStep"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "perChapter": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每通关一章"
+            },
+            "perElite": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每精英击杀"
+            },
+            "perWin": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每战斗胜利"
+            },
+            "perBoss": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每 Boss 击杀"
+            },
+            "defeatMul": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "败北/放弃倍率（向下取整）"
+            },
+            "tianmingStep": {
+              "type": "number",
+              "minimum": 0,
+              "description": "每级天命加成"
+            }
+          }
+        },
+        "lastChapter": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "H5 首版最后一章"
+        },
+        "maxTianming": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "天命上限"
         }
       }
     }

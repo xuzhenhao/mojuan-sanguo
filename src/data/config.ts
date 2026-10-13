@@ -106,6 +106,10 @@ export interface ConfigBundle {
     };
     /** 复活（PRD §4.4.1；仅天命<5） */
     revive: { count: number; hpRatio: number; hpMin: number; armor: number };
+    /** 奇遇（#174） */
+    event: { startArmorCap: number };
+    /** 结算将魂系数（PRD 14.5；#174） */
+    settlement: SettlementCfg;
     /** 3 战回归基线（自动对局 / bstat）专用 */
     sim: { baselineBetweenBattleHeal: number };
     /** 真实游戏 / 正式地图 */
@@ -179,4 +183,11 @@ export const shopPrice = (id: string) => {
 export function atomAmount(abilities: Ability[] | undefined, atom: string): number | undefined {
   for (const a of abilities ?? []) for (const d of a.do) if (d.do === atom) return d.amount;
   return undefined;
+}
+
+/** rules.settlement（PRD 14.5） */
+export interface SettlementCfg {
+  soul: { perChapter: number; perElite: number; perWin: number; perBoss: number; defeatMul: number; tianmingStep: number };
+  lastChapter: number;
+  maxTianming: number;
 }

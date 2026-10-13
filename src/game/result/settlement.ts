@@ -1,9 +1,10 @@
 /**
  * 结算数据（PRD 14.5 / 15.1 / 15.3 / 21.4）：只在表现层计算，不改 src/core。
- * - 将魂公式已定（14.5），系数放在 SETTLEMENT_CONFIG，作为将来 config `settlement.*` 的占位，数值以数值策划为准。
+ * - 将魂公式已定（14.5），系数读 config rules.settlement（SETTLEMENT_CONFIG），数值以数值策划为准。
  * - 将魂首版只累计和展示（O30/O37）；天命 N 通关解锁 N+1（15.3）；武将全部免费（15.2）。
  */
 
+import { CONFIG, type SettlementCfg } from '../../data/config';
 import { emptyStats, type RunStats } from '../run/stats';
 
 export type { RunStats };
@@ -46,13 +47,8 @@ export interface RunOutcome {
   killer?: string;
 }
 
-/** 将魂系数占位（PRD 14.5 定稿值；将来改读 config settlement.*） */
-export const SETTLEMENT_CONFIG = {
-  soul: { perChapter: 30, perElite: 8, perWin: 2, perBoss: 40, defeatMul: 0.5, tianmingStep: 0.1 },
-  /** H5 首版最后一章（O26：只做第 1 章） */
-  lastChapter: 1,
-  maxTianming: 10,
-} as const;
+/** 将魂系数（PRD 14.5；config rules.settlement，#174） */
+export const SETTLEMENT_CONFIG: SettlementCfg = CONFIG.rules.settlement;
 
 export interface SoulLine {
   label: string;
