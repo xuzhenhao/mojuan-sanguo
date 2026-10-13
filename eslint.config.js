@@ -6,7 +6,7 @@ import globals from 'globals';
 /** 分层约束（engine-design §3）：core 不依赖 engine/platform；engine 不依赖 core/data/platform 实现，也不直接访问平台全局对象 */
 const layer = (patterns) => ({ 'no-restricted-imports': ['error', { patterns }] });
 /** M2-W1 #200：平台无关层禁止直接引用的浏览器 / 微信全局（必须经 Platform 注入）；wechat-minigame-m2.md §3.1「守卫」 */
-const PLATFORM_GLOBALS = ['window', 'document', 'localStorage', 'performance', 'wx'].map((name) => ({
+const PLATFORM_GLOBALS = ['window', 'document', 'localStorage', 'performance', 'wx', 'matchMedia'].map((name) => ({
   name,
   message: `平台无关层（src/{core,engine,game,data}）不得直接使用 ${name}，请经 Platform 注入（wechat-minigame-m2.md §3.1）`,
 }));

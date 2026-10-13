@@ -2,9 +2,9 @@
 export const DEBUG_DOM_BUILD_MARKER = '__MOJUAN_DEBUG_DOM__';
 console.info(DEBUG_DOM_BUILD_MARKER);
 import './style.css';
-import { loadBrushFonts, webFontDeps } from '../brush-font';
-import wenkaiCoreUrl from '../../../../public/assets/fonts/wenkai-core.woff2?url';
-import wenkaiExtUrl from '../../../../public/assets/fonts/wenkai-ext.woff2?url';
+import { createWebFonts, webFontDeps } from '../fonts';
+import { FONTS } from '../../../data/config';
+import { facesOf } from '../../../game/fonts';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -512,10 +512,8 @@ document.addEventListener('click', (ev) => {
 Object.assign(window, { G_: () => G, S_: S, UI_: ui });
 newRun();
 
-// #142：调试页同样加载霞鹜文楷（CSS 族名 Brush），不回退系统字体
-void loadBrushFonts(
-  webFontDeps((m, e) => {
-    if (import.meta.env.DEV) console.warn(m, e ?? '');
-  }),
-  { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
-);
+// #142/#202：调试页同样按 rules.fonts 加载霞鹜文楷（CSS 族名 Brush）
+{
+  const fonts = createWebFonts(webFontDeps(import.meta.env.BASE_URL));
+  for (const f of facesOf(FONTS, 'web')) void fonts.load(f.family, f.url);
+}

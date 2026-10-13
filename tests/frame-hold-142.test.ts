@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { Engine } from '../src/engine/engine';
 import { BattleScene } from '../src/game/scenes/battle/scene';
@@ -10,7 +10,7 @@ describe('#142 字体就绪前不画任何帧', () => {
     const eng = new Engine(fp.p);
     let release!: () => void;
     const done = eng.holdFramesUntil(new Promise<void>((r) => (release = r)));
-    eng.scenes.register('battle', () => new BattleScene({ now: testNow, overlays: eng.overlays }));
+    eng.scenes.register('battle', () => new BattleScene({ now: fakeClock().now, overlays: eng.overlays }));
     void eng.scenes.go('battle');
     eng.frame(16);
     expect(fp.offscreens.some((c) => c.calls.includes('fillText'))).toBe(false);

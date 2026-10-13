@@ -44,8 +44,8 @@ export const C = {
   nameStroke: 'rgba(0,0,0,.6)',
 } as const;
 export const FACTION_COLOR: Record<string, string> = { 群: '#7a6a58', 蜀: '#3f7a4f', 魏: '#3c5a8a', 吴: '#a63d2f' };
-export const BRUSH = '"Brush"';
-const NUM = 'bold 14px "Brush"';
+export const BRUSH = '"Brush", serif';
+const NUM = 'bold 14px "Brush", serif';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -188,7 +188,7 @@ export class SelectScene implements Scene {
         const c = s.ctx as unknown as Ctx;
         panel(c, rect);
         c.fillStyle = C.paper;
-        c.font = '14px "Brush"';
+        c.font = '14px "Brush", serif';
         c.textAlign = 'center';
         c.textBaseline = 'middle';
         c.fillText(text, rect.x + rect.w / 2, rect.y + rect.h / 2);
@@ -321,7 +321,7 @@ export class SelectScene implements Scene {
     }
     if (!m) {
       c.fillStyle = C.goldLo;
-      c.font = '13px "Brush"';
+      c.font = '13px "Brush", serif';
       c.textBaseline = 'middle';
       c.fillText('选择主将后显示技能', 22, L.skillY + L.skillD / 2);
       resetText(c);
@@ -352,7 +352,7 @@ export class SelectScene implements Scene {
       c.fillText(`珠联·${combo.name}`, L.combo.x, y);
       const x = L.combo.x + c.measureText(`珠联·${combo.name}`).width + 8;
       c.fillStyle = C.paper3;
-      c.font = '12px "Brush"';
+      c.font = '12px "Brush", serif';
       c.fillText(ellipsis(c, combo.desc, L.combo.w - (x - L.combo.x)), x, y);
       resetText(c);
     }
@@ -384,12 +384,12 @@ export class SelectScene implements Scene {
     c.stroke();
     c.setLineDash([]);
     c.fillStyle = C.goldLo;
-    c.font = '20px "Brush"';
+    c.font = '20px "Brush", serif';
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText('+', 56, y + 26);
     c.textAlign = 'left';
-    c.font = '12px "Brush"';
+    c.font = '12px "Brush", serif';
     c.fillText('无可带兵书', 82, y + 26);
     for (let i = 0; i < 6; i++) {
       const x = 156 + i * 10;
@@ -402,7 +402,7 @@ export class SelectScene implements Scene {
     }
     seal(c, { x: 334, y: y + 15, w: 22, h: 22 }, '命', 14);
     c.fillStyle = C.paper;
-    c.font = 'bold 18px "Brush"';
+    c.font = 'bold 18px "Brush", serif';
     c.textAlign = 'left';
     c.fillText('0', 362, y + 27);
     resetText(c);
@@ -437,7 +437,7 @@ function detailLines(hero: HeroDef, focus: 'main' | 'sub' | null): Line[] {
   const out: Line[] = [];
   const add = (title: string, desc: string, dim: boolean) => {
     out.push({ text: title, font: `18px ${BRUSH}`, color: dim ? C.goldLo : C.gold, h: 26 });
-    for (const l of wrapWidth(desc, 318, 13)) out.push({ text: l, font: '13px "Brush"', color: dim ? C.paper3 : C.paper, h: 19 });
+    for (const l of wrapWidth(desc, 318, 13)) out.push({ text: l, font: '13px "Brush", serif', color: dim ? C.paper3 : C.paper, h: 19 });
     out.push({ text: '', font: '', color: '', h: 6 });
   };
   for (const s of mainSkillsOf(hero)) add(`主将技 · ${s.name}`, s.desc, focus === 'sub');
@@ -492,7 +492,7 @@ function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[]) {
     y += l.h;
   }
   c.fillStyle = C.goldLo;
-  c.font = '11px "Brush"';
+  c.font = '11px "Brush", serif';
   c.textAlign = 'right';
   c.fillText('点外部关闭', r.x + r.w - 12, r.y + 18);
   resetText(c);
@@ -676,7 +676,7 @@ function heroFrame(
     c.fillStyle = '#fff';
     c.shadowColor = '#000';
     c.shadowBlur = 3;
-    c.font = 'bold 12px "Brush"';
+    c.font = 'bold 12px "Brush", serif';
     c.textBaseline = 'middle';
     c.fillText(String(h.hp), w.x + w.w / 2 - 1, cy + 1);
     noShadow(c);
@@ -794,7 +794,7 @@ function emptySlot(c: Ctx, r: Rect, label: string, flash: boolean) {
   c.fillStyle = flash ? C.cinnHi : C.goldMid;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
-  c.font = '30px "Brush"';
+  c.font = '30px "Brush", serif';
   c.fillText('+', r.x + r.w / 2, r.y + r.h / 2 - 12);
   c.font = `${r.w > 150 ? 22 : 18}px ${BRUSH}`;
   c.fillText(`点${label}`, r.x + r.w / 2, r.y + r.h / 2 + 20);

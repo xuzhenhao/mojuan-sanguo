@@ -24,5 +24,13 @@ export function mkGame(over: Partial<BattleIO> = {}, seed = 1, heroes: { main?: 
 let u = 1000;
 export const card = (id: string, suit: CardInst['suit'] = 'S', rank = 7, mods: string[] = []): CardInst => ({ uid: ++u, id, suit, rank, mods });
 
-/** #201：BattleScene.deps.now 已改必填，单测统一注入此时钟（行为同改动前的 performance.now 回退） */
-export const testNow = (): number => performance.now();
+/** #202：可控假时钟（固定值，只在测试显式 advance/set 时前进）；BattleScene.deps.now 等统一注入 clock.now */
+export interface FakeClock {
+  now(): number;
+  advance(ms: number): void;
+  set(t: number): void;
+}
+export function fakeClock(start = 0): FakeClock {
+  let t = start;
+  return { now: () => t, advance: (ms) => void (t += ms), set: (v) => void (t = v) };
+}

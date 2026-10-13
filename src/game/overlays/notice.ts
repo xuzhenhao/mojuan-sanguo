@@ -14,7 +14,7 @@ import { SELECT_LAYOUT } from '../select/layout';
 export const NOTICE_MS = 2500;
 export const NOTICE_FADE_MS = 180;
 /** 字体只用霞鹜文楷（Brush），不写任何系统字体回退 */
-export const NOTICE_FONT = '16px "Brush"';
+export const NOTICE_FONT = '16px "Brush", serif';
 /** 宽度按内容自适应：最小 200dp，最大 屏宽 − 48dp，水平居中；多条同时在屏时统一取最宽一条的宽度（#136） */
 export const NOTICE_STYLE = {
   bg: 'rgba(7,3,2,0.9)',

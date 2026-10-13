@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createMapScene, loadMapSave, mapSession, resetMapSession } from '../src/game/map';
 import { setRunSaveStore } from '../src/core/run/save';
@@ -82,7 +82,7 @@ describe('点将结果传到地图（线上 P0：吕布+陆逊 显示成赵云+�
     expect([s.heroMain, s.heroSub, s.hp, s.maxHp]).toEqual(['H01', 'H08', 3, hp('H01')]);
   });
   it('战斗页：地图 params 不带主副将时用本局点将结果', () => {
-    const b = new BattleScene({ now: testNow, heroes: () => LB });
+    const b = new BattleScene({ now: fakeClock().now, heroes: () => LB });
     b.enter({ invalidate() {}, width: 390, height: 844 }, { seed: 1 });
     const g = (b as unknown as { g: { main: { id: string }; sub: { id: string } } }).g;
     expect([g.main.id, g.sub.id]).toEqual(['H01', 'H08']);
