@@ -80,7 +80,17 @@ export interface AffixDef {
 }
 
 /** 敌人出牌动作（无攻击力数值：伤害全部来自牌） */
-export type EnemyAct = '杀' | '杀+' | '万箭' | '闪' | '咒';
+export type EnemyAct = '杀' | '杀+' | '万箭' | '闪' | '咒' | `锦囊:${string}`;
+
+/** 敌人阶段（PRD 11.2：Boss 低血阶段切换） */
+export interface EnemyPhaseDef {
+  /** 体力 ≤ max × hpAtMost 时切换（hp_below_50% → 0.5） */
+  hpAtMost: number;
+  /** 切换后的意图循环（步数归零） */
+  pat: EnemyAct[][];
+  /** 切换时召唤的敌人 */
+  summon: { enemy: string; row: 'front' | 'back' }[];
+}
 
 export interface EnemyDef {
   name: string;
@@ -94,6 +104,10 @@ export interface EnemyDef {
   tier?: string;
   armorStart?: number;
   abilities?: import('../data/config').Ability[];
+  /** 阶段表（按顺序，只进不退） */
+  phases?: EnemyPhaseDef[];
+  /** 意图「锦囊:<id>」的参数覆盖（如张角闪电 D003 amount 2） */
+  trickOverrides?: Record<string, { amount?: number }>;
 }
 
 export interface EnemyCardDef {
@@ -117,6 +131,21 @@ export interface Enemy extends EnemyDef {
   redirect?: boolean;
   /** 延时锦囊剩余判定次数：牌 uid → 次数 */
   delayLeft?: Record<number, number>;
+  /** 当前阶段：0 = 初始意图，n = phases[n-1] */
+  phase?: number;
+  /** 由哪个敌人召唤（uid） */
+  summonedBy?: number;
+}
+
+/** 敌方对玩家放置的延时锦囊（玩家判定区；张角【闪电】） */
+export interface PlayerDelayed {
+  id: string;
+  name: string;
+  /** 施放者 uid：每个施放者回合开始判定 1 次；施放者阵亡则移除 */
+  from: number;
+  amount: number;
+  /** 剩余判定次数 */
+  left: number;
 }
 
 export interface HeroDef {

@@ -138,21 +138,31 @@ describe('背包', () => {
   });
 });
 
-describe('与 #43 RunSession 绑定', () => {
-  it('bind：共享 deckMaster 引用，入卷 / 删牌原地修改', async () => {
-    const { EconomySession, P4_UID_BASE } = await import('../src/game/economy/session');
+describe('经济并入 RunSession（#122 PR2）', () => {
+  it('run.inventory：同一对象原地修改；新牌 uid 取 RunState.nextUid，写档时折回 RunState', async () => {
     const { RunSession } = await import('../src/game/run');
     const { addCard, removeCard } = await import('../src/game/economy/inventory');
     const run = new RunSession();
-    const g = run.start({ main: 'H03', sub: 'H04', seed: 1 });
-    const e = new EconomySession();
-    e.bind(g, 1);
-    expect(e.inventory.deck).toBe(g.deckMaster);
-    const c = addCard(e.inventory, 'B001', 'S', 7);
-    expect(c.uid).toBeGreaterThanOrEqual(P4_UID_BASE);
-    expect(g.deckMaster).toContain(c);
-    expect(removeCard(e.inventory, c.uid)).toBe(true);
-    expect(e.inventory.deck).toBe(g.deckMaster);
-    expect(g.deckMaster).not.toContain(c);
+    run.start({ main: 'H03', sub: 'H04', seed: 1 });
+    const next = run.state.nextUid;
+    const inv = run.inventory;
+    expect(run.inventory).toBe(inv);
+    const c = addCard(inv, 'B001', 'S', 7);
+    expect(c.uid).toBe(next);
+    inv.gold += 5;
+    const s = run.state;
+    expect(s.nextUid).toBe(next + 1);
+    expect(s.deck.map((x) => x.uid)).toContain(c.uid);
+    expect(s.gold).toBe(inv.gold);
+    expect(removeCard(inv, c.uid)).toBe(true);
+    expect(run.state.deck.map((x) => x.uid)).not.toContain(c.uid);
+  });
+  it('经济随机流 = economy 流（runSeed ^ 0x45a5）', async () => {
+    const { RunSession } = await import('../src/game/run');
+    const { seeded } = await import('../src/core/rng');
+    const run = new RunSession();
+    run.start({ main: 'H03', sub: 'H04', seed: 9 });
+    const ref = seeded((9 ^ 0x45a5) >>> 0);
+    expect(run.rng('economy')()).toBe(ref());
   });
 });

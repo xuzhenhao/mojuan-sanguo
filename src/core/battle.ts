@@ -1,7 +1,7 @@
 import { CARDS, starterDeck } from '../data/cards';
 import { BATTLES, ENEMIES, ENEMY_CARDS, MAX_FLASH_MARKS } from '../data/enemies';
 import { HEROES, RULES } from '../data/heroes';
-import { CONFIG } from '../data/config';
+import { atomAmount, CONFIG } from '../data/config';
 import { cardMatches, Effects, judgeFromCard, standardJudgeDeck, type Source } from './effects';
 import { AFFIXES } from '../data/affixes';
 import { rndInt, shuffle, type Rng } from './rng';
@@ -21,7 +21,7 @@ import {
   RANK_CH,
   SUIT_CH,
 } from './rules';
-import type { AffixDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, Slot } from './types';
+import type { AffixDef, BattleDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, PlayerDelayed, Slot } from './types';
 
 /** 战间回复后的体力（core 与自动试玩共用同一规则，#56） */
 /** 战间回复：amount 默认取 rules.map.betweenBattleHeal（游戏，H5 = 0，PRD §10.4）；模拟传 rules.sim.baselineBetweenBattleHeal */
@@ -37,6 +37,28 @@ export interface HandOverflowEvent {
   card: CardInst;
   /** 当前硬上限（rules.handHardCap） */
   cap: number;
+}
+
+/** 敌人阶段切换事件（Boss 低血换意图；表现层播约 1 秒演出，PRD 10.9） */
+export interface EnemyPhaseEvent {
+  type: 'enemy_phase';
+  enemy: Enemy;
+  /** 新阶段序号：2 = 阶段 2 */
+  phase: number;
+}
+/** 敌人召唤事件：summoned 已加入 Game.en；summoned = null 表示达到场上上限、召唤落空 */
+export interface EnemySummonEvent {
+  type: 'enemy_summon';
+  source: Enemy;
+  enemyId: string;
+  summoned: Enemy | null;
+}
+/** 敌方延时锦囊放入 / 移出玩家判定区（张角【闪电】） */
+export interface PlayerDelayedEvent {
+  type: 'player_delayed';
+  action: 'place' | 'hit' | 'expire' | 'remove';
+  trick: PlayerDelayed;
+  source?: Enemy;
 }
 
 /** 平台适配层需实现的 IO（Web DOM / 微信小游戏 Canvas 各自实现） */
@@ -55,6 +77,12 @@ export interface BattleIO {
   epiphany(c: CardInst, options: AffixDef[], reroll: () => AffixDef[]): Promise<AffixDef | null>;
   /** 手满弃置（PRD §5.4）：新摸到的牌因手牌达到硬上限直接进弃牌堆；可选，表现层用来提示「手满，弃置」 */
   handOverflow?(ev: HandOverflowEvent): void;
+  /** 敌人阶段切换（可选） */
+  enemyPhase?(ev: EnemyPhaseEvent): void;
+  /** 敌人召唤（可选；新敌人从下一个敌方回合起行动） */
+  enemySummon?(ev: EnemySummonEvent): void;
+  /** 玩家判定区变化（可选；状态也可直接读 Game.pJudge） */
+  playerDelayed?(ev: PlayerDelayedEvent): void;
   hurt?(): void;
   enemyHit?(e: Enemy): void;
   onBattleEnd(win: boolean): void;
@@ -104,6 +132,10 @@ export class Game {
   judgeDeck: JudgeCard[] = [];
   zeroCostPlays = new Map<string, number>();
   extraActs = new Map<Enemy, string[]>();
+  /** 玩家判定区：敌方放置的延时锦囊（张角【闪电】） */
+  pJudge: PlayerDelayed[] = [];
+  /** 指定本场敌人（地图节点 / 单场模拟）；不设则按 BATTLES[battleIdx] */
+  encounter?: BattleDef;
   logs: string[] = [];
   main;
   sub;
@@ -137,8 +169,8 @@ export class Game {
     };
   }
 
-  get battle() {
-    return BATTLES[this.battleIdx];
+  get battle(): BattleDef {
+    return this.encounter ?? BATTLES[this.battleIdx];
   }
   get isLast() {
     return this.battleIdx >= BATTLES.length - 1;
@@ -201,6 +233,24 @@ export class Game {
   }
   canAsShan(c: CardInst) {
     return !!def(c).shan || !!this.effects.convertFor(c, 'B004');
+  }
+
+  spawnEnemy(id: string, row?: 'front' | 'back'): Enemy {
+    const d = ENEMIES[id];
+    if (!d) throw new Error(`未知敌人 ${id}`);
+    return {
+      ...d,
+      pat: d.pat,
+      id,
+      uid: ++this.uid,
+      max: d.hp,
+      armor: d.armorStart ?? 0,
+      step: 0,
+      marks: d.flash,
+      judge: [],
+      phase: 0,
+      ...(row ? { row } : {}),
+    };
   }
 
   // ---------- 牌堆 ----------
@@ -269,10 +319,8 @@ export class Game {
     this.p.armor = 0;
     this.p.equip = {};
     this.p.status = {};
-    this.en = this.battle.en.map((id) => {
-      const d = ENEMIES[id];
-      return { ...d, pat: d.pat, id, uid: ++this.uid, max: d.hp, armor: d.armorStart ?? 0, step: 0, marks: d.flash, judge: [] };
-    });
+    this.pJudge = [];
+    this.en = this.battle.en.map((id) => this.spawnEnemy(id));
     this.log(`—— 第${this.battleIdx + 1}战：${this.battle.name} ——`);
     this.effects.emitSync('battle_start', this.effects.playerSources());
     this.playerTurn();
@@ -416,6 +464,7 @@ export class Game {
     if (byPlayer && attr === '火') n += this.effects.stat('fire_damage', true); // 纵火
     const { absorbed } = applyDamage(e, n);
     this.log(`${e.name}受到${n}点${attr === '火' ? '火' : attr === '雷' ? '雷' : ''}伤害${absorbed ? `（护甲抵${absorbed}）` : ''}`);
+    if (e.hp <= 0) this.dropDelayedFrom(e);
     this.io.enemyHit?.(e);
     this.io.update();
     await this.io.sleep(350);
@@ -574,6 +623,7 @@ export class Game {
     const order = [...this.front(), ...this.alive().filter((e) => e.row === 'back')];
     this.effects.reset('enemy_turn');
     this.extraActs.clear();
+    for (const e of this.en) if (e.hp <= 0) this.dropDelayedFrom(e);
     for (const e of order) {
       if (e.hp <= 0 || this.over) continue;
       const skipAtk = await this.resolveJudgeArea(e);
@@ -584,6 +634,10 @@ export class Game {
         e.armor = eak;
       }
       await this.effects.emit('enemy_turn_start', this.effects.enemySources(e), { owner: e });
+      if (e.hp <= 0 || this.over) continue;
+      this.checkPhase(e);
+      await this.resolvePlayerJudge(e);
+      if (this.over) return;
       if (CONFIG.rules.mechanics.moying && e.tier !== '小怪' && this.p.hp >= this.p.maxHp) {
         this.extraActs.set(e, [...(this.extraActs.get(e) ?? []), '杀']);
         this.log(`${e.name}·墨影：你体力已满，本回合多出 1 张【杀】`);
@@ -592,6 +646,12 @@ export class Game {
       await this.io.sleep(300);
       for (const a of [...enemyIntent(e).acts, ...((this.extraActs.get(e) ?? []) as EnemyAct[])]) {
         if (this.over || e.hp <= 0) break;
+        if (a.startsWith('锦囊:')) {
+          if (!skipAtk) await this.enemyTrick(e, a.slice(3));
+          this.io.update();
+          await this.io.sleep(250);
+          continue;
+        }
         const k = ENEMY_CARDS[a];
         if (!k) continue;
         if (k.t === '杀') {
@@ -645,6 +705,93 @@ export class Game {
     });
     if (!this.over) this.playerTurn();
   }
+  // ---------- Boss 机制：阶段 / 召唤 / 敌方延时锦囊 ----------
+  /**
+   * 阶段切换（PRD 11.2）：在该敌人自己的回合开始（判定区、回合开始被动之后、出牌之前）检查；
+   * 体力 ≤ 上限 × 阈值即进入下一阶段：换意图表、步数归零、召唤。每个阶段只触发一次，不会回退。
+   */
+  checkPhase(e: Enemy) {
+    const phases = e.phases ?? [];
+    const cur = e.phase ?? 0;
+    const next = phases[cur];
+    if (!next || e.hp <= 0 || e.hp > e.max * next.hpAtMost) return false;
+    e.phase = cur + 1;
+    e.pat = next.pat;
+    e.step = 0;
+    this.log(`${e.name}进入阶段 ${e.phase + 1}`);
+    this.io.enemyPhase?.({ type: 'enemy_phase', enemy: e, phase: e.phase + 1 });
+    for (const s of next.summon) this.summon(e, s.enemy, s.row);
+    this.io.update();
+    return true;
+  }
+  /** 召唤：加到场上（默认后排）；场上存活敌人达到 rules.maxEnemiesAlive 时落空。本敌方回合不行动。 */
+  summon(src: Enemy, id: string, row: 'front' | 'back' = 'back'): Enemy | null {
+    const cap = CONFIG.rules.maxEnemiesAlive ?? 3;
+    if (this.alive().length >= cap) {
+      this.log(`${src.name}召唤${ENEMIES[id]?.name ?? id}：场上已满（${cap}），召唤落空`);
+      this.io.enemySummon?.({ type: 'enemy_summon', source: src, enemyId: id, summoned: null });
+      return null;
+    }
+    const n = this.spawnEnemy(id, row);
+    n.summonedBy = src.uid;
+    this.en.push(n);
+    this.fixRows();
+    this.log(`${src.name}召唤${n.name}（${n.row === 'back' ? '后排' : '前排'}）`);
+    this.io.enemySummon?.({ type: 'enemy_summon', source: src, enemyId: id, summoned: n });
+    return n;
+  }
+  /** 敌方锦囊（意图「锦囊:<id>」）。目前只有 D003 闪电：放入玩家判定区（同一时间最多 1 张）。 */
+  async enemyTrick(e: Enemy, id: string) {
+    const card = CONFIG.cards[id];
+    const name = card?.name ?? id;
+    if (id !== 'D003') {
+      this.log(`${e.name}的锦囊【${name}】未实装，跳过`);
+      return;
+    }
+    if (this.pJudge.some((t) => t.id === id)) {
+      this.log(`${e.name}使用【${name}】：你的判定区已有【${name}】，无效`);
+      return;
+    }
+    this.log(`${e.name}对你使用【${name}】`);
+    if (await this.trickNegated(name, e)) return;
+    const judgeAb = card.abilities.find((a) => a.trigger.when === 'enemy_turn_start');
+    const amount = e.trickOverrides?.[id]?.amount ?? atomAmount(judgeAb ? [judgeAb] : [], 'damage') ?? 3;
+    const left = (card.abilities.flatMap((a) => a.do).find((x) => x.do === 'apply_status')?.duration as number | undefined) ?? 4;
+    const t: PlayerDelayed = { id, name, from: e.uid, amount, left };
+    this.pJudge.push(t);
+    this.io.playerDelayed?.({ type: 'player_delayed', action: 'place', trick: t, source: e });
+  }
+  /** 敌方锦囊对你生效前的无懈可击窗口（#74 wuxieWindow） */
+  async trickNegated(name: string, from: Enemy): Promise<boolean> {
+    return this.wuxieWindow(name, from);
+  }
+  /** 施放者阵亡：移除它放在你判定区的延时锦囊（不再判定） */
+  dropDelayedFrom(e: Enemy) {
+    for (const t of this.pJudge.filter((x) => x.from === e.uid)) {
+      this.pJudge = this.pJudge.filter((x) => x !== t);
+      this.log(`${e.name}阵亡，你判定区的【${t.name}】移除`);
+      this.io.playerDelayed?.({ type: 'player_delayed', action: 'remove', trick: t, source: e });
+    }
+  }
+  /** 玩家判定区：施放者每个回合开始判定 1 次（♠2–9 命中受雷伤并移除；未命中次数用完移除） */
+  async resolvePlayerJudge(e: Enemy) {
+    for (const t of this.pJudge.filter((x) => x.from === e.uid)) {
+      if (this.over) return;
+      const r = await this.judge(t.name);
+      t.left--;
+      const hit = r.suit === 'S' && r.rank >= 2 && r.rank <= 9;
+      if (hit || t.left <= 0) {
+        this.pJudge = this.pJudge.filter((x) => x !== t);
+        this.io.playerDelayed?.({ type: 'player_delayed', action: hit ? 'hit' : 'expire', trick: t, source: e });
+      }
+      if (hit) {
+        this.log(`【${t.name}】命中`);
+        await this.dmgPlayer(t.amount, e, '雷');
+      } else this.log(t.left > 0 ? `【${t.name}】未命中（还剩 ${t.left} 次）` : `【${t.name}】判定次数用完，移除`);
+      this.io.update();
+    }
+  }
+
   /**
    * 锦囊 → 无懈可击决策点（PRD 5.9.2）：敌方锦囊对你生效前，若手里有无懈可击，询问是否打出。
    * 返回 true = 该锦囊被抵消。手里没有合法牌时不开窗口。
@@ -695,10 +842,10 @@ export class Game {
     await this.dmgPlayer(n, e);
     return 'hit';
   }
-  async dmgPlayer(n: number, src?: Enemy) {
+  async dmgPlayer(n: number, src?: Enemy, attr?: '雷' | '火') {
     const had = this.p.armor;
     const { absorbed, hpLoss } = applyDamage(this.p, n);
-    this.log(`你受到${n}点伤害${absorbed ? `（护甲抵${absorbed}）` : ''}`);
+    this.log(`你受到${n}点${attr ?? ''}伤害${absorbed ? `（护甲抵${absorbed}）` : ''}`);
     this.io.hurt?.();
     this.io.update();
     await this.io.sleep(300);

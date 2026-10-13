@@ -188,15 +188,21 @@ export function pickSub(main: string): string {
   const d = CONFIG.rules.defaultHeroes;
   return d.sub !== main ? d.sub : d.main;
 }
-const resolveHeroes = (h: HeroOpts): HeroOpts => (h.preset || !h.main || h.sub ? h : { ...h, sub: pickSub(h.main) });
+export const resolveHeroes = (h: HeroOpts): HeroOpts => (h.preset || !h.main || h.sub ? h : { ...h, sub: pickSub(h.main) });
 
 export interface RunOpts extends HeroOpts {
   battleIdx: number;
   seed: number;
   hp?: number;
+  /** 覆盖体力上限（地图模式 V09 刮骨） */
+  maxHp?: number;
+  /** 开场额外护甲（地图模式奖励折算 / 收编 / 复活） */
+  armorStart?: number;
   maxTurns?: number;
   /** 传入则用 headless 表现层契约消费者校验所有 core → 表现层事件（见 io-contract.ts） */
   contract?: ContractReport;
+  /** 指定本场敌人（如 Boss 单场 ['B1']）；不设则按 BATTLES[battleIdx] */
+  encounter?: { name: string; en: string[] };
 }
 
 /** 单场战斗：从给定体力开始，AI 打到结束 */
@@ -221,10 +227,13 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   };
   ref.g = g;
   g.battleIdx = o.battleIdx;
+  if (o.encounter) g.encounter = o.encounter;
+  if (o.maxHp !== undefined) g.p.maxHp = o.maxHp;
   if (o.hp !== undefined) g.p.hp = o.hp;
   const hpStart = g.p.hp;
   const plays = { attack: 0, defense: 0, other: 0 };
   g.startBattle();
+  if (o.armorStart) g.p.armor += o.armorStart;
   const maxTurns = o.maxTurns ?? 40;
   while (!g.over && g.turn <= maxTurns) {
     if (ai === 'hero') await heroAiTurn(g, plays);
@@ -392,4 +401,26 @@ export async function batch(n: number, randomSeed = Date.now(), h0: HeroOpts = {
     if (c.hpAtLast !== null) hpAtLast.push(c.hpAtLast);
   }
   return { heroes: h, per, ch: { n, clear, hpAtLast } };
+}
+
+/** 单场遭遇（如 Boss B1）满血 n 局：胜率 / 超时 / 掉血 / 回合；可选契约校验 */
+export async function encounterBatch(enemies: string[], n: number, seed: number, h0: HeroOpts = {}, contract?: ContractReport) {
+  const h = resolveHeroes(h0);
+  const rs: GameStats[] = [];
+  for (let i = 0; i < n; i++)
+    rs.push(await runBattle({ ...h, battleIdx: 0, seed: seed * 31 + i, encounter: { name: enemies.join('+'), en: enemies }, contract }));
+  const med = (xs: number[]) => {
+    const a = xs.slice().sort((x, y) => x - y);
+    return a.length ? a[Math.floor((a.length - 1) / 2)] : 0;
+  };
+  const wins = rs.filter((r) => r.win);
+  return {
+    heroes: h,
+    n,
+    winRate: wins.length / n,
+    timeouts: rs.filter((r) => r.timeout).length,
+    hpLossMedianPct: med(rs.map((r) => (r.hpStart - r.hpEnd) / r.maxHp)),
+    turnsMedian: med(rs.map((r) => r.turns)),
+    le3Rate: rs.filter((r) => r.win && r.hpEnd <= 3).length / n,
+  };
 }

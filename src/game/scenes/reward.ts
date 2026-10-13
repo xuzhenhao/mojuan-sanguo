@@ -142,23 +142,20 @@ export class RewardScene implements Scene<RewardParams | undefined> {
     this.update(this.animEnd - this.t);
   }
 
-  // ---------- 布局（390×844 基准，按宽度居中） ----------
-  get ox() {
-    return (this.ctx.width - 390) / 2;
-  }
+  // ---------- 布局（390×844 设计坐标，缩放由引擎统一做） ----------
   cardRect(i: number): Rect {
-    const r = { x: this.ox + 25 + i * 118, y: 376, w: CARD_W, h: CARD_H };
+    const r = { x: 25 + i * 118, y: 376, w: CARD_W, h: CARD_H };
     if (i === this.selected) r.y -= 10;
     return r;
   }
   goldPill(): Rect {
-    return { x: this.ox + (this.st.offer.potion ? 95 : 150), y: 232, w: 90, h: 40 };
+    return { x: this.st.offer.potion ? 95 : 150, y: 232, w: 90, h: 40 };
   }
   potionPill(): Rect {
-    return { x: this.ox + 192, y: 232, w: 103, h: 40 };
+    return { x: 192, y: 232, w: 103, h: 40 };
   }
   relicBar(): Rect {
-    return { x: this.ox + 40, y: 655, w: 310, h: 73 };
+    return { x: 40, y: 655, w: 310, h: 73 };
   }
   buttons(): Button[] {
     const h = this.ctx.height;
@@ -166,13 +163,13 @@ export class RewardScene implements Scene<RewardParams | undefined> {
     return [
       {
         id: 'refresh',
-        rect: { x: this.ox + 55, y: 588, w: 210, h: 40 },
+        rect: { x: 55, y: 588, w: 210, h: 40 },
         text: `↻ 免费刷新（本局 ${ECONOMY.rewardFreeRefresh} 次）`,
         kind: 'secondary',
         disabled: !canRefresh(this.inv, this.st),
         font: BRUSH(15),
       },
-      { id: 'skip', rect: { x: this.ox + 271, y: 588, w: 64, h: 40 }, text: '略过', kind: 'secondary', disabled: done, font: BRUSH(17) },
+      { id: 'skip', rect: { x: 271, y: 588, w: 64, h: 40 }, text: '略过', kind: 'secondary', disabled: done, font: BRUSH(17) },
       {
         id: 'take',
         rect: { x: this.ctx.width - 75, y: h - BAR_H + 7, w: 65, h: 40 },
@@ -277,7 +274,6 @@ export class RewardScene implements Scene<RewardParams | undefined> {
   openPotionFull() {
     if (this.env.overlays.ids().includes('potion-full')) return;
     const w = this.ctx.width;
-    const h = this.ctx.height;
     const inv = this.inv;
     const st = this.st;
     const newId = st.offer.potion!;
@@ -295,10 +291,9 @@ export class RewardScene implements Scene<RewardParams | undefined> {
         id: 'potion-full',
         kind: 'popup',
         rect: r,
+        scrim: { color: 'rgba(5,2,1,.72)' },
         draw: (s) => {
           const c = s.ctx;
-          c.fillStyle = 'rgba(5,2,1,.72)';
-          c.fillRect(0, 0, w, h);
           vgrad(c, r, 'rgba(42,20,16,.98)', 'rgba(15,7,5,.98)');
           frame3(c, r);
           label(c, '丹药已满', r.x + r.w / 2, r.y + 40, BRUSH(24), T.gold, 'center');
@@ -345,7 +340,7 @@ export class RewardScene implements Scene<RewardParams | undefined> {
     this.drawPills(s);
     label(c, '择 一 入 卷', w / 2, 340, BRUSH(21), T.gold, 'center');
     c.fillStyle = 'rgba(185,138,60,.55)';
-    c.fillRect(this.ox + 110, 350, 170, 1);
+    c.fillRect(110, 350, 170, 1);
     this.drawCards(s);
     for (const b of this.buttons()) if (b.id !== 'take') drawButton(c, b);
     if (this.st.offer.relics.length) this.drawRelicBar(s);
@@ -489,10 +484,9 @@ export function openRelicChoice(env: Env, w: number, h: number, ids: string[]) {
   return env.overlays.push<string>({
     id: 'relic-choice',
     kind: 'popup',
+    scrim: { color: 'rgba(5,2,1,.8)' },
     draw: (s) => {
       const c = s.ctx;
-      c.fillStyle = 'rgba(5,2,1,.8)';
-      c.fillRect(0, 0, w, h);
       label(c, '择 一', w / 2, 270, BRUSH(22), T.gold, 'center');
       ids.forEach((id, i) => drawRelicColumn(c, col(i), id, i === sel));
       ok.disabled = sel < 0;

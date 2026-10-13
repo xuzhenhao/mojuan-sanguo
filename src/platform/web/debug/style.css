@@ -257,12 +257,15 @@ button:disabled {
 #handwrap {
   height: 150px;
   overflow-x: auto;
-  padding: 8px 6px 0;
+  padding: 8px 16px 0; /* #57：右侧留白，末张不被裁切 */
+  box-sizing: border-box;
 }
 #hand {
   display: flex;
   gap: 4px;
   min-width: min-content;
+  padding-right: 12px;
+  justify-content: safe center;
 }
 .card {
   width: 66px;
@@ -472,4 +475,16 @@ label {
 #skills button.skill:disabled {
   filter: grayscale(1);
   opacity: 0.5;
+}
+
+/* #57：手牌多时压缩宽度与间距，优先不滚动、不裁切 */
+#hand.crowded {
+  gap: 0;
+}
+#hand.crowded .card {
+  width: 52px;
+  margin-right: -8px;
+}
+#hand.crowded .card:last-child {
+  margin-right: 0;
 }

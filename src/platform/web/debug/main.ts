@@ -5,6 +5,7 @@ import './style.css';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
+import { comboOf } from '../../../game/select/model';
 import { BATTLES } from '../../../data/enemies';
 import type { AffixDef, CardInst } from '../../../core/types';
 import { nextSkillStep, skillButtons, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
@@ -46,6 +47,9 @@ const io: BattleIO = {
   },
   enemyHit(e) {
     document.querySelector(`[data-e="${e.uid}"]`)?.classList.add('hit');
+  },
+  handOverflow(ev) {
+    hint(`手满，弃置「${def(ev.card).name}」`);
   },
   onBattleEnd: (win) => {
     ui.busy = false;
@@ -92,6 +96,19 @@ function renderLog() {
 function render() {
   if (!G) return;
   $('#battleNo').textContent = `第${G.battleIdx + 1}/${BATTLES.length}战 · ${G.battle.name} · 回合${G.turn}`;
+  // #55：顶部武将栏跟随 main/sub，不再写死关羽/赵云/龙虎会
+  {
+    const main = G.main;
+    const sub = G.sub;
+    $('#pmain').textContent = main.name;
+    const ptag = $('#pinfo .ptag');
+    if (ptag) ptag.textContent = `主将·${main.faction}`;
+    const subEl = $('#sub .pname');
+    if (subEl) subEl.textContent = sub.name;
+    const combo = comboOf(main.id, sub.id);
+    const comboEl = $('#combo');
+    if (comboEl) comboEl.textContent = combo ? `珠联·${combo.name}` : '';
+  }
   for (const row of ['front', 'back'] as const) {
     $('#' + row).innerHTML = G.alive()
       .filter((e) => e.row === row)
@@ -127,7 +144,9 @@ function render() {
         return c ? `<span>${def(c).name}${c.mods.length ? '*' : ''}</span>` : '';
       })
       .join('') + ` <small>范围${G.attackRange()}</small>`;
-  $('#hand').innerHTML = G.hand
+  const handEl = $('#hand');
+  handEl.classList.toggle('crowded', G.hand.length >= 6);
+  handEl.innerHTML = G.hand
     .map((c) => {
       const d = def(c);
       let cls = 'card';
