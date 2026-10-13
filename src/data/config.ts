@@ -115,6 +115,11 @@ export interface ConfigBundle {
     event: { startArmorCap: number };
     /** 结算将魂系数（PRD 14.5；#174） */
     settlement: SettlementCfg;
+    /** 暂停/设置浮层（#108）：局外偏好默认值（存 mojuan.prefs.v1） */
+    settings: {
+      toggles: Record<string, { label: string; default: boolean; hidden?: boolean }>;
+      choices: Record<string, { label: string; options: string[]; default: string; hidden?: boolean }>;
+    };
     /** 3 战回归基线（自动对局 / bstat）专用 */
     sim: { baselineBetweenBattleHeal: number };
     /** 真实游戏 / 正式地图 */
