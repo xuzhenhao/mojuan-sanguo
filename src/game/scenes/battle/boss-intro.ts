@@ -134,6 +134,7 @@ export function drawBossIntro(ctx: Ctx2DLike, d: IntroData, f: IntroFrame, W: nu
   const L = INTRO_LAYOUT;
   const cx = W / 2;
   if (f.scrim > 0) {
+    // TODO(#107)：全屏遮罩需要引擎级图层（设计框外的边距现在不压暗），M1 不做
     c.globalAlpha = a0 * f.scrim;
     c.fillStyle = 'rgba(5,2,1,1)';
     c.fillRect(-W, -H, W * 3, H * 3);
@@ -198,12 +199,27 @@ export function drawBossIntro(ctx: Ctx2DLike, d: IntroData, f: IntroFrame, W: nu
     const m = (s: string) => (c.measureText ? c.measureText(s).width : [...s].length * LINE_SIZE);
     const lines = wrapIntroLine(d.line, m);
     const y0 = (phase ? L.phaseY : L.lineY) + f.lineDy - ((lines.length - 1) * LINE_HEIGHT) / 2;
+    if (phase) {
+      // 阶段台词的淡墨带：行上沿 -12 到下沿 +12，全宽 rgba(5,2,1,.60)，两端 15% 渐隐，无金线；随台词淡入淡出
+      const top = y0 - LINE_SIZE / 2 - 12;
+      const bh = (lines.length - 1) * LINE_HEIGHT + LINE_SIZE + 24;
+      c.globalAlpha = a0 * f.line;
+      if (c.createLinearGradient) {
+        const g = c.createLinearGradient(0, 0, W, 0);
+        g.addColorStop(0, 'rgba(5,2,1,0)');
+        g.addColorStop(0.15, 'rgba(5,2,1,.6)');
+        g.addColorStop(0.85, 'rgba(5,2,1,.6)');
+        g.addColorStop(1, 'rgba(5,2,1,0)');
+        c.fillStyle = g;
+      } else c.fillStyle = 'rgba(5,2,1,.6)';
+      c.fillRect(0, top, W, bh);
+    }
     c.globalAlpha = a0 * f.line;
     lines.forEach((s, i) => txt(c, s, cx, y0 + i * LINE_HEIGHT, LINE_SIZE, phase ? C.cinnHi : C.paper));
   }
   if (showSkip && f.scrim > 0) {
-    c.globalAlpha = a0 * Math.min(1, f.scrim / 0.72);
-    txt(c, '点击跳过', cx, L.skipY, 13, 'rgba(191,174,136,.6)');
+    c.globalAlpha = a0 * Math.min(1, f.scrim / 0.72) * 0.6;
+    txt(c, '点击跳过', cx, L.skipY, 13, C.paper3);
   }
   c.globalAlpha = a0;
 }
