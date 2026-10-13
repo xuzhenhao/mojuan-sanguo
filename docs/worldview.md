@@ -123,7 +123,61 @@ MVP 共三章（PRD §3.2）。每章是一卷，章首一屏水墨插画加 2�
 | 复活「将星未陨」 | 战败时可复活 | 武将之魂尚未散尽，墨还能再续一笔 |
 | 败北 / 通关 | 一局结束 | 卷页合上：败北时墨迹重铺，通关时字迹写定 |
 
-## 6. 写作约束
+## 6. 「墨卷」意象的去留与影响清单
+
+用户已说明「墨卷」只是暂用名，世界观可以跳出卷轴设定，水墨美术风格不变。
+
+### 6.1 本稿的取舍
+
+本稿**保留卷轴作为默认方案**，原因：PRD 名词表里的执笔者、墨魇、墨影，地图的整卷可见、通关卷轴合上，都已经和卷轴自洽；换掉它要同时改叙事、地图表现和多处文案。
+
+但核心意象其实是「**写坏的史书 + 执笔改写**」，卷轴只是史书的载体。若正式名称不带「卷」，可改用下面的备选，墨魇、墨影、执笔者都能原样保留：
+
+| 备选意象 | 说法 | 需要调整的地方 |
+| -------- | ---- | -------------- |
+| 青史 / 史笔（推荐的替代） | 被墨魇污染的是「青史」，玩家是执「史笔」的人；一章是一「篇」，通关是「定稿」，失败是「废稿重写」 | 「入卷」「卷轴合上」类文案改成「入史」「落定」；地图仍可画成长卷，美术不受影响 |
+| 画境 | 史事凝成一幅幅水墨画，玩家入画 | 与已有作品《蚀魂图：墨魇》（入古画、墨魇）意象过近，**不推荐** |
+
+是否改意象，由用户随正式名称一起定。改之前本文和 PRD 都不动。
+
+### 6.2 受影响的已有系统名和文案（只列，不改）
+
+用 `rg` 在 `config/`、`src/`、`docs/` 搜「墨卷」「卷轴」「入卷」「卷页」「画卷」等词（2026-10-13，origin/main 9af5869），另加根目录 `index.html` 与 `public/`。墨魇、墨影、执笔者在两种方案下都保留，未列为受影响。
+
+**玩家可见（改意象时必须改）**
+
+| 文件 | 内容 |
+| ---- | ---- |
+| `index.html` | `<title>墨卷三国</title>`（随正式名称改） |
+| `src/platform/web/debug/main.ts:284` | 调试页败北文案「墨卷合上……」（仅开发版） |
+| `src/game/scenes/reward.ts:5, 240` | 注释里的「入卷」（奖励收入；若界面有同名按钮文案需同步） |
+| `public/mockups/v3/reward.html:156` | 原型文案「择一入卷」 |
+| `public/mockups/v3/lobby.html:142`、`public/mockups/*/index.html` 标题、`public/mockups/v3/b.css:1` | 原型中的「墨卷三国」 |
+
+**代码与配置注释（只是叫法，不影响逻辑）**
+
+| 文件 | 内容 |
+| ---- | ---- |
+| `config/rules.yaml:110` | `layerSpacing` 注释「卷轴每层高度」 |
+| `src/game/map/scene.ts`（3、4、83、93、246、278、347 行） | 地图「卷轴」烘焙、视口、卷轴框等注释 |
+| `src/game/overlays/notice.ts:22` | 注释「卷轴金轴」 |
+
+**文档**
+
+| 文件 | 命中 |
+| ---- | ---- |
+| `docs/PRD.md` | 标题与正文「墨卷三国」5 处、墨卷 1、卷轴 1、卷页 1、画卷 1、入卷 4（含 §1.3、§3.1、§3.3） |
+| `docs/ui/render-spec.md` | 卷轴 19、墨卷 2、入卷 2、墨卷三国 1 |
+| `docs/ui/flow.md` | 卷轴 3、墨卷三国 1 |
+| `docs/ui/acceptance.md` | 卷轴 2 |
+| `docs/architecture/engine-design.md` | 卷轴 4、墨卷三国 1 |
+| `docs/art/characters/luxun.md` | 卷轴 2 |
+| `docs/specs/rest-v05.md` | 入卷 1 |
+| `docs/specs/wechat-minigame-m2.md`、`docs/process/WORKFLOW.md`、`docs/proposals/difficulty.md`、`docs/proposals/numbers-v1/design-v1.md`、`design-v1-content.md`、`docs/ui/research.md`、`docs/CHANGELOG.md` | 各含「墨卷三国」1 处 |
+| `docs/ui/battle-mockups/`、`docs/ui/battle-mockups-v2/`、`docs/ui/mockups-v3/` | 原型 html/README 中的墨卷三国、墨卷、卷轴、入卷 |
+| `docs/worldview.md`（本文） | 全文 |
+
+## 7. 写作约束
 
 - 本文不写任何数值；技能、意图、概率、次数等，以 config 和 PRD 为准。
 - 新增武将或敌人时，先有 config，再在本文补入卷理由；不写 config 里没有的人物。
