@@ -26,6 +26,7 @@
     "dev:debug": "vite --mode debug --open /mojuan-sanguo/debug/debug.html",
     "build:debug": "tsc && vite build --mode debug",
     "size-check": "tsx scripts/size-check.ts",
+    "viewport-check": "node scripts/viewport-check.mjs",
     "prebuild:debug": "npm run config:build",
     "atlas:build": "tsx scripts/build-ui-atlas.ts",
     "font:build": "tsx scripts/build-wenkai-subset.ts"
