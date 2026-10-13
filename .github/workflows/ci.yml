@@ -29,3 +29,4 @@ jobs:
       - run: npm run size-check
       - run: npm run build:debug
       - run: npm run build:wechat
+      - run: npm run size-check:wechat

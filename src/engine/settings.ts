@@ -1,7 +1,7 @@
 /**
  * 渲染开关（engine-design §4.12）：WebGL 是可选叠加层。
  * 优先级：URL/启动参数 `webgl=0|1` > 配置默认值 > 平台能力探测。
- * 自动降级（按设备分档 / 帧率）延后到微信上线前，这里不做。
+ * #206：可按 `wx.getDeviceBenchmarkInfo` 的 benchmarkLevel 建议 maxDpr/lowEnd（见 renderScaleFromBenchmark）。
  */
 export interface RenderConfig {
   /** 默认是否开启 WebGL 水墨叠加层 */
@@ -53,4 +53,23 @@ export function decideWebGL(cfg: Pick<RenderConfig, 'webgl'>, query: Record<stri
 
 export function effectiveDpr(deviceDpr: number, maxDpr: number) {
   return Math.max(1, Math.min(deviceDpr || 1, maxDpr));
+}
+
+/**
+ * #206：按微信 `benchmarkLevel` 建议渲染倍率（只改 RenderConfig，不改场景）。
+ * - 未知 / <0：保持默认（真机档位未就绪时不盲目降配）
+ * - 低档（Android ≤22 / iOS ≤29，对齐微信 2026-03 分档）：maxDpr 1.5 + lowEnd
+ * - 其余：默认 maxDpr / 非 lowEnd
+ * 战斗 ≥30fps、首屏 ≤3s 仍须低端真机（骁龙 680 档）实测，CI 无法代替。
+ */
+export function renderScaleFromBenchmark(
+  level: number | undefined | null,
+  platform?: 'ios' | 'android' | 'devtools' | 'pc' | 'web',
+): Pick<RenderConfig, 'maxDpr' | 'lowEnd'> {
+  if (level == null || level < 0) {
+    return { maxDpr: DEFAULT_RENDER_CONFIG.maxDpr, lowEnd: DEFAULT_RENDER_CONFIG.lowEnd };
+  }
+  const lowCut = platform === 'ios' ? 29 : 22;
+  if (level <= lowCut) return { maxDpr: 1.5, lowEnd: true };
+  return { maxDpr: DEFAULT_RENDER_CONFIG.maxDpr, lowEnd: false };
 }

@@ -13,6 +13,8 @@ export interface SystemInfo {
   /** 微信胶囊禁区；H5 为 null */
   capsule: Rect | null;
   platform: 'ios' | 'android' | 'devtools' | 'pc' | 'web';
+  /** 微信 `getDeviceBenchmarkInfo.benchmarkLevel`；H5 / 未知为 undefined（#206） */
+  benchmarkLevel?: number;
 }
 
 export interface TouchHandlers {

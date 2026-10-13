@@ -48,6 +48,13 @@ export interface WxRealtimeLog {
   warn(...args: unknown[]): void;
   error(...args: unknown[]): void;
 }
+
+export interface WxDeviceBenchmarkInfo {
+  /** -1 未知；≥1 越高越好（基础库 3.4.5+） */
+  benchmarkLevel: number;
+  /** 0 未知 / 1 高 / 2 中 / 3 低；会随时间变，优先用 benchmarkLevel 自判 */
+  modelLevel?: number;
+}
 /** 上屏 / 离屏画布：与 Canvas2DLike 兼容；首个 createCanvas 为上屏 */
 export type WxCanvas = Canvas2DLike;
 
@@ -74,4 +81,6 @@ export interface WxApi {
   getPerformance?(): { now(): number };
   /** 小游戏基础库提供；注入便于单测 */
   requestAnimationFrame?(cb: (t: number) => void): number;
+  /** #206：设备性能分；回调式（官方不支持 Promise） */
+  getDeviceBenchmarkInfo?(opt: { success?: (res: WxDeviceBenchmarkInfo) => void; fail?: (err?: unknown) => void; complete?: () => void }): void;
 }
