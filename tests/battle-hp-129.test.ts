@@ -54,3 +54,27 @@ describe('敌人体力（§8.8.2）', () => {
     expect(enemyHpView(-1, 8, false).text).toBe('0/8');
   });
 });
+
+describe('敌人体力 18 不溢出（360×640 / 465×780）', () => {
+  it('每个敌人卡：体力 18/18、9/18、0/18 的数字牌 / 血条都在卡框内', () => {
+    for (const [w, h] of [
+      [360, 640],
+      [465, 780],
+    ]) {
+      const sc = new BattleScene({ overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
+      sc.enter({ width: w, height: h, invalidate() {} }, { seed: 7 });
+      expect(sc.g.en.length).toBeGreaterThan(0);
+      for (const e of sc.g.en) {
+        const card = sc.enemyRect(e)!;
+        for (const hp of [18, 9, 0])
+          for (const boss of [false, true]) {
+            const r = sc.enemyHpRect(card, { hp, max: 18 }, boss);
+            expect(within(r, card), `${w}×${h} ${e.id} ${hp}/18`).toBe(true);
+            expect(r.y + r.h).toBeLessThanOrEqual(card.y + card.h);
+          }
+        const r5 = sc.enemyHpRect(card, { hp: 3, max: 5 }, false);
+        expect(within(r5, card)).toBe(true);
+      }
+    }
+  });
+});

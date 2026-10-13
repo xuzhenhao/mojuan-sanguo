@@ -3,7 +3,7 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
-import { BEAD_D, heroHpView } from './hpview';
+import { BEAD_D, enemyHpView, heroHpView } from './hpview';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -862,15 +862,8 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, inset(r, 4), C.ink);
       ctx.globalAlpha = a0 * a;
     }
-    // 体力：≤10 用勾玉，>10 / Boss 用血条
-    const by = r.y + r.h - 18;
-    if (e.max > 10) {
-      const bw = r.w - 12;
-      rect(ctx, { x: r.x + 6, y: by, w: bw, h: 12 }, '#2A2A2A');
-      rect(ctx, { x: r.x + 6, y: by, w: (bw * Math.max(0, e.hp)) / e.max, h: 12 }, C.cinnabar);
-      frame(ctx, { x: r.x + 6, y: by, w: bw, h: 12 }, C.gold, 1);
-      text(ctx, `${Math.max(0, e.hp)}/${e.max}`, r.x + r.w / 2, by + 6, { size: 10, color: C.paper, font: FONT.num, align: 'center', bold: true });
-    } else this.beads(ctx, r.x + r.w / 2, by + 6, e.hp, e.max, BEAD_R_ENEMY);
+    // 体力（#129，§8.8.2）：一律数字。普通 / 精英底部小牌「● cur/max」；Boss 或 >10 血条
+    this.drawEnemyHp(ctx, r, e);
     // 护盾（左下）
     if (e.armor > 0) this.shield(ctx, r.x - 10, r.y + r.h - 34, e.armor, 24);
     // 意图（右上）
@@ -935,6 +928,29 @@ export class BattleScene implements Scene<BattleParams> {
       text(ctx, `/${v.max}`, tx + cs.length * 9 + 1, cy + 2, { size: 11, color: C.paper3, font: FONT.num });
     }
   }
+  /** 敌人体力矩形（不出卡框；测试与绘制共用） */
+  enemyHpRect(r: Rect, e: Pick<Enemy, 'hp' | 'max'>, boss = this.g.isLast): Rect {
+    const v = enemyHpView(e.hp, e.max, boss);
+    if (v.mode === 'bar') return { x: r.x + 6, y: r.y + r.h - 16, w: r.w - 12, h: 10 };
+    const w = Math.min(r.w - 8, 8 + 8 + 4 + v.text.length * 7 + 8);
+    return { x: r.x + (r.w - w) / 2, y: r.y + r.h - 20, w, h: 16 };
+  }
+  drawEnemyHp(ctx: Ctx2DLike, r: Rect, e: Enemy) {
+    const v = enemyHpView(e.hp, e.max, this.g.isLast);
+    const b = this.enemyHpRect(r, e);
+    if (v.mode === 'bar') {
+      rect(ctx, b, '#2A2A2A');
+      rect(ctx, { ...b, w: b.w * v.ratio }, C.cinnabar);
+      rect(ctx, { ...b, h: 3, w: b.w * v.ratio }, C.cinnGlow);
+      frame(ctx, b, C.gold, 1);
+      text(ctx, v.text, b.x + b.w / 2, b.y + b.h / 2, { size: 10, color: C.paper, font: FONT.num, align: 'center', bold: true });
+      return;
+    }
+    rect(ctx, b, 'rgba(15,7,5,0.85)');
+    frame(ctx, b, C.goldLo, 1);
+    circle(ctx, b.x + 8 + 4, b.y + b.h / 2, 4, C.cinnabar);
+    text(ctx, v.text, b.x + 8 + 8 + 4, b.y + b.h / 2 + 1, { size: 12, color: C.paper, font: FONT.num, bold: true });
+  }
   heroHpRect(card: Rect, hp: number, max: number): Rect {
     const v = heroHpView(hp, max, card.x + card.w / 2, card.w - 22);
     if (v.mode === 'dots') return { x: v.xs[0] - v.r, y: card.y + card.h - 6 - BEAD_D, w: v.xs[v.xs.length - 1] - v.xs[0] + BEAD_D, h: BEAD_D };
@@ -942,16 +958,6 @@ export class BattleScene implements Scene<BattleParams> {
     return { x: card.x + card.w / 2 - capW / 2, y: card.y + card.h - 30, w: capW, h: 24 };
   }
 
-  beads(ctx: Ctx2DLike, cx: number, cy: number, hp: number, max: number, r: number) {
-    if (max > 9) {
-      circle(ctx, cx - 14, cy, r, C.jade);
-      text(ctx, `×${Math.max(0, hp)}`, cx + 4, cy, { size: 12, color: C.paper, font: FONT.num, bold: true });
-      return;
-    }
-    const step = r * 2 + 3;
-    const x0 = cx - ((max - 1) * step) / 2;
-    for (let i = 0; i < max; i++) circle(ctx, x0 + i * step, cy, r, i < hp ? C.jade : '#3A3A3A');
-  }
   shield(ctx: Ctx2DLike, x: number, y: number, n: number, s: number) {
     rect(ctx, { x, y, w: s, h: s + 2 }, C.azure);
     frame(ctx, { x, y, w: s, h: s + 2 }, C.azureHi, 1);
