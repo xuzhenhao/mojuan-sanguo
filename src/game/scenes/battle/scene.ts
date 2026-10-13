@@ -4,7 +4,7 @@
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
 import { CARDS } from '../../../data/cards';
-import { BEAD_D, enemyHpView, fitNameCached, heroHpView } from './hpview';
+import { BEAD_D, dyingAlpha, enemyHpView, isDying, fitNameCached, heroHpView } from './hpview';
 import { textWidth } from '../../overlays/theme';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
@@ -675,7 +675,14 @@ export class BattleScene implements Scene<BattleParams> {
       const it = enemyIntent(e);
       return it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
     });
-    const before = this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || !!lethalPulse;
+    const before =
+      this.q.busy ||
+      !!this.drag ||
+      this.hintT > 0 ||
+      this.confirmT > 0 ||
+      this.shakeT > 0 ||
+      !!lethalPulse ||
+      (!!this.g && isDying(this.g.p.hp) && this.g.p.hp > 0);
     this.q.update(dt);
     if (this.hintT > 0) this.hintT -= dt;
     if (this.confirmT > 0) this.confirmT -= dt;
@@ -1044,8 +1051,13 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (!only || only === 'main') {
       const r = { ...L.main, x: L.main.x + shake };
-      const dying = g.p.hp <= 1;
-      if (dying) rect(ctx, inset(r, -3), C.cinnabar);
+      // dying（§3.3）：朱砂红边脉动，只给主将
+      if (isDying(g.p.hp)) {
+        const a = ctx.globalAlpha;
+        ctx.globalAlpha = a * dyingAlpha(this.deps.now?.() ?? performance.now());
+        rect(ctx, inset(r, -3), C.cinnabar);
+        ctx.globalAlpha = a;
+      }
       goldFrame(ctx, r, 'gold', 4);
       rect(ctx, { x: r.x + 6, y: r.y + 6, w: r.w - 12, h: r.h - 34 }, '#3B2C22');
       text(ctx, g.main.name.slice(-1), r.x + r.w / 2 + 10, r.y + 80, { size: 64, color: 'rgba(243,235,216,0.2)', font: FONT.brush, align: 'center' });

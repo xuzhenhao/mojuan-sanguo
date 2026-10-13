@@ -67,3 +67,14 @@ export function refitAfterBrush(fonts: Pick<FontFaceSet, 'load'>, redraw: () => 
     () => undefined,
   );
 }
+
+// ───────── 主将 dying（render-spec §3.3：体力 ≤1 边框朱砂脉冲；spec 未给周期/alpha，取 1.2s、.35–.9 正弦） ─────────
+export const DYING_PERIOD_MS = 1200;
+export const DYING_ALPHA_MIN = 0.35;
+export const DYING_ALPHA_MAX = 0.9;
+export const isDying = (hp: number) => hp <= 1;
+export function dyingAlpha(nowMs: number): number {
+  const mid = (DYING_ALPHA_MIN + DYING_ALPHA_MAX) / 2;
+  const amp = (DYING_ALPHA_MAX - DYING_ALPHA_MIN) / 2;
+  return mid + amp * Math.sin((nowMs / DYING_PERIOD_MS) * Math.PI * 2);
+}
