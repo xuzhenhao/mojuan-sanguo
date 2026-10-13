@@ -39,7 +39,7 @@
               "type": "string"
             },
             "minItems": 1,
-            "maxItems": 5
+            "maxItems": 3
           },
           "weight": {
             "type": "number"
