@@ -2,7 +2,7 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: #120806;
+  background: #efe6d2; /* #142 宣纸色：等字体期间不白屏 */
   overflow: hidden;
 }
 #app {
@@ -21,4 +21,7 @@ body {
 }
 #webgl-overlay {
   pointer-events: none;
+}
+#screen {
+  background: #efe6d2;
 }
