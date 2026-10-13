@@ -1,3 +1,4 @@
+import { testNow } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { BattleScene } from '../src/game/scenes/battle/scene';
 import { drawScreenBg, MOUNT_BOTTOM, MOUNT_TOP, PANEL_EVEN, PANEL_ODD, paperDots, screenLayout } from '../src/game/scenes/battle/screen';
@@ -102,7 +103,7 @@ describe('#130 战斗场景 bg 层接入屏风', () => {
       [360, 640],
       [465, 780],
     ]) {
-      const sc = new BattleScene({ debugDefaults: true });
+      const sc = new BattleScene({ now: testNow, debugDefaults: true });
       sc.enter({ width: w, height: h, invalidate() {} } as never, { seed: 7 });
       const { c, calls } = mockCtx(true);
       sc.draw('bg', { ctx: c } as never);

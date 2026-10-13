@@ -47,7 +47,7 @@ export default tseslint.config(
     files: ['src/game/boot.ts'],
     rules: {
       ...layer([{ group: ['**/platform/web/**', '**/platform/wechat/**'], message: 'game/boot.ts 只能依赖 platform/types（#201）' }]),
-      'no-restricted-globals': ['error', 'window', 'document', 'location', 'localStorage', 'wx'],
+      'no-restricted-globals': ['error', ...PLATFORM_GLOBALS, 'location'],
     },
   },
   {

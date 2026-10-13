@@ -25,6 +25,13 @@ describe('#201 bootGame', () => {
     expect(s).not.toMatch(/scenes\.register|new Router|new FlowMachine/);
   });
 
+  it('BattleScene 动效时钟必须注入：无 Date.now / performance.now 回退，boot 传 platform.now', () => {
+    const s = src('src/game/scenes/battle/scene.ts');
+    expect(s).toMatch(/^\s*now\(\): number;/m);
+    expect(s).not.toMatch(/deps\.now\?\.|Date\.now\(\)|performance\.now/);
+    expect(src('src/game/boot.ts')).toContain('now: () => platform.now()');
+  });
+
   it('ESLint：boot.ts 引 platform/web 时报错', async () => {
     const eslint = new ESLint({ cwd: ROOT });
     const [r] = await eslint.lintText("import { createWebPlatform } from '../platform/web/platform';\nexport const x = createWebPlatform;\n", {
