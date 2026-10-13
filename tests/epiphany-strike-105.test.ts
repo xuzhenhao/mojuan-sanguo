@@ -6,9 +6,9 @@ import type { Ctx2DLike } from '../src/engine/types';
 
 describe('epiphany replace strikethrough', () => {
   it('spec values', () => {
-    expect(REPLACE_STRIKE).toEqual({ width: 2, color: T.cinnHi, alpha: 1 });
+    expect(REPLACE_STRIKE).toEqual({ width: 2, color: T.cinnHi, alpha: 1, outline: 1, outlineColor: 'rgba(0,0,0,.7)' });
   });
-  it('draws 2px cinnHi at full opacity and restores alpha', () => {
+  it('draws 4px dark band then 2px cinnHi on top at full opacity and restores alpha', () => {
     const calls: { a: number; fill: unknown; rect: number[] }[] = [];
     const st = { globalAlpha: 0.3, fillStyle: '' as unknown };
     const c = Object.assign(st, {
@@ -17,7 +17,10 @@ describe('epiphany replace strikethrough', () => {
       },
     }) as unknown as Ctx2DLike;
     drawReplaceStrike(c, 100, 40, 50);
-    expect(calls).toEqual([{ a: 1, fill: T.cinnHi, rect: [98, 49, 44, 2] }]);
+    expect(calls).toEqual([
+      { a: 1, fill: 'rgba(0,0,0,.7)', rect: [98, 48, 44, 4] },
+      { a: 1, fill: T.cinnHi, rect: [98, 49, 44, 2] },
+    ]);
     expect(c.globalAlpha).toBe(0.3);
   });
 });

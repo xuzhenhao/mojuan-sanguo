@@ -32,14 +32,18 @@ export const FLY_REDUCED_MS = 150;
 export const EXIT_MS = 200;
 export const MAX_MODS = 2;
 /** 被替换词条删除线（UI 复核：灰度下要看得清）：2px、T.cinnHi、不透明度 1（只随面板进出场淡入淡出） */
-export const REPLACE_STRIKE = { width: 2, color: T.cinnHi, alpha: 1 } as const;
+export const REPLACE_STRIKE = { width: 2, color: T.cinnHi, alpha: 1, outline: 1, outlineColor: 'rgba(0,0,0,.7)' } as const;
 
 /** 画删除线；`fade` 为面板进出场系数，不叠加化墨等其他透明度 */
 export function drawReplaceStrike(c: Ctx2DLike, nx: number, nw: number, cy: number, fade = 1) {
   const prev = c.globalAlpha;
   c.globalAlpha = REPLACE_STRIKE.alpha * fade;
+  const { width: lw, outline: o } = REPLACE_STRIKE;
+  // 先画暗带（上下各 1px，共 4px），再叠朱砂线：灰度下也能看清
+  c.fillStyle = REPLACE_STRIKE.outlineColor;
+  c.fillRect(nx - 2, cy - lw / 2 - o, nw + 4, lw + 2 * o);
   c.fillStyle = REPLACE_STRIKE.color;
-  c.fillRect(nx - 2, cy - REPLACE_STRIKE.width / 2, nw + 4, REPLACE_STRIKE.width);
+  c.fillRect(nx - 2, cy - lw / 2, nw + 4, lw);
   c.globalAlpha = prev;
 }
 
