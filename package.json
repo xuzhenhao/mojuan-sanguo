@@ -32,7 +32,9 @@
     "prebuild:wechat": "npm run config:build",
     "atlas:build": "tsx scripts/build-ui-atlas.ts",
     "font:build": "tsx scripts/build-wenkai-subset.ts",
-    "font:build:wechat": "tsx scripts/build-wenkai-subset.ts --wechat"
+    "font:build:wechat": "tsx scripts/build-wenkai-subset.ts --wechat",
+    "sim:241": "tsx scripts/sim-241.ts",
+    "presim:241": "npm run config:build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
