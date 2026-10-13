@@ -112,3 +112,17 @@ describe('#136 局外偏好键只声明一处', async () => {
     for (const f of ['seen-bosses.ts', 'settings.ts']) expect(readFileSync(`src/game/prefs/${f}`, 'utf8')).not.toMatch(/=\s*'mojuan\.prefs\.v1'/);
   });
 });
+
+describe('#136 致命光晕 = 叠层描边', async () => {
+  const { LETHAL_GLOW } = await import('../src/game/scenes/battle/scene');
+  it('7px α.18 + 3px α.40，外层先画', () => {
+    expect(LETHAL_GLOW.map((g) => [g.width, g.alpha])).toEqual([
+      [7, 0.18],
+      [3, 0.4],
+    ]);
+  });
+  it('源码不用 shadowBlur / filter blur', async () => {
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync('src/game/scenes/battle/scene.ts', 'utf8')).not.toMatch(/shadowBlur|blur\(/);
+  });
+});
