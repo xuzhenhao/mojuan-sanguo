@@ -6,6 +6,7 @@ dist/
 coverage/
 src/data/generated/
 dist-debug/
+dist-wechat/
 _site/
 art/src/fonts/LXGWWenKai.ttf
 art/out/

@@ -12,7 +12,7 @@ const PLATFORM_GLOBALS = ['window', 'document', 'localStorage', 'performance', '
 }));
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-debug', '_site', 'node_modules'] },
+  { ignores: ['dist', 'dist-debug', 'dist-wechat', '_site', 'node_modules'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,
