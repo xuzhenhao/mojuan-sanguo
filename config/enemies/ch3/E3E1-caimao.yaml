@@ -2,6 +2,7 @@
 # ───────── 第3章精英：蔡瑁·墨影（PRD 现值原样迁移，未套 V1 系数，停用）─────────
 id: E3E1
 name: 蔡瑁·墨影
+shortName: 蔡瑁 # 竖排名 / 战斗顶条用短名
 chapter: 3
 tier: 精英
 enabled: false

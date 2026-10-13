@@ -19,6 +19,13 @@
     "name": {
       "type": "string"
     },
+    "shortName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4,
+      "pattern": "^[^·\\s]+$",
+      "description": "短名（竖排名 / 战斗顶条用，≤4 字、不含「·」）；name 超过 4 字或带「·」时必填"
+    },
     "chapter": {
       "type": "integer",
       "minimum": 1,

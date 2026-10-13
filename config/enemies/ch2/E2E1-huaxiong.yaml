@@ -2,6 +2,7 @@
 # ───────── 第2章精英：华雄·墨影（PRD 现值原样迁移，未套 V1 系数，停用）─────────
 id: E2E1
 name: 华雄·墨影
+shortName: 华雄 # 竖排名 / 战斗顶条用短名
 chapter: 2
 tier: 精英
 enabled: false
