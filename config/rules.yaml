@@ -163,6 +163,12 @@ settings:
     responseSec: { label: 响应时限, options: ['5', '8', '12'], default: '8' }
     quality: { label: 画质, options: ['低', '中', '高'], default: '中', hidden: true }
 
+# ───────── 战斗页顶条标题（#216）：{n} = 本局第几战，{name} = 组包 / Boss 名；按节点类型选模板 ─────────
+battleTitle:
+  normal: '第{n}战 · {name}'
+  elite: '第{n}战 · {name}' # 精英组包名自带「精英·」
+  boss: '首领 · {name}'
+
 # ───────── 美术资源（#177）：立绘放阿里云 OSS，不打进包 ─────────
 # baseUrl：资源根目录（https，以 / 结尾），武将 yaml 的 portrait 相对路径拼在后面；小图档在 .webp 前插 @s。
 # 当前为测试桶；切正式桶只改这一行。

@@ -134,6 +134,8 @@ export interface ConfigBundle {
     map: { betweenBattleHeal: number };
     presets?: Record<string, { main: string; sub: string; deck?: string; forceCombos?: string[] }>;
     /** 美术资源位置（#177）：立绘在 OSS，切桶只改 baseUrl */
+    /** 战斗页顶条标题模板（#216） */
+    battleTitle: { normal: string; elite: string; boss: string };
     assets: { baseUrl: string };
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };
