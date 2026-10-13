@@ -36,13 +36,24 @@ export function fakeCanvas(w = 0, h = 0, opts: { webgl?: boolean } = {}): FakeCa
   return c;
 }
 
-export function fakePlatform(o: { query?: Record<string, string>; webgl?: boolean; dpr?: number; info?: () => SystemInfo } = {}) {
+export function fakePlatform(
+  o: {
+    query?: Record<string, string>;
+    webgl?: boolean;
+    dpr?: number;
+    info?: () => SystemInfo;
+    fonts?: Platform['fonts']['load'];
+    reducedMotion?: boolean;
+  } = {},
+) {
   let resize: (() => void) | null = null;
   const screen = fakeCanvas();
   const offscreens: FakeCanvas[] = [];
   const overlays: FakeCanvas[] = [];
   const rafs: ((t: number) => void)[] = [];
   const warns: string[] = [];
+  const fontLoads: [string, string][] = [];
+  const telemetry: { ev: string }[][] = [];
   let now = 0;
   let touch: Parameters<Platform['onTouch']>[0] | null = null;
   const p: Platform = {
@@ -72,6 +83,9 @@ export function fakePlatform(o: { query?: Record<string, string>; webgl?: boolea
     ads: { rewarded: async () => 'unavailable', resetRun() {} },
     share: { share: async () => false, query: () => ({}) },
     loader: { async load() {} },
+    fonts: { load: (f, u) => (fontLoads.push([f, u]), o.fonts ? o.fonts(f, u) : Promise.resolve(true)) },
+    telemetry: { send: (b) => void telemetry.push(b) },
+    prefersReducedMotion: () => !!o.reducedMotion,
     reportError() {},
     warn: (m) => warns.push(m),
   };
@@ -81,6 +95,8 @@ export function fakePlatform(o: { query?: Record<string, string>; webgl?: boolea
     offscreens,
     overlays,
     warns,
+    fontLoads,
+    telemetry,
     touch: () => touch!,
     resize: () => resize?.(),
     setNow: (t: number) => (now = t),

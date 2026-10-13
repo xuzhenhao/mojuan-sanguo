@@ -12,7 +12,7 @@ export interface NumFont {
   measure(c: Ctx2DLike, s: string, px: number): number;
 }
 
-const font = (px: number) => `bold ${px}px "Brush"`;
+const font = (px: number) => `bold ${px}px "Brush", serif`;
 
 export const SERIF_DIGITS: NumFont = {
   measure(c, s, px) {

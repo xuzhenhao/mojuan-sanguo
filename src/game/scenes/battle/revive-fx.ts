@@ -5,6 +5,7 @@
  * - prefers-reduced-motion 时立即切换（无过渡）。
  */
 import type { EnemyAct } from '../../../core/types';
+import { prefersReducedMotion as readReducedMotion } from '../../motion';
 
 export const REVIVE_INK_MS = 300;
 export const REVIVE_INTENT_MS = 250;
@@ -43,5 +44,5 @@ export function reviveFxDone(fx: ReviveFx, now: number, reduced: boolean) {
 
 /** 浏览器 prefers-reduced-motion；非浏览器环境视为否 */
 export function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return readReducedMotion();
 }

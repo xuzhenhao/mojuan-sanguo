@@ -57,9 +57,9 @@ export function portraitEdges(c: Ctx2DLike, r: Rect, edge: number, shade: number
 }
 
 /** 书法字（霞鹜文楷，FontFace 族名 Brush）；禁止系统楷体回退 */
-export const brush = (px: number) => `${px}px "Brush"`;
-export const body = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px "Brush"`;
-export const num = (px: number) => `bold ${px}px "Brush"`;
+export const brush = (px: number) => `${px}px "Brush", serif`;
+export const body = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px "Brush", serif`;
+export const num = (px: number) => `bold ${px}px "Brush", serif`;
 
 export type BtnKind = 'primary' | 'confirm' | 'secondary';
 const BTN_FILL: Record<BtnKind, string> = { primary: '#9C3A28', confirm: '#3E7D63', secondary: '#43362A' };

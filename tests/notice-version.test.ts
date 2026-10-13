@@ -22,9 +22,9 @@ import { surface } from './p4-helpers';
 const ov = () => new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
 
 describe('toast 正式样式', () => {
-  it('字体只用霞鹜文楷（Brush），不带系统字体回退；2.5s 后关闭', () => {
-    expect(NOTICE_FONT).toBe('16px "Brush"');
-    expect(NOTICE_FONT).not.toMatch(/serif|sans|PingFang|Kai|楷/);
+  it('字体只用霞鹜文楷（Brush），未就绪回退 serif（#202）；2.5s 后关闭', () => {
+    expect(NOTICE_FONT).toBe('16px "Brush", serif');
+    expect(NOTICE_FONT).not.toMatch(/PingFang|Kai|楷/);
     const o = ov();
     const fonts: string[] = [];
     const s = surface();

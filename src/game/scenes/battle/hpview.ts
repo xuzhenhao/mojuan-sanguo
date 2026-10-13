@@ -1,4 +1,5 @@
 import { clearTextWidthCache } from '../../overlays/theme';
+import { prefersReducedMotion as readReducedMotion } from '../../motion';
 /**
  * 战斗页体力显示（#129，render-spec §8.8.2）——纯布局函数，场景只负责照着画。
  * - 武将：上限 ≤6 用勾玉（17⌀，间距 clamp((innerW − n×17)/(n−1), 2, 4)，整排居中，不出卡框）；
@@ -80,13 +81,15 @@ export interface FontLoader {
 /** 等霞鹜文楷（族名 Brush）可用后：清牌名字号缓存与量宽缓存，再重绘（加载前量的是回退字体宽度） */
 export function refitAfterBrush(fonts: FontLoader, redraw: () => void): Promise<void> {
   return fonts.load('20px "Brush"').then(
-    () => {
-      clearNameFitCache();
-      clearTextWidthCache();
-      redraw();
-    },
+    () => refitFonts(redraw),
     () => undefined,
   );
+}
+/** 字体到位后（#202 由 game/fonts.ts 的 onLoaded 调）：清牌名字号缓存与量宽缓存，再重绘 */
+export function refitFonts(redraw: () => void) {
+  clearNameFitCache();
+  clearTextWidthCache();
+  redraw();
 }
 
 // ───────── 主将 dying（render-spec §3.3：体力 ≤1 边框朱砂脉冲；spec 未给周期/alpha，取 1.2s、.35–.9 正弦） ─────────
@@ -110,7 +113,7 @@ export const newDyingEdge = (): DyingEdgeState => ({ a: 0, fadeAt: null, fromA: 
 /** prefers-reduced-motion：不脉动，常亮 .75 */
 export const DYING_STATIC_ALPHA = 0.75;
 export function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return readReducedMotion();
 }
 export function dyingEdgeAlpha(st: DyingEdgeState, hp: number, now: number, reduced = false): number {
   if (isDying(hp)) {

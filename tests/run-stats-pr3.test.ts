@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 /** #122 PR3：按节点统计写进 RunState.stats；战斗序号（第N战）由 stats 推出，跨场 / 续玩不重置 */
 import { describe, expect, it } from 'vitest';
 import { RunSession, NULL_IO } from '../src/game/run';
@@ -52,7 +52,7 @@ describe('#122 PR3 战斗序号（第N战）持久化', () => {
     run.start({ main: 'H03', sub: 'H04', seed: 7 });
     const mk = (r: RunSession) =>
       new BattleScene({
-        now: testNow,
+        now: fakeClock().now,
         build: (io, p) => r.buildBattle(io, { nodeId: p.nodeId!, nodeType: p.nodeType!, encounterName: p.encounterName ?? '', enemies: p.enemies! }, false),
         battleNo: () => r.battleNo,
       });

@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 /** #129 / render-spec §8.8.2：武将 / 敌人体力不溢出卡框 */
 import { CARDS } from '../src/data/cards';
 import { describe, expect, it } from 'vitest';
@@ -35,7 +35,11 @@ describe('武将体力（§8.8.2）', () => {
       [465, 780],
       [390, 844],
     ]) {
-      const sc = new BattleScene({ now: testNow, overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
+      const sc = new BattleScene({
+        now: fakeClock().now,
+        overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }),
+        debugDefaults: true,
+      });
       sc.enter({ width: w, height: h, invalidate() {} }, { seed: 7 });
       const card = sc.layout().main;
       for (let max = 1; max <= 10; max++)
@@ -63,7 +67,11 @@ describe('敌人体力 18 不溢出（360×640 / 465×780）', () => {
       [360, 640],
       [465, 780],
     ]) {
-      const sc = new BattleScene({ now: testNow, overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
+      const sc = new BattleScene({
+        now: fakeClock().now,
+        overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }),
+        debugDefaults: true,
+      });
       sc.enter({ width: w, height: h, invalidate() {} }, { seed: 7 });
       expect(sc.g.en.length).toBeGreaterThan(0);
       for (const e of sc.g.en) {
@@ -84,7 +92,7 @@ describe('敌人体力 18 不溢出（360×640 / 465×780）', () => {
 describe('#129 Boss 判定看节点类型', () => {
   const mk = (nodeType?: () => string | undefined) => {
     const sc = new BattleScene({
-      now: testNow,
+      now: fakeClock().now,
       overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }),
       debugDefaults: true,
       nodeType,
@@ -116,7 +124,7 @@ describe('#129 Boss 判定看节点类型', () => {
 describe('#129 开发调试参数 applyDev', () => {
   const mk = (dev: object) => {
     const ov = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
-    const sc = new BattleScene({ now: testNow, overlays: ov, debugDefaults: true, dev });
+    const sc = new BattleScene({ now: fakeClock().now, overlays: ov, debugDefaults: true, dev });
     sc.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
     return { sc, ov };
   };

@@ -26,7 +26,8 @@
     "settlement",
     "settings",
     "assets",
-    "battleTitle"
+    "battleTitle",
+    "fonts"
   ],
   "properties": {
     "lingPerTurn": {
@@ -1184,6 +1185,237 @@
           "minLength": 1,
           "pattern": "\\{name\\}",
           "description": "占位符：{n} = 本局战斗序号，{name} = 组包 / Boss 名"
+        }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateTimeoutMs",
+        "fallback",
+        "platforms"
+      ],
+      "description": "字体（#202）：按平台配置字体角色（system = 系统字体不加载），首屏门控超时与系统回退",
+      "properties": {
+        "gateTimeoutMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "fallback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "brush",
+            "sans"
+          ],
+          "properties": {
+            "brush": {
+              "type": "string",
+              "enum": [
+                "serif",
+                "sans-serif"
+              ]
+            },
+            "sans": {
+              "type": "string",
+              "enum": [
+                "serif",
+                "sans-serif"
+              ]
+            }
+          }
+        },
+        "platforms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "web",
+            "wechat"
+          ],
+          "properties": {
+            "web": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "brush",
+                "sans"
+              ],
+              "properties": {
+                "brush": {
+                  "oneOf": [
+                    {
+                      "const": "system"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "family"
+                      ],
+                      "properties": {
+                        "family": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "faces": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "url",
+                              "gate"
+                            ],
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9_\\-./]+$"
+                              },
+                              "gate": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "sans": {
+                  "oneOf": [
+                    {
+                      "const": "system"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "family"
+                      ],
+                      "properties": {
+                        "family": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "faces": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "url",
+                              "gate"
+                            ],
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9_\\-./]+$"
+                              },
+                              "gate": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "wechat": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "brush",
+                "sans"
+              ],
+              "properties": {
+                "brush": {
+                  "oneOf": [
+                    {
+                      "const": "system"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "family"
+                      ],
+                      "properties": {
+                        "family": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "faces": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "url",
+                              "gate"
+                            ],
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9_\\-./]+$"
+                              },
+                              "gate": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "sans": {
+                  "oneOf": [
+                    {
+                      "const": "system"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "family"
+                      ],
+                      "properties": {
+                        "family": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "faces": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "url",
+                              "gate"
+                            ],
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9_\\-./]+$"
+                              },
+                              "gate": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
         }
       }
     }
