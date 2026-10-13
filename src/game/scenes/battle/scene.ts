@@ -67,6 +67,11 @@ export interface BattleDeps {
 
 const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
 
+/** 意图图标：只出闪 = 「闪」（config/rules.yaml maxFlashMarks「敌人闪标记」，PRD 4.4 ②），不是护盾 */
+export function intentIcon(dmg: number, defOnly: boolean) {
+  return dmg > 0 ? '⚔' : defOnly ? '闪' : '✦';
+}
+
 export class BattleScene implements Scene<BattleParams> {
   readonly id = 'battle';
   g!: Game;
@@ -204,7 +209,7 @@ export class BattleScene implements Scene<BattleParams> {
       if (!ov) return !!this.deps.debugDefaults; // 单测替身：调试默认复活，正式无弹层栈则放弃
       return openRevive(
         ov,
-        { hero: this.g.main.name, hp: ev.hp, armor: ev.armor, perRun: CONFIG.rules.revive.count, enemies: this.g.alive().length },
+        { hero: this.g.main.name, hp: ev.hp, armor: ev.armor, perRun: CONFIG.rules.revive.count, left: ev.left, enemies: this.g.alive().length },
         () => this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H },
       );
     },
@@ -956,7 +961,7 @@ export class BattleScene implements Scene<BattleParams> {
     rect(ctx, ir, lethal ? C.cinnabar : C.lac1);
     frame(ctx, ir, lethal ? C.cinnGlow : C.gold, lethal ? 1.5 : 1);
     const defOnly = it.dmg === 0 && it.acts.includes('闪');
-    const icon = it.dmg > 0 ? '⚔' : defOnly ? '盾' : '✦';
+    const icon = intentIcon(it.dmg, defOnly);
     text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: it.dmg > 0 ? C.dmg : defOnly ? C.defIntent : C.gold, align: 'center' });
     text(ctx, it.dmg > 0 ? String(it.dmg) : defOnly ? `${it.acts.filter((x) => x === '闪').length}` : '?', ir.x + 34, ir.y + 14, {
       size: 16,
