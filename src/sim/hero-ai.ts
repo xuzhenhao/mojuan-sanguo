@@ -8,6 +8,7 @@ import type { Source } from '../core/effects';
 import { def, enemyIntent, isRed, isShaPlay } from '../core/rules';
 import { CONFIG, type Ability } from '../data/config';
 import type { CardInst, Enemy } from '../core/types';
+import { bestLoopPlay, discardValue, shanCfg, type ShanCfg } from './loop-ai';
 
 const tags = (c: CardInst) => CONFIG.cards[c.id]?.tags ?? [];
 const atoms = (c: CardInst) => (CONFIG.cards[c.id]?.abilities ?? []).flatMap((a) => a.do.map((x) => x.do));
@@ -129,8 +130,9 @@ function worst(g: Game, keepShan: boolean) {
 type Plays = { attack: number; defense: number; other: number };
 
 /** 按武将画像的出牌阶段 */
-export async function heroAiTurn(g: Game, plays: Plays) {
+export async function heroAiTurn(g: Game, plays: Plays, o: { loop?: boolean } = {}) {
   const pf = profileOf(g);
+  const useLoop = o.loop !== false;
   await useActives(g, 'start');
   let healed = 0;
   for (let guard = 0; guard < 40 && !g.over; guard++) {
@@ -160,6 +162,8 @@ export async function heroAiTurn(g: Game, plays: Plays) {
       if (g.needsTarget(c)) tgt = isShaPlay(c) ? bestTarget(g, c) : g.alive()[0];
     } else if ((c = find((x) => !!def(x).slot && !p.equip[def(x).slot!]))) {
       /* 装备 */
+    } else if (useLoop && (c = bestLoopPlay(g) ?? undefined)) {
+      /* #241 循环牌：先产令 / 费减，再出主动牌 */
     } else if (wantHeal() && (c = find((x) => !!def(x).tao || (atoms(x).includes('heal') && !def(x).tgt)))) {
       /* 回复 */
     } else if (
@@ -213,13 +217,19 @@ export async function heroAiTurn(g: Game, plays: Plays) {
 }
 
 /** 闪响应：护甲足够吸收时不出闪；受伤摸牌的武将在血量健康、本回合摸牌次数未用完时吃伤换牌 */
-export function heroRespond(g: Game, n: number, legal: (c: CardInst) => boolean): CardInst | null {
+export function heroRespond(g: Game, n: number, legal: (c: CardInst) => boolean, sc: ShanCfg = shanCfg()): CardInst | null {
   const cands = g.hand.filter(legal);
   if (!cands.length) return null;
   const pf = profileOf(g);
   const p = g.p;
   const left = incoming(g); // 本敌方回合剩余意图的粗估
   if (!pf.emptyHand && p.armor >= n && !p.status.xieling) return null;
+  if (sc.mode === 'budget' && n === 1) {
+    // budget：体力健康、且后面还有不少于手中闪数的伤害 → 先吃这 1 点，把闪留给后面
+    const shans = g.hand.filter((x) => def(x).shan).length;
+    const afterHp = p.hp - Math.max(0, n - p.armor);
+    if (afterHp >= Math.ceil(p.maxHp * sc.takeHitHpRatio) && left - n >= shans && afterHp - left > 1) return null;
+  }
   if (pf.takeHits) {
     const hitDraw = g.effects.playerSources().some((s) => s.ab.trigger.when === 'damaged' && g.effects.remaining(s) > 0);
     const afterHp = p.hp - Math.max(0, n - p.armor);
@@ -239,8 +249,7 @@ export function heroWuxie(g: Game, legal: (c: CardInst) => boolean): CardInst | 
 }
 
 /** 回合末弃牌：连营流优先留可打出的牌；其余按价值 */
-export function heroDiscards(g: Game): CardInst[] {
+export function heroDiscards(g: Game, sc: ShanCfg = shanCfg()): CardInst[] {
   const n = g.discardNeeded();
-  const v = (c: CardInst) => (def(c).shan ? 5 : def(c).tao ? 4 : def(c).sha ? 3 : 1);
-  return [...g.hand].sort((a, b) => v(a) - v(b)).slice(0, n);
+  return [...g.hand].sort((a, b) => discardValue(g, a, sc) - discardValue(g, b, sc)).slice(0, n);
 }

@@ -74,6 +74,20 @@ defaultHeroes: { main: H03, sub: H04 }
 # sim：3 战回归基线口径（自动对局 / bstat），战间各回 1 体力，模拟营地/丹药等回复
 sim:
   baselineBetweenBattleHeal: 1
+  # #241：AI 留闪策略（只影响自动对局，不影响游戏）
+  #   legacy：能闪就闪；弃牌时闪价值最高
+  #   budget：按预算留闪——手里闪多于 keepMax 的部分弃牌时视为低价值；体力健康（≥ takeHitHpRatio）
+  #           且本敌方回合剩余伤害 ≥ 手里闪数时，1 点杀先吃伤，把闪留给后面的伤害
+  shan:
+    mode: legacy # legacy | budget
+    keepMax: 2
+    takeHitHpRatio: 0.7
+  # #241：模拟卡牌奖励 / 商店的选牌 AI（分越高越想拿；不高于 skipBelow 则跳过，防止稀释牌组）
+  reward:
+    skipBelow: 1.0
+    loopMaxInDeck: 4 # 循环牌超过此数后边际价值递减
+    shopBuyMinGold: 0 # 买完后至少剩的铜钱
+    shopMaxCards: 1 # 每次进店最多买几张卡
 # map：真实游戏与正式地图流程，H5 不加战后回复（回复由营地、丹药、桃提供）→ 见下方 map.betweenBattleHeal
 
 # 商店卡牌基础价（PRD 14.2，浮动前；卡牌 shopPrice 可单独覆盖）

@@ -131,7 +131,13 @@ export interface ConfigBundle {
       choices: Record<string, { label: string; options: string[]; default: string; hidden?: boolean }>;
     };
     /** 3 战回归基线（自动对局 / bstat）专用 */
-    sim: { baselineBetweenBattleHeal: number };
+    sim: {
+      baselineBetweenBattleHeal: number;
+      /** #241 AI 留闪 */
+      shan: { mode: 'legacy' | 'budget'; keepMax: number; takeHitHpRatio: number };
+      /** #241 模拟选牌 */
+      reward: { skipBelow: number; loopMaxInDeck: number; shopBuyMinGold: number; shopMaxCards: number };
+    };
     /** 真实游戏 / 正式地图 */
     map: { betweenBattleHeal: number };
     presets?: Record<string, { main: string; sub: string; deck?: string; forceCombos?: string[] }>;

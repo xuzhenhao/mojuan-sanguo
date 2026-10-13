@@ -10,6 +10,7 @@ import { CONFIG } from '../data/config';
 import { heroAiTurn, heroDiscards, heroRespond, heroWuxie } from './hero-ai';
 import type { CardInst, Enemy } from '../core/types';
 import { withContract, type ContractReport } from './io-contract';
+import { shanCfg, type ShanCfg } from './loop-ai';
 
 export type Layer = 'huzhu' | 'bagua' | 'shan' | 'armor' | 'tao';
 export const LAYERS: Layer[] = ['huzhu', 'bagua', 'shan', 'armor', 'tao'];
@@ -203,6 +204,12 @@ export interface RunOpts extends HeroOpts {
   contract?: ContractReport;
   /** 指定本场敌人（如 Boss 单场 ['B1']）；不设则按 BATTLES[battleIdx] */
   encounter?: { name: string; en: string[] };
+  /** #241：覆盖本场牌组（地图模式模拟卡牌奖励后的牌组） */
+  deck?: CardInst[];
+  /** #241：留闪策略（默认 config sim.shan） */
+  shan?: Partial<ShanCfg>;
+  /** #241：AI 是否使用循环牌出牌逻辑（默认 true） */
+  loopAi?: boolean;
 }
 
 /** 单场战斗：从给定体力开始，AI 打到结束 */
@@ -211,6 +218,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   let wuxie = 0;
   const io = silentIO((w) => (win = w));
   const ai = o.ai ?? 'hero';
+  const sc = shanCfg(o.shan);
   const ref: { g?: Game } = {};
   const gameIO = o.contract ? withContract(io, () => ref.g, o.contract).io : io;
   const g = new StatGame(seeded(o.seed), gameIO, { autoShan: ai === 'greedy', main: o.main, sub: o.sub, preset: o.preset });
@@ -222,7 +230,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
       return w;
     }
     // timed = 闪响应窗口；非 timed = 濒死自救
-    if (ai === 'hero' && timed) return heroRespond(g, Number(/伤害 (\d+)/.exec(text)?.[1] ?? 1), legal);
+    if (ai === 'hero' && timed) return heroRespond(g, Number(/伤害 (\d+)/.exec(text)?.[1] ?? 1), legal, sc);
     return g.hand.find(legal) ?? null;
   };
   ref.g = g;
@@ -230,17 +238,21 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   if (o.encounter) g.encounter = o.encounter;
   if (o.maxHp !== undefined) g.p.maxHp = o.maxHp;
   if (o.hp !== undefined) g.p.hp = o.hp;
+  if (o.deck) {
+    g.deckMaster = o.deck.map((c) => ({ ...c, mods: [...c.mods] }));
+    g.uid = Math.max(g.uid, 90000, ...o.deck.map((c) => c.uid));
+  }
   const hpStart = g.p.hp;
   const plays = { attack: 0, defense: 0, other: 0 };
   g.startBattle();
   if (o.armorStart) g.p.armor += o.armorStart;
   const maxTurns = o.maxTurns ?? 40;
   while (!g.over && g.turn <= maxTurns) {
-    if (ai === 'hero') await heroAiTurn(g, plays);
+    if (ai === 'hero') await heroAiTurn(g, plays, { loop: o.loopAi });
     else await aiTurn(g, plays);
     if (g.over) break;
     g.turnEnd();
-    await g.endTurn(ai === 'hero' ? heroDiscards(g) : pickDiscards(g));
+    await g.endTurn(ai === 'hero' ? heroDiscards(g, sc) : pickDiscards(g));
   }
   return {
     battleIdx: o.battleIdx,

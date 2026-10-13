@@ -401,7 +401,9 @@
     "sim": {
       "type": "object",
       "required": [
-        "baselineBetweenBattleHeal"
+        "baselineBetweenBattleHeal",
+        "shan",
+        "reward"
       ],
       "additionalProperties": false,
       "description": "自动对局 / 回归基线专用参数",
@@ -410,6 +412,61 @@
           "type": "integer",
           "minimum": 0,
           "description": "3 战回归基线：战间回复体力（design-v1 §12.2：1）"
+        },
+        "shan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "keepMax",
+            "takeHitHpRatio"
+          ],
+          "description": "#241 AI 留闪策略（sim 专用）",
+          "properties": {
+            "mode": {
+              "enum": [
+                "legacy",
+                "budget"
+              ]
+            },
+            "keepMax": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "takeHitHpRatio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "reward": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "skipBelow",
+            "loopMaxInDeck",
+            "shopBuyMinGold",
+            "shopMaxCards"
+          ],
+          "description": "#241 模拟卡牌奖励 / 商店选牌 AI（sim 专用）",
+          "properties": {
+            "skipBelow": {
+              "type": "number"
+            },
+            "loopMaxInDeck": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shopBuyMinGold": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "shopMaxCards": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },
