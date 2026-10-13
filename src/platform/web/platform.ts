@@ -125,7 +125,7 @@ export function createWebPlatform(root: HTMLElement): Platform {
 /** 宣纸底纹（cover 铺满真实视口）：纵向渐变 + 细纹，与各页纸色一致 */
 export function paintPaperBackdrop(ctx: Ctx2DLike, w: number, h: number) {
   const c = ctx as unknown as CanvasRenderingContext2D;
-  const mode = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('bd') ?? 'a' : 'a';
+  const mode = typeof location !== 'undefined' ? (new URLSearchParams(location.search).get('bd') ?? 'a') : 'a';
   const dark = mode !== 'a';
   const g = c.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, dark ? '#3D2923' : '#EFE3C6');
@@ -135,7 +135,12 @@ export function paintPaperBackdrop(ctx: Ctx2DLike, w: number, h: number) {
   c.fillStyle = dark ? 'rgba(0,0,0,.06)' : 'rgba(120,96,60,.05)';
   for (let y = 0; y < h; y += 6) c.fillRect(0, y, w, 1);
   if (mode === 'c') {
-    const s = Math.min(w / 390, h / 844), bw = 390 * s, bh = 844 * s, x0 = (w - bw) / 2, y0 = (h - bh) / 2, R = 24;
+    const s = Math.min(w / 390, h / 844),
+      bw = 390 * s,
+      bh = 844 * s,
+      x0 = (w - bw) / 2,
+      y0 = (h - bh) / 2,
+      R = 24;
     const edge = (ax: number, ay: number, bx: number, by: number, rx: number, ry: number, rw: number, rh: number) => {
       const v = c.createLinearGradient(ax, ay, bx, by);
       v.addColorStop(0, 'rgba(0,0,0,.35)');
@@ -143,8 +148,14 @@ export function paintPaperBackdrop(ctx: Ctx2DLike, w: number, h: number) {
       c.fillStyle = v;
       c.fillRect(rx, ry, rw, rh);
     };
-    if (x0 > 0) { edge(x0, 0, x0 - R, 0, x0 - R, y0, R, bh); edge(x0 + bw, 0, x0 + bw + R, 0, x0 + bw, y0, R, bh); }
-    if (y0 > 0) { edge(0, y0, 0, y0 - R, x0, y0 - R, bw, R); edge(0, y0 + bh, 0, y0 + bh + R, x0, y0 + bh, bw, R); }
+    if (x0 > 0) {
+      edge(x0, 0, x0 - R, 0, x0 - R, y0, R, bh);
+      edge(x0 + bw, 0, x0 + bw + R, 0, x0 + bw, y0, R, bh);
+    }
+    if (y0 > 0) {
+      edge(0, y0, 0, y0 - R, x0, y0 - R, bw, R);
+      edge(0, y0 + bh, 0, y0 + bh + R, x0, y0 + bh, bw, R);
+    }
   }
 }
 
