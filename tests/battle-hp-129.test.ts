@@ -1,4 +1,5 @@
 /** #129 / render-spec §8.8.2：武将 / 敌人体力不溢出卡框 */
+import { CARDS } from '../src/data/cards';
 import { describe, expect, it } from 'vitest';
 import { enemyHpView, heroHpView, BEAD_D } from '../src/game/scenes/battle/hpview';
 import { OverlayStack } from '../src/engine/modal';
@@ -103,5 +104,30 @@ describe('#129 Boss 判定看节点类型', () => {
     const sc = mk();
     expect(sc.isBoss({ tier: 'Boss' })).toBe(true);
     expect(sc.isBoss({ tier: '精英' })).toBe(false);
+  });
+});
+
+describe('#129 开发调试参数 applyDev', () => {
+  const mk = (dev: object) => {
+    const ov = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
+    const sc = new BattleScene({ overlays: ov, debugDefaults: true, dev });
+    sc.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
+    return { sc, ov };
+  };
+  it('hp/maxHp/ehp', () => {
+    const { sc } = mk({ hp: 6, maxHp: 10, ehp: 18 });
+    expect([sc.g.p.hp, sc.g.p.maxHp]).toEqual([6, 10]);
+    expect(sc.g.en.every((e) => e.hp === 18 && e.max === 18)).toBe(true);
+    const { sc: s4 } = mk({ hp: 4 });
+    expect([s4.g.p.hp, s4.g.p.maxHp]).toEqual([4, 4]);
+  });
+  it('boss=1 强制 Boss 血条', () => {
+    const { sc } = mk({ boss: true });
+    expect(sc.isBoss({ tier: '小怪' })).toBe(true);
+  });
+  it('longName 把最长牌名放进手牌', () => {
+    const { sc } = mk({ longName: true });
+    const L = Math.max(...Object.values(CARDS).map((c) => c.name.length));
+    expect(sc.g.hand.some((c) => CARDS[c.id].name.length === L)).toBe(true);
   });
 });

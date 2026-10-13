@@ -3,6 +3,7 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
+import { CARDS } from '../../../data/cards';
 import { BEAD_D, enemyHpView, fitNameCached, heroHpView } from './hpview';
 import { textWidth } from '../../overlays/theme';
 import { Game, type BattleIO } from '../../../core/battle';
@@ -15,7 +16,7 @@ import type { Scene, SceneContext } from '../../../engine/scene';
 import type { Surface, SurfaceName } from '../../../engine/surfaces';
 import type { Ctx2DLike, Rect, Vec2 } from '../../../engine/types';
 import { CARD_H, CARD_W, clamp, hitHand, layoutHand, lockDirection, type DragMode, type HandLayout } from './hand';
-import { cardDetail, enemyDetail, LongPressDetail, skillDetail, type DetailContent } from '../../overlays/detail';
+import { cardDetail, enemyDetail, LongPressDetail, openDetail, skillDetail, type DetailContent } from '../../overlays/detail';
 import { makeRespond } from '../../overlays/response';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
@@ -36,6 +37,16 @@ export const BACK_ROW_GAP = 120;
 
 export type BattleMode = 'idle' | 'target' | 'redSel' | 'skillCard' | 'skillTarget' | 'discard' | 'busy' | 'over';
 export type CardState = 'normal' | 'selected' | 'legal' | 'illegal' | 'unaffordable';
+
+/** `?hp=&maxHp=&ehp=&boss=1&longname=1&detail=<牌 id>` 解析结果 */
+export interface BattleDevOverrides {
+  hp?: number;
+  maxHp?: number;
+  ehp?: number;
+  boss?: boolean;
+  longName?: boolean;
+  detail?: string;
+}
 
 export interface BattleDeps {
   overlays?: OverlayStack;
@@ -63,6 +74,8 @@ export interface BattleDeps {
   battleNo?(): number | undefined;
   /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
   debugDefaults?: boolean;
+  /** 仅开发构建（entry 用 import.meta.env.DEV 包住）：UI 截图验收用的强制状态（#129） */
+  dev?: BattleDevOverrides;
   /** 当前地图节点类型（'BOSS' / 'ELITE' / …）；Boss 血条判定优先看它，没有再看敌人数据 tier（#129） */
   nodeType?(): string | undefined;
   warn?(msg: string): void;
@@ -156,6 +169,7 @@ export class BattleScene implements Scene<BattleParams> {
       this.snap = this.snapshot();
       this.g.startBattle();
     }
+    if (this.deps.dev && !p.game) this.applyDev(this.deps.dev);
     this.snap = this.snapshot();
     ctx.invalidate();
   }
@@ -933,8 +947,37 @@ export class BattleScene implements Scene<BattleParams> {
     }
   }
   /** 敌人体力矩形（不出卡框；测试与绘制共用） */
+  /** 开发调试：强制血量 / Boss / 最长牌名 / 打开某张牌的详情（只在开发构建传入） */
+  applyDev(d: BattleDevOverrides) {
+    const g = this.g;
+    const max = d.maxHp ?? d.hp;
+    if (max) {
+      g.p.maxHp = max;
+      g.p.hp = Math.min(d.hp ?? max, max);
+    }
+    if (d.ehp) for (const e of g.en) e.hp = e.max = d.ehp;
+    const put = (id: string) => {
+      if (!CARDS[id]) return -1;
+      const i = g.hand.findIndex((c) => c.id === id);
+      if (i >= 0) return i;
+      if (!g.hand.length) return -1;
+      g.hand[0] = { ...g.hand[0], id, mods: [] };
+      return 0;
+    };
+    if (d.longName) put(Object.entries(CARDS).sort((a, b) => b[1].name.length - a[1].name.length)[0][0]);
+    if (d.detail) {
+      const i = put(d.detail);
+      const ov = this.deps.overlays;
+      if (i >= 0 && ov && this.deps.measure) {
+        const r = this.handLayoutAt(-1).rects[i];
+        const safe = this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H };
+        if (r) openDetail(ov, cardDetail(g.hand[i]), { x: r.x + r.w / 2, y: r.y + r.h / 2 }, safe, this.deps.measure());
+      }
+    }
+  }
   /** Boss 判定：地图节点类型优先；直达调试（无节点）退回敌人数据 tier === 'Boss' */
   isBoss(e: Pick<Enemy, 'tier'>): boolean {
+    if (this.deps.dev?.boss) return true;
     const t = this.deps.nodeType?.();
     return t ? t === 'BOSS' : e.tier === 'Boss';
   }

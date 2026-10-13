@@ -127,6 +127,17 @@ engine.scenes.register(
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
       nodeType: () => run.inNode?.type,
+      // 仅开发构建：UI 截图验收参数（#129），生产构建整段被摇掉
+      dev: import.meta.env.DEV
+        ? {
+            hp: Number(query.hp) || undefined,
+            maxHp: Number(query.maxHp) || undefined,
+            ehp: Number(query.ehp) || undefined,
+            boss: query.boss === '1',
+            longName: query.longname === '1',
+            detail: query.detail || undefined,
+          }
+        : undefined,
       warn: (m) => platform.warn(m),
       onEnd: (win) => {
         const pend = run.inNode;
