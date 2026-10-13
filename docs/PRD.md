@@ -1818,6 +1818,7 @@ RunSave {
 - V0.5 补充字段：`rngState`、`configVersion`（V0.5.2）、`battleStartSnapshot`（回滚用，进入战斗时写入）、`mapState { nodes[{id, layer, col, type, encounterId?}], edges[[from,to]], visited[], current }`、`reviveLeft`、`freeRefreshUsed`（H5 每局首次免费刷新）、`shopRemovalsUsed`、`stats { battlesWon, elitesKilled, bossKilled, turns, dmgDealt, dmgTaken, maxTurnLoss, epiphanies }`（供结算页 14.5 使用）。
 - 战斗中退出：保存 `battleState` 完整快照（牌堆顺序、手牌、敌人意图索引、Buff）。
 - 进战斗节点时先写盘再播动画。
+- 旧存档迁移（含战斗中状态的回退规则与提示）：见 [`docs/specs/runstate-migration.md`](specs/runstate-migration.md)（#122）。
 
 ### 21.5 配置表（V0.4：YAML，一物一文件）
 
