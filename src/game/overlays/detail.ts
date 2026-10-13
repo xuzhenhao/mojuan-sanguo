@@ -18,8 +18,8 @@ import { C, ext, frame, text, textWidth, wrap } from './theme';
 
 export const INTENT_ROW = 26;
 export const DETAIL = { w: 180, maxH: 200, pad: 12, titlePx: 24, bodyPx: 13, lineH: 19.5, gap: 12 } as const;
-export const TITLE_FONT = `${DETAIL.titlePx}px "Brush", serif`;
-export const BODY_FONT = `${DETAIL.bodyPx}px "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC", sans-serif`;
+export const TITLE_FONT = `${DETAIL.titlePx}px "Brush"`;
+export const BODY_FONT = `${DETAIL.bodyPx}px "Brush"`;
 
 export interface DetailContent {
   title: string;
@@ -74,28 +74,45 @@ export function placeDetail(at: Vec2, h: number, safe: Rect): Rect {
   return { x, y, w, h };
 }
 
-/** 排版：返回行与总高（≤ maxH，超出截断加省略号） */
-export function layoutDetail(ctx: Surface['ctx'], c: DetailContent) {
+export const TITLE_MIN_PX = 20;
+const titleFont = (px: number) => `${px}px "Brush"`;
+/** 右上费用珠 + 花色点数所占宽度 */
+export function badgeWidth(ctx: Surface['ctx'], c: DetailContent) {
+  let w = 0;
+  if (c.suit) w += numFont().measure(ctx, RANK_CH[c.rank ?? 0] ?? String(c.rank), 15) + 24;
+  if (c.cost != null) w += 20;
+  return w;
+}
+export type DetailHead = { titlePx: number; badgesBelow: boolean; subSplit: boolean; extra: number };
+/**
+ * #141 标题排版：标题最大宽 = 内宽 − 右上徽记宽 − 8；超宽逐 1px 缩到 20；
+ * 20 仍放不下 → 徽记移到标题下一行与副标题同行（同行放不下则副标题再下一行）。
+ */
+export function layoutHead(ctx: Surface['ctx'], c: DetailContent): DetailHead {
   const inner = DETAIL.w - DETAIL.pad * 2;
-  ctx.font = BODY_FONT;
-  let lines = c.lines.flatMap((l) => wrap(ctx, l, inner, DETAIL.bodyPx));
-  const head = DETAIL.pad + DETAIL.titlePx + (c.sub ? 18 : 6) + (c.intents?.length ? INTENT_ROW : 0);
-  const maxLines = Math.floor((DETAIL.maxH - head - DETAIL.pad) / DETAIL.lineH);
-  if (lines.length > maxLines) lines = [...lines.slice(0, maxLines - 1), lines[maxLines - 1].slice(0, -1) + '…'];
-  return { lines, h: Math.min(DETAIL.maxH, head + lines.length * DETAIL.lineH + DETAIL.pad) };
+  const bw = badgeWidth(ctx, c);
+  const tw = (px: number) => {
+    ctx.font = titleFont(px);
+    return textWidth(ctx, c.title, px);
+  };
+  const maxW = inner - bw - (bw ? 8 : 0);
+  for (let px = DETAIL.titlePx; px >= TITLE_MIN_PX; px--) if (tw(px) <= maxW) return { titlePx: px, badgesBelow: false, subSplit: false, extra: 0 };
+  let px = TITLE_MIN_PX;
+  while (px > 14 && tw(px) > inner) px--; // 全宽仍超才继续缩（兜底）
+  let subW = 0;
+  if (c.sub) {
+    ctx.font = BODY_FONT;
+    subW = textWidth(ctx, c.sub, DETAIL.bodyPx);
+  }
+  const subSplit = !!c.sub && subW + 8 + bw > inner;
+  // 无副标题时徽记需新增一行；副标题放不下时多一行
+  const extra = !c.sub ? 18 : subSplit ? 18 : 0;
+  return { titlePx: px, badgesBelow: true, subSplit, extra };
 }
 
-export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[]) {
-  const g = s.ctx;
-  g.fillStyle = C.lacquerDeep;
-  g.fillRect(r.x, r.y, r.w, r.h);
-  frame(g, r, C.gold, 1.5);
-  frame(g, { x: r.x + 3, y: r.y + 3, w: r.w - 6, h: r.h - 6 }, 'rgba(217,180,106,.35)', 1);
-  let y = r.y + DETAIL.pad + DETAIL.titlePx - 4;
-  text(g, c.title, r.x + DETAIL.pad, y, TITLE_FONT, C.gold);
-  // 右上：费用珠 + 花色（矢量印章图标）+ 点数（数字字体）
+function drawBadges(g: Surface['ctx'], c: DetailContent, right: number, y: number) {
   const nf = numFont();
-  let rx = r.x + r.w - DETAIL.pad;
+  let rx = right;
   if (c.suit) {
     const rk = RANK_CH[c.rank ?? 0] ?? String(c.rank);
     const red = c.suit === 'H' || c.suit === 'D';
@@ -117,10 +134,47 @@ export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[
     const cs = String(c.cost);
     nf.draw(g, cs, cx - nf.measure(g, cs, 14) / 2, y - 4, 14, C.paper);
   }
-  if (c.sub) {
-    y += 18;
-    text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT, 'rgba(243,235,216,.6)');
+}
+
+/** 排版：返回行与总高（≤ maxH，超出截断加省略号） */
+export function layoutDetail(ctx: Surface['ctx'], c: DetailContent) {
+  const inner = DETAIL.w - DETAIL.pad * 2;
+  ctx.font = BODY_FONT;
+  let lines = c.lines.flatMap((l) => wrap(ctx, l, inner, DETAIL.bodyPx));
+  const hd = layoutHead(ctx, c);
+  ctx.font = BODY_FONT;
+  const head = DETAIL.pad + DETAIL.titlePx + (c.sub ? 18 : 6) + hd.extra + (c.intents?.length ? INTENT_ROW : 0);
+  const maxLines = Math.floor((DETAIL.maxH - head - DETAIL.pad) / DETAIL.lineH);
+  if (lines.length > maxLines) lines = [...lines.slice(0, maxLines - 1), lines[maxLines - 1].slice(0, -1) + '…'];
+  return { lines, h: Math.min(DETAIL.maxH, head + lines.length * DETAIL.lineH + DETAIL.pad) };
+}
+
+export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[]) {
+  const g = s.ctx;
+  g.fillStyle = C.lacquerDeep;
+  g.fillRect(r.x, r.y, r.w, r.h);
+  frame(g, r, C.gold, 1.5);
+  frame(g, { x: r.x + 3, y: r.y + 3, w: r.w - 6, h: r.h - 6 }, 'rgba(217,180,106,.35)', 1);
+  let y = r.y + DETAIL.pad + DETAIL.titlePx - 4;
+  const hd = layoutHead(g, c);
+  text(g, c.title, r.x + DETAIL.pad, y, hd.titlePx === DETAIL.titlePx ? TITLE_FONT : titleFont(hd.titlePx), C.gold);
+  // 右上：费用珠 + 花色（矢量印章图标）+ 点数（数字字体）；放不下时移到下一行
+  const right = r.x + r.w - DETAIL.pad;
+  if (!hd.badgesBelow) {
+    drawBadges(g, c, right, y);
+    if (c.sub) {
+      y += 18;
+      text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT, 'rgba(243,235,216,.6)');
+    }
+  } else {
+    y += 20; // 标题下一行：徽记右对齐，副标题同行左对齐
+    drawBadges(g, c, right, y + 1);
+    if (c.sub) {
+      if (hd.subSplit) y += 18;
+      text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT, 'rgba(243,235,216,.6)');
+    }
   }
+  const nf = numFont();
   if (c.intents?.length) {
     // 意图行：印章图标 + 名称 + ×N（不用 emoji）
     let ix = r.x + DETAIL.pad;

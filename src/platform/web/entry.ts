@@ -26,8 +26,10 @@ import { MetaStore, RunSaveSlot } from '../../game/result/store';
 import { demoOutcome, heroName, outcomeFromSave } from '../../game/result/adapter';
 import { resultBridge } from '../../game/result/bridge';
 import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/resume';
+import { loadBrushFonts, webFontDeps } from './brush-font';
 import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
 import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
+import { refitAfterBrush } from '../../game/scenes/battle/hpview';
 
 const root = document.getElementById('app')!;
 const platform = createWebPlatform(root);
@@ -93,17 +95,15 @@ engine.scenes.register(
     }),
 );
 // 书法字体（霞鹜文楷 LXGW WenKai，OFL）：core 进首包，ext 异步补齐；CSS 族名仍为 Brush
-if (typeof FontFace !== 'undefined') {
-  const loadBrush = (url: string, kind: string) =>
-    new FontFace('Brush', `url(${url}) format('woff2')`)
-      .load()
-      .then((f) => {
-        document.fonts.add(f);
-        engine.invalidateAll();
-      })
-      .catch((e) => platform.warn(`书法字体 ${kind} 加载失败`, e));
-  void loadBrush(wenkaiCoreUrl, 'core').then(() => void loadBrush(wenkaiExtUrl, 'ext'));
-}
+// #142 门控 + 失败重试；#129：Brush 到位后清牌名字号/量宽缓存再重绘
+const fontsReady = loadBrushFonts(
+  webFontDeps((m, e) => {
+    if (import.meta.env.DEV) console.warn(m, e ?? '');
+  }),
+  { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
+  () => void refitAfterBrush(document.fonts, () => engine.invalidateAll()),
+);
+const framesReleased = engine.holdFramesUntil(fontsReady);
 // P3 地图（#44）：局种子取点将出征时 core 建局的种子
 engine.scenes.register('map', () =>
   createMapScene(
@@ -128,6 +128,18 @@ engine.scenes.register(
       measure: () => engine.surfaces.main.ctx,
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
+      nodeType: () => run.inNode?.type,
+      // 仅开发构建：UI 截图验收参数（#129），生产构建整段被摇掉
+      dev: import.meta.env.DEV
+        ? {
+            hp: Number(query.hp) || undefined,
+            maxHp: Number(query.maxHp) || undefined,
+            ehp: Number(query.ehp) || undefined,
+            boss: query.boss === '1',
+            longName: query.longname === '1',
+            detail: query.detail || undefined,
+          }
+        : undefined,
       warn: (m) => platform.warn(m),
       onEnd: (win) => {
         const pend = run.inNode;
@@ -171,7 +183,7 @@ if (showStatusBar(platform.launchQuery(), location.pathname))
     draw(s) {
       const mb = (n: number) => (n / 1048576).toFixed(1);
       s.ctx.fillStyle = '#8c7448';
-      s.ctx.font = '11px sans-serif';
+      s.ctx.font = '11px "Brush"';
       s.ctx.fillText?.(
         `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
         16,
@@ -214,7 +226,8 @@ if (q && pages.includes(q)) {
 const seed = Number(query.seed);
 if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
 else void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined).then(checkResume);
-engine.start();
+// #142：首帧等霞鹜文楷 core 就绪（最多 FONT_GATE_TIMEOUT_MS），避免先用浏览器默认字体画字
+void framesReleased.then(() => engine.start());
 // 调试：?toast=2 同时弹两条提示（看堆叠样式）；?toast=1 弹一条；?version=1 弹 §21.4 确认框
 if (query.toast) {
   const n = Number(query.toast) || 1;

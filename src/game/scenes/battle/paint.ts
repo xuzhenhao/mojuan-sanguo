@@ -34,9 +34,10 @@ export const C = {
 } as const;
 
 export const FONT = {
-  brush: '"Ma Shan Zheng", "STKaiti", "KaiTi", serif',
-  num: 'Georgia, "Times New Roman", serif',
-  body: '"PingFang SC", "Noto Sans SC", sans-serif',
+  /** 霞鹜文楷（FontFace 族名 Brush）；正文、数字、书法字同一族名，不回退任何系统字体（#129 / #142） */
+  brush: '"Brush"',
+  num: '"Brush"',
+  body: '"Brush"',
 };
 
 type Ext = Ctx2DLike & {

@@ -74,15 +74,15 @@ export class PlaceholderScene implements Scene {
     ctx.clearRect(0, 0, w, h);
     if (layer !== 'main') return;
     ctx.fillStyle = GOLD;
-    ctx.font = 'bold 30px serif';
+    ctx.font = 'bold 30px "Brush"';
     ctx.fillText?.(PAGE_TITLE[this.id], 32, 80);
-    ctx.font = '14px sans-serif';
+    ctx.font = '14px "Brush"';
     ctx.fillText?.(`占位页面 · ${this.id}（长按任意处看详情）`, 32, 108);
     for (const b of this.buttons()) {
       ctx.fillStyle = '#5a2a16';
       ctx.fillRect(b.rect.x, b.rect.y, b.rect.w, b.rect.h);
       ctx.fillStyle = GOLD;
-      ctx.font = '18px serif';
+      ctx.font = '18px "Brush"';
       ctx.fillText?.(b.label, b.rect.x + 20, b.rect.y + 30);
     }
   }
@@ -105,7 +105,7 @@ export class PlaceholderScene implements Scene {
           s.ctx.fillStyle = '#f3ebd8';
           s.ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
           s.ctx.fillStyle = '#1a1a1a';
-          s.ctx.font = '13px sans-serif';
+          s.ctx.font = '13px "Brush"';
           s.ctx.fillText?.(`${PAGE_TITLE[this.id]} · 详情浮层`, rect.x + 12, rect.y + 28);
           s.ctx.fillText?.('点外部关闭', rect.x + 12, rect.y + 52);
         },

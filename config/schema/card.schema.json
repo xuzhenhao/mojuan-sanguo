@@ -20,6 +20,11 @@
     "name": {
       "type": "string"
     },
+    "shortName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "手牌小牌显示的简称（可选；详情浮层仍显示全名 name）"
+    },
     "type": {
       "enum": [
         "基本",
