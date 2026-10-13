@@ -199,3 +199,21 @@ describe('#122 PR2：同 seed 换武将重建起始牌组', () => {
     expect(JSON.parse(store.m.get(RUN_STATE_KEY)!).deck).toHaveLength(starterDeck('H01').length);
   });
 });
+
+describe('#92 去掉奖励页刷新后的存档兼容', () => {
+  it('Inventory 不再带 rewardRefreshUsed，RunState.counters.rewardRefreshUsed 原值透传、不写旧键', async () => {
+    const { RunSession } = await import('../src/game/run');
+    const { LEGACY_RUN_SAVE_KEY, RUN_STATE_KEY } = await import('../src/game/run/state');
+    const m = new Map<string, string>();
+    const st = { get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) };
+    const run = new RunSession();
+    run.start({ main: 'H03', sub: 'H04', seed: 5 });
+    expect('rewardRefreshUsed' in run.inventory).toBe(false);
+    run.inventory.shopRefreshUsed = 1;
+    run.save(st);
+    const saved = JSON.parse(m.get(RUN_STATE_KEY)!);
+    const counters = (saved.state ?? saved).counters;
+    expect(counters).toEqual({ rewardRefreshUsed: 0, shopRefreshUsed: 1, removeUsed: 0 });
+    expect(m.has(LEGACY_RUN_SAVE_KEY)).toBe(false);
+  });
+});

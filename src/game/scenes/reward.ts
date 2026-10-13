@@ -2,7 +2,7 @@
  * P4 奖励页 reward（#45；flow.md §3.7，render-spec §8.3，设计稿 v3/reward.html）。
  * - 进入：大印“胜”落下 600ms → 战利品胶囊依次弹出（120ms）→ 3 张大牌依次翻开（间隔 100ms，每张 300ms）；翻牌中不可点。
  * - 铜钱、丹药进入时自动入账；丹药栏满时弹“丹药已满”层（替换 / 放弃）。
- * - 点牌选中（上浮）；再点同一张或「收入」入卷；「略过」二次确认；「免费刷新（本局 1 次）」只换卡牌。
+ * - 点牌选中（上浮）；再点同一张或「收入」入卷；「略过」二次确认。H5 不提供奖励刷新（集市保留每局 1 次免费刷新）。
  * - 精英：宝物条点击领取（独立于选卡）；Boss：宝物条打开三选一。
  * - 长按牌 / 宝物 / 丹药看详情（复用 overlays/detail）。
  * 规则只读 core 与 src/data；数值见 src/data/economy.ts。
@@ -10,7 +10,7 @@
 import type { Rng } from '../../core/rng';
 import { seeded } from '../../core/rng';
 import { def } from '../../core/rules';
-import { ECONOMY, type BattleKind } from '../../data/economy';
+import type { BattleKind } from '../../data/economy';
 import type { GestureEvent } from '../../engine/input';
 import type { Scene, SceneContext } from '../../engine/scene';
 import type { Surface, SurfaceName } from '../../engine/surfaces';
@@ -19,7 +19,7 @@ import { inside } from '../overlays/theme';
 import { cardDetail, LongPressDetail, openDetail, type DetailContent } from '../overlays/detail';
 import { potionCount, type Inventory } from '../economy/inventory';
 import { potionDef, relicDef } from '../economy/pools';
-import { canRefresh, enterReward, refreshReward, resolvePotion, rollReward, takeCard, takeRelic, type RewardOffer, type RewardState } from '../economy/reward';
+import { enterReward, resolvePotion, rollReward, takeCard, takeRelic, type RewardOffer, type RewardState } from '../economy/reward';
 import {
   BAR_H,
   blit,
@@ -161,15 +161,15 @@ export class RewardScene implements Scene<RewardParams | undefined> {
     const h = this.ctx.height;
     const done = !!this.st.cardTaken || this.st.skipped;
     return [
+      // render-spec §4 页面布局表「奖励 … 底栏（略过/收入）」：略过与收入同在底栏，收入靠右，略过在其左侧间距 12
       {
-        id: 'refresh',
-        rect: { x: 55, y: 588, w: 210, h: 40 },
-        text: `↻ 免费刷新（本局 ${ECONOMY.rewardFreeRefresh} 次）`,
+        id: 'skip',
+        rect: { x: this.ctx.width - 75 - 12 - 64, y: h - BAR_H + 7, w: 64, h: 40 },
+        text: '略过',
         kind: 'secondary',
-        disabled: !canRefresh(this.inv, this.st),
-        font: BRUSH(15),
+        disabled: done,
+        font: BRUSH(17),
       },
-      { id: 'skip', rect: { x: 271, y: 588, w: 64, h: 40 }, text: '略过', kind: 'secondary', disabled: done, font: BRUSH(17) },
       {
         id: 'take',
         rect: { x: this.ctx.width - 75, y: h - BAR_H + 7, w: 65, h: 40 },
@@ -227,10 +227,6 @@ export class RewardScene implements Scene<RewardParams | undefined> {
     }
     const b = hitButton(this.buttons(), p);
     if (!b) return false;
-    if (b.id === 'refresh' && refreshReward(this.env.rng(), this.inv, this.st)) {
-      this.selected = -1;
-      this.t = this.flipStart; // 重新翻牌
-    }
     if (b.id === 'skip') void this.askSkip();
     if (b.id === 'take') this.collect();
     this.ctx.invalidate('main');
@@ -342,10 +338,10 @@ export class RewardScene implements Scene<RewardParams | undefined> {
     c.fillStyle = 'rgba(185,138,60,.55)';
     c.fillRect(110, 350, 170, 1);
     this.drawCards(s);
-    for (const b of this.buttons()) if (b.id !== 'take') drawButton(c, b);
     if (this.st.offer.relics.length) this.drawRelicBar(s);
     drawBottomBar(c, w, h, this.inv.deck.length);
-    drawButton(c, this.buttons()[2]);
+    // 底栏按钮（略过 / 收入）画在底栏之上
+    for (const b of this.buttons()) drawButton(c, b);
     this.lp.draw(s);
   }
 

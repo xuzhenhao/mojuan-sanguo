@@ -221,7 +221,6 @@ export class RunSession {
     v.main = s.heroMain;
     v.sub = s.heroSub;
     v.chapter = s.chapter;
-    v.rewardRefreshUsed = s.counters.rewardRefreshUsed;
     v.shopRefreshUsed = s.counters.shopRefreshUsed;
     v.removeUsed = s.counters.removeUsed;
     v.destiny = s.tianming;
@@ -293,7 +292,8 @@ export class RunSession {
       s.deck = cloneDeck(v.deck.filter((c) => !isTempUid(c.uid)));
       s.nextUid = v.nextUid;
       s.tianming = v.destiny;
-      s.counters = { rewardRefreshUsed: v.rewardRefreshUsed, shopRefreshUsed: v.shopRefreshUsed, removeUsed: v.removeUsed };
+      // #92：H5 奖励页已去掉免费刷新，rewardRefreshUsed 仅为存档兼容保留，原值透传
+      s.counters = { rewardRefreshUsed: s.counters.rewardRefreshUsed, shopRefreshUsed: v.shopRefreshUsed, removeUsed: v.removeUsed };
     }
     for (const k of RNG_STREAMS) {
       const r = this.rngs[k];

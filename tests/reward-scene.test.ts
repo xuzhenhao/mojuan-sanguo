@@ -61,16 +61,19 @@ describe('奖励页 reward（#45）', () => {
     expect(t.done).toBe(1);
     expect(t.s.st.skipped).toBe(true);
   });
-  it('免费刷新（本局 1 次）：换卡并置灰', () => {
+  it('H5 奖励页没有刷新按钮', () => {
     const t = setup();
     t.s.skipAnim();
-    const r = t.s.buttons().find((b) => b.id === 'refresh')!;
-    expect(r.text).toContain('免费刷新（本局 1 次）');
-    t.s.gesture(tap(...center(r.rect)));
-    expect(t.inv.rewardRefreshUsed).toBe(1);
-    expect(t.s.flipping).toBe(true);
+    expect(t.s.buttons().map((b) => b.id)).toEqual(['skip', 'take']);
+  });
+  it('底栏（略过/收入）：略过与收入同在底栏，略过在左、不重叠（render-spec §4）', () => {
+    const t = setup();
     t.s.skipAnim();
-    expect(t.s.buttons().find((b) => b.id === 'refresh')!.disabled).toBe(true);
+    const [skip, take] = t.s.buttons();
+    expect(skip.rect.y).toBe(take.rect.y);
+    expect(skip.rect.y).toBeGreaterThan(t.s.relicBar().y + t.s.relicBar().h);
+    expect(skip.rect.x + skip.rect.w).toBeLessThanOrEqual(take.rect.x - 12);
+    expect(take.rect.x + take.rect.w).toBeLessThanOrEqual(t.ctx.width);
   });
   it('精英：点宝物条领取（独立于选卡）', () => {
     const t = setup('elite');

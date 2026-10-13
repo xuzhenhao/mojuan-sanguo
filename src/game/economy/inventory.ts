@@ -17,8 +17,6 @@ export interface Inventory {
   sub: string;
   /** 章（1 起） */
   chapter: number;
-  /** H5 奖励页免费刷新已用次数（本局） */
-  rewardRefreshUsed: number;
   /** H5 集市免费刷新已用次数（本局） */
   shopRefreshUsed: number;
   /** 本局删牌服务已用次数（价格递增） */
@@ -37,7 +35,6 @@ export function newInventory(o: Partial<Inventory> & { deck?: CardInst[] } = {})
     main: CONFIG.rules.defaultHeroes.main,
     sub: CONFIG.rules.defaultHeroes.sub,
     chapter: 1,
-    rewardRefreshUsed: 0,
     shopRefreshUsed: 0,
     removeUsed: 0,
     destiny: 0,
