@@ -1,7 +1,19 @@
 # 画风规范 C · 写意墨线（以参考原图为唯一基准）
 
-> 状态：用户否决了 C1/C2/C3（粗剪影、面具脸）和 R1/R2/R3（太干净、太端正）。**以参考原图 `refs/lvbu-C-flat-ink.jpg` 为唯一基准**，要原图那种霸气又有点凌乱的美感。竖版变体 S1/S2/S3 待用户挑选；**选定前不批量出图**。
+> 状态：用户否决了 C1/C2/C3（粗剪影、面具脸）和 R1/R2/R3（太干净、太端正）。**以参考原图 `refs/lvbu-C-flat-ink.jpg` 为唯一基准**，要原图那种霸气又有点凌乱的美感。竖版变体 L1/L2/L3 待用户挑选（S1–S3 缺双长雉翎，已否决）；**选定前不批量出图**。
 > 槽位与尺寸以 `docs/ui/render-spec.md` §8.8.4 为准；本文与其冲突时以 render-spec 为准。
+
+## 0. 硬规则：先列标志性特征清单
+- 每个武将出图前，先在 `docs/art/characters/<武将>.md` 列「标志性特征清单」（模板见 `characters/lvbu.md`）。
+- 参考三国杀、真三国无双等作品时**只借用识别元素，不描摹、不图生图**；外部图不入仓库，来源记在 `refs/<武将>/SOURCES.md`。
+- 清单每一项都必须在 **70×98 灰度图**下仍然可见。
+- prompt 必须带 ICONIC FEATURES 段，写法如下（逐项从清单抄）：
+```
+ICONIC FEATURES, must be clearly visible:
+- TWO VERY LONG pheasant tail feathers … curving like antennae, fully inside the frame
+- <特征 2>
+- <特征 3> …
+```
 
 ## 1. 总风格关键词
 - **粗细不匀的墨线**，带笔锋和顿挫；**飞白、干笔擦痕**。
@@ -39,11 +51,14 @@ no thick painterly shading, no realistic painterly rendering, no stiff upright p
 **推荐生成方法：** **只用参考原图 `refs/lvbu-C-flat-ink.jpg` 做参考**。工具输出横图，prompt 里必须写「主体和兵器压在中央 40% 宽度内」(within the central 40% of the image width)，否则竖裁时兵器会被裁掉。
 
 ## 4. 吕布竖版变体（待选）
-| 变体 | 参考 | prompt |
+prompt 沿用 §3 前缀 + `characters/lvbu.md` 的 ICONIC FEATURES 段，再加 pose：
+| 变体 | 参考 | pose |
 |---|---|---|
-| S1 侧身风吹 | `refs/lvbu-S1.png` | Same character, same art style as the reference, nearly identical: rough expressive ink brush linework with uneven stroke weight, dry-brush flying-white streaks, ink splashes and splatter at the edges; wild windswept black hair and red pheasant feathers, red tassels and torn red-black cape whipping in the wind; brows pressed low over sharp fierce eyes, goatee; visible cream rice-paper texture; restrained palette of red, black, gold and empty paper. Close bust framing like the reference, body turned three-quarters with motion, crescent halberd (fangtian huaji) blade rising vertically right beside his head inside the frame. No painterly realistic shading, no stiff upright pose, no border, no text. |
-| S2 回首睥视 | `refs/lvbu-S2.png` | Variation of the reference image keeping its exact look: messy energetic ink strokes, uneven line weight, dry brush scratches, ink splatter, flying hair and red feathers, crown ornament with red jewel, red-black cape edges dissolving into ink splashes, paper texture. Lu Bu glancing sideways over his shoulder with a menacing glare, head and shoulders large in frame, halberd held near-vertical behind him with the crescent blade above his shoulder, red tassels flying. Restrained red/black/gold with lots of blank paper. No thick painterly rendering, no border, no text. |
-| S3 泼墨半身 | `refs/lvbu-S3.png` | Outpaint the reference into a tall vertical composition, extending blank paper, ink splashes and windswept cape; crescent blade upright left of his face. |
+| L1 侧身立戟 | `refs/lvbu-L1.png` | body turned three-quarters, fangtian huaji upright at his left side, two long feathers arching over both sides |
+| L2 回首睥视 | `refs/lvbu-L2.png` | glancing back over the shoulder, halberd behind him, feathers sweeping in the widest arcs |
+| L3 握戟半身 | `refs/lvbu-L3.png` | half body gripping the halberd in front at the left, beast-head pauldrons prominent |
+
+> 双长雉翎宽度可达画面 60–70%：竖裁时窗口宽取「两翎外缘 + 戟」的最小值，按 256:356 求高，上方补纸底（取原图纸纹平铺，接缝渐变融合），下方让身体渐隐到纸底。代价是脸变小，需验 70 尺寸。
 
 ## 5. 三类资源模板（尺寸均为 @2x 交付）
 ### 5.1 武将 `generals_battle`
@@ -69,7 +84,7 @@ no thick painterly shading, no realistic painterly rendering, no stiff upright p
 ## 7. 验收清单
 - [ ] 尺寸正确（§5），纸底 `#FBF5E6`，无文字/水印/印章/边框。
 - [ ] 墨线粗细不匀、有飞白泼墨，脸大且眼神凌厉；不端正、不过分干净，无厚涂、面具感、西式铠甲兵器。
-- [ ] 1x（主将 128×178、副将 70×98）**灰度**下能认出人物、雉翎和兵器。
+- [ ] `characters/<武将>.md` 特征清单**逐项**在 70×98 灰度图下可见（吕布：双长雉翎整根在框内、金冠、兽首铠、方天画戟、红披风）。
 - [ ] 戟刃、雉翎完整在框内；底部渐隐区无关键内容。
 - [ ] 放进 `mockups-v3/battle.html` 主将牌框后不与金屏风背景糊在一起。
 - [ ] 同批次与参考原图风格一致（线宽、甲片密度、红黑金配色）。
