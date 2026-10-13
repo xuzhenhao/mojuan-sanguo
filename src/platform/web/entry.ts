@@ -289,7 +289,16 @@ if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overla
 async function checkResume() {
   if (flow.page !== 'select') return;
   const s = slot.peek();
-  if (!s) return;
+  if (!s) {
+    // #214：JSON 截断 / 无法解析的坏档与结构损坏同口径：提示并删档
+    if (slot.unreadable()) {
+      platform.warn('继续本局：存档无法解析');
+      const f = resumeFailure('corrupt');
+      if (f.clearSave) slot.remove();
+      showNotice(engine.overlays, f.text);
+    }
+    return;
+  }
   const raw0 = slot.raw() as { ended?: unknown } | null;
   if (raw0?.ended) {
     // 已「结束本局」（战斗失败后刷新）：不弹续玩，直接进结算页

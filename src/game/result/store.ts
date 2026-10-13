@@ -6,7 +6,7 @@
 import type { StorageAdapter } from '../../platform/types';
 import { EMPTY_META, META_KEY, applyOutcome, type MetaProgress, type RunOutcome } from './settlement';
 
-import { RUN_SAVE_KEY, clearRunSave, loadRunSave } from './run-save';
+import { LEGACY_RUN_SAVE_KEY, RUN_SAVE_KEY, clearRunSave, loadRunSave } from './run-save';
 
 export { RUN_SAVE_KEY };
 
@@ -59,6 +59,11 @@ export class RunSaveSlot {
   }
   peek(): ResumeSummary | null {
     return summarize(this.raw());
+  }
+  /** #214：有存档文本但读不出摘要（JSON 截断 / 无法解析 / 缺主副将）= 坏档 */
+  unreadable(): boolean {
+    const has = [RUN_SAVE_KEY, LEGACY_RUN_SAVE_KEY].some((k) => !!this.storage.get(k));
+    return has && this.peek() === null;
   }
   remove() {
     clearRunSave(this.storage);
