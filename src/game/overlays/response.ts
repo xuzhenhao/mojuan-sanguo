@@ -244,7 +244,9 @@ export function responseTap(lay: ResponseLayout, st: ResponseState, at: Vec2): '
  */
 export function openResponse(stack: OverlayStack, req: ResponseRequest, o: ResponseOptions): { handle: OverlayHandle<CardInst | null>; state: ResponseState } {
   const total = req.timed ? (o.seconds ?? RESPONSE.defaultSeconds) * 1000 : Infinity;
-  const st: ResponseState = { req, info: parseRequest(req.text), selected: null, left: total, total, intro: 0 };
+  // #236：有合法牌时默认选中第一张，使「确定」一开即可点
+  const selected = req.hand.find((c) => req.legal(c)) ?? null;
+  const st: ResponseState = { req, info: parseRequest(req.text), selected, left: total, total, intro: 0 };
   const handle = stack.push<CardInst | null>({
     id: 'response',
     kind: 'response',

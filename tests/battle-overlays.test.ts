@@ -35,7 +35,7 @@ describe('响应弹窗：接 core 决策点，Promise 返回选择', () => {
     expect(parseRequest('张宝·墨影 对你使用【杀】，伤害 2')).toMatchObject({ kind: 'shan', dmg: 2, attacker: '张宝·墨影' });
     expect(parseRequest('濒死！体力 0，可用【桃】或【酒】自救').kind).toBe('dying');
   });
-  it('选合法牌 → 确定：返回该牌；未选时确定无效；承受返回 null', async () => {
+  it('有合法闪：默认选中第一张，确定可直接出；非法牌不可选；承受返回 null', async () => {
     const st = stack();
     const hand = [card('B001'), card('B004', 'H', 13), card('B005')];
     const { handle, state } = openResponse(
@@ -44,21 +44,40 @@ describe('响应弹窗：接 core 决策点，Promise 返回选择', () => {
       { layout: () => layout },
     );
     expect(st.top()?.kind).toBe('response');
+    expect(state.selected).toBe(hand[1]); // #236 默认选中合法闪
     for (let i = 0; i < 3; i++) step(st); // 弹出动画完成（250ms）
     const geo = responseGeometry(layout, state);
     expect(geo.cards.filter((c) => c.legal).map((c) => c.card)).toEqual([hand[1]]);
     expect(geo.cards[1].rect.y).toBe(648 - 22); // 合法牌上浮 22
-    st.gesture(tap(...center(geo.ok)));
-    expect(st.size).toBe(1); // 未选牌，确定无效
     st.gesture(tap(...center(geo.cards[0].rect)));
-    expect(state.selected).toBeNull(); // 非法牌不可选
-    st.gesture(tap(...center(geo.cards[1].rect)));
-    expect(state.selected).toBe(hand[1]);
+    expect(state.selected).toBe(hand[1]); // 非法牌不可改选
     st.gesture(tap(...center(geo.ok)));
-    expect(await handle.result).toBe(hand[1]);
+    expect(await handle.result).toBe(hand[1]); // 未再点选也能直接确定
     const r2 = openResponse(st, { text: '甲 对你使用【杀】，伤害 1', legal: () => true, pass: '不出闪', timed: true, hand }, { layout: () => layout });
+    expect(r2.state.selected).toBe(hand[0]); // 多合法时默认第一张
     st.gesture(tap(...center(responseGeometry(layout, r2.state).take)));
     expect(await r2.handle.result).toBeNull();
+  });
+  it('#236 多张合法闪：可点其他闪改选；点已选可取消后确定无效', async () => {
+    const st = stack();
+    const a = card('B004', 'H', 13);
+    const b = card('B004', 'D', 7);
+    const hand = [card('B001'), a, b];
+    const legal = (c: (typeof hand)[number]) => c.id === 'B004';
+    const { handle, state } = openResponse(st, { text: '甲 对你使用【杀】，伤害 1', legal, pass: '不出闪', timed: false, hand }, { layout: () => layout });
+    expect(state.selected).toBe(a);
+    for (let i = 0; i < 3; i++) step(st);
+    const geo = responseGeometry(layout, state);
+    st.gesture(tap(...center(geo.cards[2].rect)));
+    expect(state.selected).toBe(b); // 改选另一张闪
+    st.gesture(tap(...center(geo.cards[2].rect)));
+    expect(state.selected).toBeNull(); // 再点已选 → 取消
+    st.gesture(tap(...center(geo.ok)));
+    expect(st.size).toBe(1); // 未选时确定无效
+    st.gesture(tap(...center(geo.cards[1].rect)));
+    expect(state.selected).toBe(a);
+    st.gesture(tap(...center(geo.ok)));
+    expect(await handle.result).toBe(a);
   });
   it('不允许点外部关闭；长按被吞掉', () => {
     const st = stack();
@@ -111,7 +130,7 @@ describe('响应弹窗：接 core 决策点，Promise 返回选择', () => {
     const top = () => st.top()!;
     expect(top().kind).toBe('response');
     for (let i = 0; i < 3; i++) step(st);
-    st.gesture(tap(20 + 58 + 36, 648 - 22 + 52)); // 第 2 张（闪）
+    // #236：合法闪已默认选中，直接点确定
     st.gesture(tap(...center({ x: layout.hero.x - 238, y: layout.hero.y + 4 + 56 + 8 + 6 + 14, w: 108, h: 44 })));
     expect(await res).toBe('shan');
     expect(g.hand).not.toContain(shan);
