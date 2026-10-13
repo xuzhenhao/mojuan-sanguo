@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R13
+name: 古锭刀胚
+rarity: R
+desc: "每回合首张杀 +1；你每回合首次受伤 +1"

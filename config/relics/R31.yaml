@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R31
+name: 改签符
+rarity: R
+desc: "天机签筒加入 2 张 ♥"

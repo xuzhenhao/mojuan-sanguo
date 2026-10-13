@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R09
+name: 断袖香囊
+rarity: R
+desc: "商店 −20%"
+effects: { shopDiscount: 0.2 }

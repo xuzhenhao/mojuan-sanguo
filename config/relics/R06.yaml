@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R06
+name: 金鳞甲片
+rarity: R
+desc: "战斗开始 3 甲"

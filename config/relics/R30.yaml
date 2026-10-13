@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R30
+name: 平安符
+rarity: R
+desc: "每场首次致死伤害免除并回 1"

@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R27
+name: 墨魇碎片
+rarity: L
+desc: "灵光每场上限 +1"
