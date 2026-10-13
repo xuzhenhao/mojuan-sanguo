@@ -109,6 +109,8 @@ export interface ConfigBundle {
     };
     /** 复活（PRD §4.4.1；仅天命<5） */
     revive: { count: number; hpRatio: number; hpMin: number; armor: number };
+    /** 局内经济（#172） */
+    economy: EconomyCfg;
     /** 开放章节数（PRD 10.1；schema 可选，缺省 1） */
     run?: { chapters: number };
     /** 奇遇（#174） */
@@ -197,6 +199,31 @@ export const shopPrice = (id: string) => {
 export function atomAmount(abilities: Ability[] | undefined, atom: string): number | undefined {
   for (const a of abilities ?? []) for (const d of a.do) if (d.do === atom) return d.amount;
   return undefined;
+}
+
+type EcoRange = [number, number];
+type EcoRarity = 'N' | 'R' | 'E' | 'L' | 'Boss';
+/** rules.economy（#172；PRD 0.5.4 10.7/10.8/12.1/12.2/14.1–14.3/14.8） */
+export interface EconomyCfg {
+  startGold: number;
+  potionSlots: number;
+  battleGold: Record<'normal' | 'elite' | 'boss', EcoRange[]>;
+  cardRarity: Record<'N' | 'R' | 'E' | 'L', number>[];
+  eliteHighMul: number;
+  factionMul: number;
+  potionDrop: Record<'normal' | 'elite' | 'boss', number>;
+  relicRarity: Record<'N' | 'R' | 'E', number>;
+  bossRelicPool: EcoRarity;
+  bossRelicFill: EcoRarity;
+  priceJitter: number;
+  priceRound: number;
+  shopRefresh: number;
+  shopFreeRefresh: number;
+  minDeck: number;
+  chestRelicChance: number;
+  chestGold: EcoRange;
+  chestRelicRarity: Record<'N' | 'R' | 'E', number>;
+  destinyShopMarkup: number;
 }
 
 /** rules.settlement（PRD 14.5） */

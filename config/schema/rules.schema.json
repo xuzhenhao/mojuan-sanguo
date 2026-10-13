@@ -21,6 +21,7 @@
     "sim",
     "map",
     "revive",
+    "economy",
     "event",
     "settlement",
     "settings"
@@ -691,6 +692,290 @@
           "type": "integer",
           "minimum": 0,
           "description": "复活附带护甲"
+        }
+      }
+    },
+    "economy": {
+      "type": "object",
+      "description": "局内经济（#172）",
+      "required": [
+        "startGold",
+        "potionSlots",
+        "battleGold",
+        "cardRarity",
+        "eliteHighMul",
+        "factionMul",
+        "potionDrop",
+        "relicRarity",
+        "bossRelicPool",
+        "bossRelicFill",
+        "priceJitter",
+        "priceRound",
+        "shopRefresh",
+        "shopFreeRefresh",
+        "minDeck",
+        "chestRelicChance",
+        "chestGold",
+        "chestRelicRarity",
+        "destinyShopMarkup"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "startGold": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "14.1 开局铜钱"
+        },
+        "potionSlots": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "12.2 丹药栏"
+        },
+        "battleGold": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "normal",
+            "elite",
+            "boss"
+          ],
+          "description": "14.1 战斗铜钱 [min,max]，按章 1–3",
+          "properties": {
+            "normal": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "normal"
+            },
+            "elite": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "elite"
+            },
+            "boss": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "description": "boss"
+            }
+          }
+        },
+        "cardRarity": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "N",
+              "R",
+              "E",
+              "L"
+            ],
+            "properties": {
+              "N": {
+                "type": "number",
+                "minimum": 0
+              },
+              "R": {
+                "type": "number",
+                "minimum": 0
+              },
+              "E": {
+                "type": "number",
+                "minimum": 0
+              },
+              "L": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "description": "稀有度权重"
+          },
+          "description": "14.3 卡牌三选一稀有度权重，按章"
+        },
+        "eliteHighMul": {
+          "type": "number",
+          "minimum": 0,
+          "description": "14.3 精英 E/L 权重倍率"
+        },
+        "factionMul": {
+          "type": "number",
+          "minimum": 0,
+          "description": "14.8 主将势力牌权重倍率"
+        },
+        "potionDrop": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "normal",
+            "elite",
+            "boss"
+          ],
+          "properties": {
+            "normal": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "elite": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "boss": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "description": "14.8 丹药掉落概率"
+        },
+        "relicRarity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "N",
+            "R",
+            "E"
+          ],
+          "properties": {
+            "N": {
+              "type": "number",
+              "minimum": 0
+            },
+            "R": {
+              "type": "number",
+              "minimum": 0
+            },
+            "E": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "description": "非 Boss 宝物稀有度"
+        },
+        "bossRelicPool": {
+          "type": "string",
+          "enum": [
+            "N",
+            "R",
+            "E",
+            "L",
+            "Boss"
+          ],
+          "description": "Boss 额外宝物池稀有度"
+        },
+        "bossRelicFill": {
+          "type": "string",
+          "enum": [
+            "N",
+            "R",
+            "E",
+            "L",
+            "Boss"
+          ],
+          "description": "Boss 池不足时补位稀有度"
+        },
+        "priceJitter": {
+          "type": "number",
+          "minimum": 0,
+          "description": "价格浮动比例",
+          "maximum": 1
+        },
+        "priceRound": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "价格取整步长"
+        },
+        "shopRefresh": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "刷新价"
+        },
+        "shopFreeRefresh": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "每局免费刷新次数"
+        },
+        "minDeck": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "删牌下限"
+        },
+        "chestRelicChance": {
+          "type": "number",
+          "minimum": 0,
+          "description": "宝箱出宝物概率",
+          "maximum": 1
+        },
+        "chestGold": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "宝箱铜钱 [min,max]"
+        },
+        "chestRelicRarity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "N",
+            "R",
+            "E"
+          ],
+          "properties": {
+            "N": {
+              "type": "number",
+              "minimum": 0
+            },
+            "R": {
+              "type": "number",
+              "minimum": 0
+            },
+            "E": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "description": "宝箱宝物稀有度"
+        },
+        "destinyShopMarkup": {
+          "type": "number",
+          "minimum": 0,
+          "description": "天命 6 集市加价比例"
         }
       }
     },
