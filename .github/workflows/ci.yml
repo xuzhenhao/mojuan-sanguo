@@ -16,6 +16,15 @@ jobs:
       - run: npm run config:check
       - run: npm run lint
       - run: npm test
+      - name: 覆盖率报告（只出报告，不设门槛）
+        run: |
+          npm run test:coverage -- --silent > coverage.txt 2>&1 || true
+          echo '### 覆盖率' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -A6 'Coverage summary' coverage.txt >> "$GITHUB_STEP_SUMMARY" || echo '覆盖率生成失败' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: autoplay 冒烟（固定种子小样本）
+        run: npm run autoplay:smoke
       - run: npm run build
       - run: npm run size-check
       - run: npm run build:debug
