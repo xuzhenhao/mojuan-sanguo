@@ -16,8 +16,8 @@ const c=document.getElementById('c').getContext('2d');c.scale(2,2);
 Promise.all([document.fonts.load('20px Brush','灵光一闪苍天已死'),document.fonts.load('20px Brush','整备出战')]).catch(()=>{}).then(()=>{
 const B=(p)=>p+'px Brush';
 function rr(x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r);}
-function panel(x,y,w,h,o={}){const g=c.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'rgba(42,20,16,.92)');g.addColorStop(1,'rgba(15,7,5,.95)');
- if(o.glow){c.save();c.shadowColor=o.glow;c.shadowBlur=16;rr(x,y,w,h,3);c.fillStyle=g;c.fill();c.restore();}
+function panel(x,y,w,h,o={}){const g=c.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'rgba(42,20,16,.96)');g.addColorStop(1,'rgba(15,7,5,.97)');
+ if(o.glow){[[2,2,'rgba(233,200,119,.45)'],[5,3,'rgba(233,200,119,.18)']].forEach(([d,lw,col])=>{rr(x-d,y-d,w+2*d,h+2*d,3+d);c.lineWidth=lw;c.strokeStyle=col;c.stroke();});}
  rr(x,y,w,h,3);c.fillStyle=g;c.fill();
  rr(x+.75,y+.75,w-1.5,h-1.5,3);c.lineWidth=o.lw||1.5;c.strokeStyle=o.stroke||T.goldLo;c.stroke();}
 function btn(x,y,w,h,label,kind,dis){const g=c.createLinearGradient(0,y,0,y+h);
@@ -38,12 +38,12 @@ window.__done=1;});
 const battleBg = `lacquer();
 // 战斗页底层示意（敌人、武将、手牌）
 c.globalAlpha=.9;for(const [x,y,w,h] of [[40,58,96,104],[147,58,96,104],[254,58,96,104],[95,200,96,132],[200,200,96,132],[290,478,88,188],[12,700,366,90]]){panel(x,y,w,h);}c.globalAlpha=1;`;
-const scrim105 = `{const g=c.createRadialGradient(195,253,0,195,253,0.6*Math.hypot(390,844));g.addColorStop(0,'rgba(60,40,10,.3)');g.addColorStop(1,'rgba(0,0,0,.88)');c.fillStyle=g;c.fillRect(0,0,390,844);}
+const scrim105 = `{const g=c.createRadialGradient(195,253,0,195,253,0.45*Math.hypot(390,844));g.addColorStop(0,'rgba(60,40,10,.55)');g.addColorStop(1,'rgba(0,0,0,.90)');c.fillStyle=g;c.fillRect(0,0,390,844);}
 {const g=c.createRadialGradient(195,191,10,195,191,150);g.addColorStop(0,'rgba(233,200,119,.25)');g.addColorStop(1,'rgba(233,200,119,0)');c.fillStyle=g;c.fillRect(0,40,390,320);}
 text('灵光一闪',195,56,B(34),T.gold,'center',1);
 text('1 / 2',366,56,'bold 16px Georgia',T.gold,'right');
 // 大牌 104×150 @ (143,116)
-c.save();c.shadowColor='rgba(233,200,119,.55)';c.shadowBlur=30;rr(143,116,104,150,6);c.fillStyle=T.paper2;c.fill();c.restore();
+[[3,'rgba(233,200,119,.40)'],[7,'rgba(233,200,119,.18)']].forEach(([d,col])=>{rr(143-d,116-d,104+2*d,150+2*d,6+d);c.lineWidth=3;c.strokeStyle=col;c.stroke();});rr(143,116,104,150,6);c.fillStyle=T.paper2;c.fill();
 rr(143,116,104,150,6);c.lineWidth=3;c.strokeStyle=T.gold;c.stroke();rr(151,126,88,92,3);c.fillStyle=T.cinnabar;c.fill();
 text('杀',195,243,B(26),T.ink);c.beginPath();c.arc(156,130,12,0,7);c.fillStyle=T.jade;c.fill();text('1',156,131,'bold 15px Georgia',T.paper);`;
 
@@ -57,8 +57,9 @@ btn(274,776,96,44,'铭刻','confirm',false);`;
 const e105b = battleBg + scrim105 + `
 text('已有 2 条词条 · 选择要替换的一条',195,275,B(12),T.paper3);
 [['迅击','N','费 −1',0],['破甲','E','甲 −1',1]].forEach(([n,r,d,tgt],i)=>{const x=20+i*181,y=282;panel(x,y,169,48,tgt?{stroke:T.cinnHi,lw:2}:{});
- diamond(x+20,y+24,11,RAR[r],r);text(n,x+36,y+24,B(22),T.paper,'left');text(d,x+150,y+26,B(15),T.paper,'right');
- if(tgt){c.strokeStyle=T.cinnHi;c.lineWidth=2;c.beginPath();c.moveTo(x+34,y+25);c.lineTo(x+82,y+25);c.stroke();rr(x+169-26,y-10,22,22,3);c.fillStyle=T.cinnabar;c.fill();text('替',x+169-15,y+1,B(14),T.paper);}});
+ diamond(x+20,y+24,11,RAR[r],r);text(n,x+36,y+24,B(22),T.paper,'left');
+ c.font=B(22);const nEnd=x+36+c.measureText(n).width;const right=tgt?x+169-30:x+150;c.font=B(15);if(right-c.measureText(d).width>=nEnd+8)text(d,right,y+26,B(15),T.paper,'right');
+ if(tgt){c.strokeStyle=T.cinnHi;c.lineWidth=2;c.beginPath();c.moveTo(x+34,y+25);c.lineTo(nEnd+2,y+25);c.stroke();rr(x+169-26,y+4,22,22,3);c.fillStyle=T.cinnabar;c.fill();text('替',x+169-15,y+15,B(14),T.paper);}});
 [['锋锐','R','伤害 +1'],['双响','E','+1 目标'],['无影','L','不可被闪']].forEach(([n,r,d],i)=>{const y=362+i*80,sel=i===1;panel(20,y,350,68,sel?{stroke:T.goldHi,lw:2,glow:'rgba(233,200,119,.55)'}:{});
  diamond(48,y+34,14,RAR[r],r);text(n,72,y+34,B(24),T.paper,'left');text(d,350,y+34,B(16),T.paper,'right');});
 text('先选新词条，再选替换哪条；或放弃本次灵光',195,746,B(13),T.paper3);
