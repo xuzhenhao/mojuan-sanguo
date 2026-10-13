@@ -31,7 +31,7 @@ function pageButtons(): Record<string, Rect[]> {
   const r = p4env({ potions: 2 });
   const reward = new RewardScene(r.env);
   reward.enter(r.ctx, { kind: 'boss' });
-  out.reward = reward.buttons().map((b) => b.rect);
+  out.reward = [...reward.buttons().map((b) => b.rect), ...reward.st.offer.cards.map((_, i) => reward.cardRect(i)), reward.relicBar()];
   const sh = p4env({ gold: 300 });
   const shop = new ShopScene(sh.env);
   shop.enter(sh.ctx, undefined);
@@ -100,6 +100,21 @@ describe('#118 命中框 ≥ 44', () => {
     for (const r of hitDebug.rects.values()) expect(Math.min(r.w, r.h)).toBeGreaterThanOrEqual(MIN_HIT);
     markHit({ x: 0, y: 0, w: 10, h: 10 });
     expect(hitDebug.rects.get('-17,-17,44,44')).toBeTruthy();
+  });
+  it('奖励页选项牌（翻开后）和宝物条登记了描边', () => {
+    hitDebug.on = true;
+    const t = p4env();
+    const s = new RewardScene(t.env);
+    s.enter(t.ctx, { kind: 'boss' });
+    s.update(5000);
+    for (const l of ['bg', 'main'] as const) s.draw(l, surface());
+    const key = (r: Rect) => {
+      const b = hitBox(r);
+      return `${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)},${Math.round(b.h)}`;
+    };
+    expect(s.st.offer.cards.length).toBe(3);
+    s.st.offer.cards.forEach((_, i) => expect(hitDebug.rects.has(key(s.cardRect(i))), `card#${i}`).toBe(true));
+    expect(hitDebug.rects.has(key(s.relicBar()))).toBe(true);
   });
   it('调试开关默认关闭：不登记', () => {
     markHit({ x: 0, y: 0, w: 10, h: 10 });
