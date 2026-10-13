@@ -44,16 +44,17 @@ export const EPIPHANY_TEXT = {
   hintFull: '先选新词条，再选替换哪条；或放弃本次灵光',
 } as const;
 
-/** 遮罩（规格 §3）：圆心 (195,253) = 视口 50% / 30%，`rgba(60,40,10,.30)` → 对角线 60% 处 `.88`，外侧保持 */
+/** 遮罩（规格 §3）：圆心 (195,253) = 视口 50% / 30%，`rgba(60,40,10,.55)` → 半径（对角线 60%）的 45% 处 `rgba(0,0,0,.90)`，外侧保持 .90（UI 复核 v3） */
 export const EPIPHANY_SCRIM = {
-  color: 'rgba(0,0,0,.88)',
+  color: 'rgba(0,0,0,.90)',
   radial: {
     cx: 0.5,
     cy: 0.3,
     r: 0.6,
     stops: [
-      [0, 'rgba(60,40,10,.30)'],
-      [1, 'rgba(0,0,0,.88)'],
+      [0, 'rgba(60,40,10,.55)'],
+      [0.45, 'rgba(0,0,0,.90)'],
+      [1, 'rgba(0,0,0,.90)'],
     ] as [number, string][],
   },
 };
@@ -277,7 +278,7 @@ function measure(c: Ctx2DLike, s: string, font: string, px: number): number {
 }
 
 /** 词条行：菱形 + 名称（左）+ 图标 + 效果（右对齐到右内边距 20） */
-function affixRow(c: Ctx2DLike, r: Rect, a: AffixDef, dia: number, namePx: number, effPx: number, nameAlpha = 1) {
+function affixRow(c: Ctx2DLike, r: Rect, a: AffixDef, dia: number, namePx: number, effPx: number, nameAlpha = 1, reserveRight = 20) {
   const cy = r.y + r.h / 2;
   drawRarity(c, a.r, r.x + 14 + dia / 2, cy, dia);
   const nx = r.x + 22 + dia;
@@ -286,7 +287,7 @@ function affixRow(c: Ctx2DLike, r: Rect, a: AffixDef, dia: number, namePx: numbe
   label(c, a.n, nx, cy + namePx * 0.36, BRUSH(namePx), T.paper);
   c.globalAlpha = ga;
   const nw = measure(c, a.n, BRUSH(namePx), namePx);
-  const right = r.x + r.w - 20;
+  const right = r.x + r.w - reserveRight;
   const icon = effPx >= 16 ? 16 : 13;
   let px = effPx;
   const room = right - (nx + nw + 10) - icon - 4;
@@ -298,8 +299,20 @@ function affixRow(c: Ctx2DLike, r: Rect, a: AffixDef, dia: number, namePx: numbe
   return { nx, nw };
 }
 
+/** 词条块底色不透明度（UI 复核：≥ .95，不透出后面的牌） */
+export const EPIPHANY_PANEL_ALPHA = [0.96, 0.98] as const;
+
+/** 「替」角标：块内右上角，右 / 上各内缩 4px，22×22（UI 复核 v3） */
+export const BADGE_SIZE = 22;
+export const BADGE_INSET = 4;
+/** 已有词条效果文字右侧为角标让出的宽度 */
+export const BADGE_RESERVE = 26;
+export function epiphanyBadgeRect(r: Rect): Rect {
+  return { x: r.x + r.w - BADGE_INSET - BADGE_SIZE, y: r.y + BADGE_INSET, w: BADGE_SIZE, h: BADGE_SIZE };
+}
+
 function panel(c: Ctx2DLike, r: Rect) {
-  vgrad(c, r, 'rgba(42,20,16,.92)', 'rgba(15,7,5,.95)');
+  vgrad(c, r, `rgba(42,20,16,${EPIPHANY_PANEL_ALPHA[0]})`, `rgba(15,7,5,${EPIPHANY_PANEL_ALPHA[1]})`);
   stroke(c, r, T.goldLo, 1.5);
 }
 
@@ -388,7 +401,7 @@ export function drawEpiphany(s: Surface, w: number, _h: number, info: EpiphanyIn
     c.globalAlpha = ga * a * ink;
     panel(c, r);
     if (def) {
-      const { nx, nw } = affixRow(c, r, def, 11, 22, 15);
+      const { nx, nw } = affixRow(c, r, def, 11, 22, 15, 1, 20 + BADGE_RESERVE);
       if (st.target === id) {
         c.fillStyle = T.cinnHi;
         c.fillRect(nx - 2, r.y + r.h / 2 - 1, nw + 4, 2); // 删除线 2px
@@ -432,7 +445,7 @@ export function drawEpiphany(s: Surface, w: number, _h: number, info: EpiphanyIn
     const r = L.olds[ti];
     c.globalAlpha = ga * (pending ? 1 - easeOut(clamp01(st.out!.t / 250)) : selA);
     stroke(c, r, T.cinnHi, 2);
-    const b = { x: r.x + r.w - 22 - 6, y: r.y - 10, w: 22, h: 22 };
+    const b = epiphanyBadgeRect(r);
     c.fillStyle = T.cinnabar;
     c.fillRect(b.x, b.y, b.w, b.h);
     label(c, EPIPHANY_TEXT.badge, b.x + 11, b.y + 16, BRUSH(14), T.paper, 'center');

@@ -9,6 +9,9 @@ import {
   EPIPHANY_ID,
   EPIPHANY_INTRO_MS,
   EPIPHANY_SCRIM,
+  EPIPHANY_PANEL_ALPHA,
+  epiphanyBadgeRect,
+  BADGE_RESERVE,
   EPIPHANY_TEXT,
   SEL_MS,
   drawRarity,
@@ -200,9 +203,14 @@ describe('#105 视觉规格（docs/art/specs/spec-105-epiphany.md）', () => {
     expect(f.hintY).toBe(f.barY - 30);
     expect(f.opts.at(-1)!.y + 68).toBeLessThan(f.hintY - 8);
   });
-  it('§3 遮罩：径向 .30 → .88，圆心 50%/30%，半径对角线 60%；入场 200ms 淡入', () => {
+  it('§3 遮罩：径向 .55 → 45% 处 .90 外侧保持，圆心 50%/30%；入场 200ms 淡入', () => {
     expect(EPIPHANY_SCRIM.radial).toMatchObject({ cx: 0.5, cy: 0.3, r: 0.6 });
-    expect(EPIPHANY_SCRIM.radial.stops.map((s) => s[1])).toEqual(['rgba(60,40,10,.30)', 'rgba(0,0,0,.88)']);
+    expect(EPIPHANY_SCRIM.radial.stops).toEqual([
+      [0, 'rgba(60,40,10,.55)'],
+      [0.45, 'rgba(0,0,0,.90)'],
+      [1, 'rgba(0,0,0,.90)'],
+    ]);
+    expect(Math.min(...EPIPHANY_PANEL_ALPHA)).toBeGreaterThanOrEqual(0.95);
     expect(scrimAlpha({ sel: -1, target: null, t: 100 }, false)).toBeCloseTo(0.5);
     expect(scrimAlpha({ sel: -1, target: null, t: 75 }, true)).toBeCloseTo(0.5);
   });
@@ -284,5 +292,13 @@ describe('#105 调试 epiN', () => {
     g.startBattle();
     await triggerDebugEpiphany(g, 'default', 2);
     expect(n).toBe(2);
+  });
+  it('UI 复核 v3：「替」角标在块内右上角内缩 4px、22×22，效果让出 26px', () => {
+    const r = { x: 201, y: 282, w: 169, h: 48 };
+    const b = epiphanyBadgeRect(r);
+    expect(b).toEqual({ x: 201 + 169 - 4 - 22, y: 286, w: 22, h: 22 });
+    expect(b.x).toBeGreaterThanOrEqual(r.x);
+    expect(b.y + b.h).toBeLessThanOrEqual(r.y + r.h);
+    expect(BADGE_RESERVE).toBe(26);
   });
 });
