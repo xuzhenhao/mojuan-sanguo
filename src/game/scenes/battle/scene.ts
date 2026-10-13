@@ -3,6 +3,7 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
+import { BEAD_D, heroHpView } from './hpview';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -22,6 +23,11 @@ import { diff, PresentationQueue, type Snapshot } from './present';
 import { battleSkillButtons, nextSkillStep, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
 
 /** render-spec §3.4：主将勾玉 ⌀17、敌人/小牌 ⌀11 */
+/** 紧凑式体力胶囊宽：左 8 + 勾玉 17 + 6 + 数字 + 右 10 */
+function compactHpW(v: { full: boolean; cur: number; max: number }) {
+  const numW = v.full ? 12 + String(v.max).length * 9 : String(v.cur).length * 9 + 6 + String(v.max).length * 7;
+  return 8 + BEAD_D + 6 + numW + 10;
+}
 export const BEAD_R_MAIN = 8.5;
 export const BEAD_R_ENEMY = 5.5;
 /** 后排牌间距（acceptance §3；过宽时由 enemyRect 压缩以塞进屏宽） */
@@ -900,6 +906,42 @@ export class BattleScene implements Scene<BattleParams> {
     ctx.globalAlpha = a0;
   }
 
+  /**
+   * 武将体力（#129，render-spec §8.8.2）：≤6 勾玉（间距按卡内窗宽算，不出框）；>6 紧凑式 1 勾玉 + 「×N」/「cur/max」胶囊。
+   * 底部居中 y = 卡底 − 6（胶囊下沿）。
+   */
+  drawHeroHp(ctx: Ctx2DLike, card: Rect, hp: number, max: number) {
+    const cx = card.x + card.w / 2;
+    const innerW = card.w - 10 - 12; // 卡内窗（左右各 5 描边）− 12
+    const v = heroHpView(hp, max, cx, innerW);
+    if (v.mode === 'dots') {
+      const cy = card.y + card.h - 6 - BEAD_D / 2;
+      v.xs.forEach((x, i) => circle(ctx, x, cy, v.r, i < v.filled ? C.jade : '#3A3A3A'));
+      return;
+    }
+    const capH = 24;
+    const capW = compactHpW(v);
+    const cap = { x: cx - capW / 2, y: card.y + card.h - 6 - capH, w: capW, h: capH };
+    rect(ctx, cap, 'rgba(15,7,5,0.85)');
+    frame(ctx, cap, C.goldLo, 1);
+    const cy = cap.y + capH / 2;
+    const bx = cap.x + 8 + BEAD_D / 2;
+    circle(ctx, bx, cy, BEAD_D / 2, v.empty ? '#3A3A3A' : C.jade);
+    const tx = bx + BEAD_D / 2 + 6;
+    if (v.full) text(ctx, `×${v.max}`, tx, cy + 1, { size: 15, color: C.paper, font: FONT.num, bold: true });
+    else {
+      const cs = String(v.cur);
+      text(ctx, cs, tx, cy + 1, { size: 15, color: C.paper, font: FONT.num, bold: true });
+      text(ctx, `/${v.max}`, tx + cs.length * 9 + 1, cy + 2, { size: 11, color: C.paper3, font: FONT.num });
+    }
+  }
+  heroHpRect(card: Rect, hp: number, max: number): Rect {
+    const v = heroHpView(hp, max, card.x + card.w / 2, card.w - 22);
+    if (v.mode === 'dots') return { x: v.xs[0] - v.r, y: card.y + card.h - 6 - BEAD_D, w: v.xs[v.xs.length - 1] - v.xs[0] + BEAD_D, h: BEAD_D };
+    const capW = compactHpW(v);
+    return { x: card.x + card.w / 2 - capW / 2, y: card.y + card.h - 30, w: capW, h: 24 };
+  }
+
   beads(ctx: Ctx2DLike, cx: number, cy: number, hp: number, max: number, r: number) {
     if (max > 9) {
       circle(ctx, cx - 14, cy, r, C.jade);
@@ -939,7 +981,7 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, { x: r.x + 6, y: r.y + 6, w: r.w - 12, h: r.h - 34 }, '#3B2C22');
       text(ctx, g.main.name.slice(-1), r.x + r.w / 2 + 10, r.y + 80, { size: 64, color: 'rgba(243,235,216,0.2)', font: FONT.brush, align: 'center' });
       vtext(ctx, g.main.name, r.x + 20, r.y + 24, 26, C.paper);
-      this.beads(ctx, r.x + r.w / 2, r.y + r.h - 14, g.p.hp, g.p.maxHp, BEAD_R_MAIN);
+      this.drawHeroHp(ctx, r, g.p.hp, g.p.maxHp);
       if (g.p.armor > 0) this.shield(ctx, r.x - 14, r.y + r.h - 48, g.p.armor, 30);
       const st: string[] = [];
       if (g.p.jiu) st.push(`酒${g.p.jiu}`);
