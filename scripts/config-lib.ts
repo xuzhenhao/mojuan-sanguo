@@ -109,6 +109,8 @@ export function businessChecks(c: Built): string[] {
     for (const h of [ps.main, ps.sub]) if (!c.heroes[h]) errs.push(`rules.yaml: 预设 ${k} 引用了不存在的武将 ${h}`);
     if (ps.deck && !c.decks[ps.deck]) errs.push(`rules.yaml: 预设 ${k} 引用了不存在的牌组 ${ps.deck}`);
   }
+  for (const [k, ch] of Object.entries<any>(c.rules.settings?.choices ?? {}))
+    if (!ch.options.includes(ch.default)) errs.push(`rules.yaml: settings.choices.${k} 默认值 ${ch.default} 不在 options 里`);
   for (const k of ['main', 'sub'] as const) {
     const h = c.rules.defaultHeroes?.[k];
     if (h && (!c.heroes[h] || c.heroes[h].roster === false)) errs.push(`rules.yaml: defaultHeroes.${k} ${h} 不存在或不在开局名单`);
