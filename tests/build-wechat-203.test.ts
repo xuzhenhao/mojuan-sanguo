@@ -35,9 +35,9 @@ describe('#203 build-wechat', () => {
     expect(() => buildWechat(dir, ROOT, {})).toThrow(/浏览器全局/);
     writeFileSync(join(dir, 'game.js'), 'wx.createCanvas()');
     const files = buildWechat(dir, ROOT, { WX_APPID: 'touristappid' });
-    expect(files.length).toBe(5);
+    expect(files.length).toBe(4);
     expect(JSON.parse(readFileSync(join(dir, 'project.config.json'), 'utf8')).appid).toBe('touristappid');
-    expect(existsSync(join(dir, 'assets/fonts/wenkai-core.woff2'))).toBe(true);
+    expect(existsSync(join(dir, 'assets/fonts/wenkai.ttf'))).toBe(true);
     expect(existsSync(join(dir, 'game.json'))).toBe(true);
   });
 });

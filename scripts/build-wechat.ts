@@ -2,7 +2,7 @@
  * 小游戏打包后处理（M2 §3.2 / #203）：在 `vite build --mode wechat` 产出 dist-wechat/game.js 之后
  * - 生成 game.json（竖屏；M2 不做分包）
  * - 生成 project.config.json（appid 默认 wx3dd635e3cc359d30，可用环境变量 WX_APPID 覆盖）
- * - 拷贝字体到包内 assets/fonts/（W6 #205 再加 ttf 子集）
+ * - 拷贝书法字体 ttf 子集到包内 assets/fonts/（#205；字表自动收集，缺字写报告 font-report/missing-glyphs.json 并失败）
  * - 守卫：game.js 不得出现 `document.` / `window.`
  * 上传私钥不在这里读：CI 上传（W8）只从 Actions secret WX_UPLOAD_PRIVATE_KEY 读取，不进仓库、不打日志。
  * 用法：tsx scripts/build-wechat.ts [dir=dist-wechat]
@@ -10,12 +10,14 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { walk } from './size-check';
+import { checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } from './font-glyphs';
 
 export const DEFAULT_APPID = 'wx3dd635e3cc359d30';
 export const APPID_ENV = 'WX_APPID';
-export const FONT_SRC_DIR = 'public/assets/fonts';
-export const FONT_FILES = ['wenkai-core.woff2', 'wenkai-ext.woff2'] as const;
+/** 小游戏书法字体（由 npm run font:build:wechat 生成并入库；CI 无源字体，只做覆盖检查） */
+export const WECHAT_FONT_SRC = 'public/assets/fonts/wechat/wenkai.ttf';
 export const FONT_DEST_DIR = 'assets/fonts';
+export const GLYPH_REPORT = 'font-report/missing-glyphs.json';
 const FORBIDDEN = [/\bdocument\./g, /\bwindow\./g];
 
 export function resolveAppId(env: Record<string, string | undefined>): string {
@@ -53,7 +55,13 @@ export function buildWechat(dir: string, root: string, env: Record<string, strin
   writeFileSync(join(dir, 'game.json'), JSON.stringify(gameJson(), null, 2) + '\n');
   writeFileSync(join(dir, 'project.config.json'), JSON.stringify(projectConfig(resolveAppId(env), pkg.name), null, 2) + '\n');
   mkdirSync(join(dir, FONT_DEST_DIR), { recursive: true });
-  for (const f of FONT_FILES) copyFileSync(join(root, FONT_SRC_DIR, f), join(dir, FONT_DEST_DIR, f));
+  const font = join(root, WECHAT_FONT_SRC);
+  const report = checkCoverage(collectGlyphs(root), readCmap(readFileSync(font)), WECHAT_FONT_SRC);
+  writeReport(join(root, GLYPH_REPORT), report);
+  if (report.missing.length) {
+    throw new Error(`书法字体缺 ${report.missing.length} 个字形（报告 ${GLYPH_REPORT}，跑 npm run font:build:wechat 重新生成）：\n${formatMissing(report)}`);
+  }
+  copyFileSync(font, join(dir, FONT_DEST_DIR, 'wenkai.ttf'));
   return walk(dir);
 }
 

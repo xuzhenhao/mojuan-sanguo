@@ -1,13 +1,15 @@
 /**
  * 霞鹜文楷子集（render-spec §2）：从源 TTF 生成 wenkai-core / wenkai-ext。
  * 字表：scripts/wenkai-chars-{core,ext,full}.txt；构建缺字直接报错。
- * 用法：npm run font:build
+ * 用法：npm run font:build（H5 woff2）；npm run font:build:wechat（#205：小游戏 ttf，字表自动收集，见 font-glyphs.ts）
  * 依赖：本机 pyftsubset（fonttools + brotli），源字体 art/src/fonts/LXGWWenKai.ttf
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { brushChars, checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } from './font-glyphs';
+import { WECHAT_FONT_SRC, GLYPH_REPORT } from './build-wechat';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const srcTtf = resolve(root, 'art/src/fonts/LXGWWenKai.ttf');
@@ -52,14 +54,22 @@ function assertInConfig(full: Set<string>) {
   }
 }
 
-function subset(label: string, textFile: string, out: string) {
+function subset(label: string, textFile: string, out: string, flavor: 'woff2' | 'ttf' = 'woff2') {
   if (!existsSync(srcTtf)) {
     console.error(`✘ 缺少源字体 ${srcTtf.replace(root + '/', '')}（OFL，见 https://github.com/lxgw/LxgwWenKai）`);
     process.exit(1);
   }
   const r = spawnSync(
     pyft,
-    [srcTtf, `--text-file=${textFile}`, '--flavor=woff2', `--output-file=${out}`, '--layout-features=*', '--no-hinting', '--desubroutinize'],
+    [
+      srcTtf,
+      `--text-file=${textFile}`,
+      ...(flavor === 'woff2' ? ['--flavor=woff2'] : []),
+      `--output-file=${out}`,
+      '--layout-features=*',
+      '--no-hinting',
+      '--desubroutinize',
+    ],
     { encoding: 'utf8' },
   );
   if (r.status !== 0) {
@@ -68,6 +78,34 @@ function subset(label: string, textFile: string, out: string) {
   }
   const kb = (readFileSync(out).byteLength / 1024).toFixed(1);
   console.log(`→ ${out.replace(root + '/', '')}（${label}，${kb}KB）`);
+}
+
+/** #205：小游戏 ttf 子集。字表从配置 + UI 文案自动收集；源字体缺字时写报告并失败 */
+function buildWechatTtf() {
+  if (!existsSync(srcTtf)) {
+    console.error(`✘ 缺少源字体 ${srcTtf.replace(root + '/', '')}`);
+    process.exit(1);
+  }
+  const glyphs = collectGlyphs(root);
+  const report = checkCoverage(glyphs, readCmap(readFileSync(srcTtf)), 'LXGWWenKai.ttf（源）');
+  writeReport(resolve(root, GLYPH_REPORT), report);
+  if (report.missing.length) {
+    console.error(`✘ 源字体缺 ${report.missing.length} 个字形（报告 ${GLYPH_REPORT}）：\n${formatMissing(report)}`);
+    process.exit(1);
+  }
+  const chars = brushChars(glyphs).join('');
+  const charsFile = resolve(root, 'scripts/wenkai-chars-wechat.txt');
+  writeFileSync(charsFile, chars + '\n');
+  const out = resolve(root, WECHAT_FONT_SRC);
+  mkdirSync(dirname(out), { recursive: true });
+  subset('wechat', charsFile, out, 'ttf');
+  console.log(`✔ 小游戏 ttf：${report.required} 字（系统符号 ${report.systemSymbols.length} 个不入子集）`);
+}
+
+// #205：--wechat 只出小游戏 ttf，不动 H5 woff2
+if (process.argv.includes('--wechat')) {
+  buildWechatTtf();
+  process.exit(0);
 }
 
 const full = new Set(charsOf('full'));
