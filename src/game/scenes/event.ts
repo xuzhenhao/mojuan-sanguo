@@ -283,7 +283,7 @@ export class EventScene implements Scene<EventParams> {
 }
 
 /** 情景 / 选项副文案色（与 v3/event.html .desc 一致） */
-const DESC = '#d8c8a0';
+const DESC = T.paper3; // 原 #d8c8a0，取色板最接近者（RGB 距离 43；paper2 为 52）
 /** Brush 无扑克花色字形，用中文（core+ext 都覆盖） */
 export const SUIT_ZH = { S: '黑桃', H: '红桃', C: '梅花', D: '方片' } as const;
 
