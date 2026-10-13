@@ -94,7 +94,9 @@ engine.scenes.register(
 );
 // 书法字体（霞鹜文楷 LXGW WenKai，OFL）：core 进首包，ext 异步补齐；CSS 族名仍为 Brush
 const fontsReady = loadBrushFonts(
-  webFontDeps((m, e) => platform.warn(m, e)),
+  webFontDeps((m, e) => {
+    if (import.meta.env.DEV) console.warn(m, e ?? '');
+  }),
   { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
   () => engine.invalidateAll(),
 );

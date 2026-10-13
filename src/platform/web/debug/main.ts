@@ -514,6 +514,8 @@ newRun();
 
 // #142：调试页同样加载霞鹜文楷（CSS 族名 Brush），不回退系统字体
 void loadBrushFonts(
-  webFontDeps((m, e) => console.warn(m, e ?? '')),
+  webFontDeps((m, e) => {
+    if (import.meta.env.DEV) console.warn(m, e ?? '');
+  }),
   { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
 );

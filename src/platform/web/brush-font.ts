@@ -4,6 +4,8 @@
  */
 export const BRUSH_FAMILY = 'Brush';
 export const FONT_GATE_TIMEOUT_MS = 3000;
+/** 加载失败后后台重试的时刻（距失败 2s / 5s / 10s），首次成功即停 */
+export const FONT_RETRY_AT_MS = [2000, 5000, 10000] as const;
 
 export interface FontDeps {
   create(family: string, src: string): { load(): Promise<unknown> };
@@ -30,7 +32,7 @@ export function loadBrushFonts(
   timeoutMs = FONT_GATE_TIMEOUT_MS,
 ): Promise<boolean> {
   if (!deps) return Promise.resolve(false);
-  const load = (url: string, kind: string) =>
+  const attempt = (url: string) =>
     deps
       .create(BRUSH_FAMILY, `url(${url}) format('woff2')`)
       .load()
@@ -38,11 +40,34 @@ export function loadBrushFonts(
         deps.add(f);
         onLoaded();
         return true;
-      })
-      .catch((e: unknown) => {
-        deps.warn(`书法字体 ${kind} 加载失败`, e);
-        return false;
       });
+  /** 失败后在 2s/5s/10s 后台重试（门控已放行，不再阻塞首帧）；首次成功 add + onLoaded 重绘 */
+  const retry = (url: string, kind: string) => {
+    let done = false;
+    let prev = 0;
+    const next = (i: number) => {
+      if (done || i >= FONT_RETRY_AT_MS.length) return;
+      const at = FONT_RETRY_AT_MS[i];
+      deps.setTimeout(() => {
+        deps.warn(`书法字体 ${kind} 第 ${i + 1} 次重试（失败后 ${at / 1000}s）`);
+        attempt(url).then(
+          () => (done = true),
+          (e: unknown) => {
+            deps.warn(`书法字体 ${kind} 第 ${i + 1} 次重试失败`, e);
+            next(i + 1);
+          },
+        );
+      }, at - prev);
+      prev = at;
+    };
+    next(0);
+  };
+  const load = (url: string, kind: string) =>
+    attempt(url).catch((e: unknown) => {
+      deps.warn(`书法字体 ${kind} 加载失败`, e);
+      retry(url, kind);
+      return false;
+    });
   const core = load(urls.core, 'core');
   if (urls.ext) void core.then(() => load(urls.ext!, 'ext'));
   const timeout = new Promise<boolean>((r) =>
