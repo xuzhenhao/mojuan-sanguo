@@ -22,8 +22,8 @@ export const B = {
   mask: 'rgba(5,2,1,.72)',
 } as const;
 
-/** 书法字（马善政，P2 点将页注册为 FontFace 'Brush'），缺失时回退衬线体 */
-export const brush = (px: number) => `${px}px Brush, "Ma Shan Zheng", serif`;
+/** 书法字（霞鹜文楷，FontFace 族名 Brush）；禁止系统楷体回退 */
+export const brush = (px: number) => `${px}px Brush, serif`;
 export const body = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px "PingFang SC", "Noto Sans SC", sans-serif`;
 export const num = (px: number) => `bold ${px}px Georgia, serif`;
 

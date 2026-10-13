@@ -20,7 +20,8 @@ import { MetaStore, RunSaveSlot } from '../../game/result/store';
 import { demoOutcome, heroName, outcomeFromSave } from '../../game/result/adapter';
 import { resultBridge } from '../../game/result/bridge';
 import { resumeFlow } from '../../game/result/resume';
-import brushUrl from '../../../public/mockups/v3/fonts/brush.woff?url';
+import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
+import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
 
 const root = document.getElementById('app')!;
 const platform = createWebPlatform(root);
@@ -75,16 +76,17 @@ engine.scenes.register(
       },
     }),
 );
-// 书法字体（马善政，与 mockups/v3/fonts 同一文件，打进发布包）：加载完成后重绘，避免系统字体回退
+// 书法字体（霞鹜文楷 LXGW WenKai，OFL）：core 进首包，ext 异步补齐；CSS 族名仍为 Brush
 if (typeof FontFace !== 'undefined') {
-  const brush = new FontFace('Brush', `url(${brushUrl})`);
-  brush
-    .load()
-    .then((f) => {
-      document.fonts.add(f);
-      engine.invalidateAll();
-    })
-    .catch((e) => platform.warn('书法字体加载失败', e));
+  const loadBrush = (url: string, kind: string) =>
+    new FontFace('Brush', `url(${url}) format('woff2')`)
+      .load()
+      .then((f) => {
+        document.fonts.add(f);
+        engine.invalidateAll();
+      })
+      .catch((e) => platform.warn(`书法字体 ${kind} 加载失败`, e));
+  void loadBrush(wenkaiCoreUrl, 'core').then(() => void loadBrush(wenkaiExtUrl, 'ext'));
 }
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
 const economy = registerP4({ engine, query, safe: () => platform.systemInfo().safeArea, send, run });
