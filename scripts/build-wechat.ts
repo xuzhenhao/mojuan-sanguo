@@ -15,7 +15,7 @@ import { checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } fr
 export const DEFAULT_APPID = 'wx3dd635e3cc359d30';
 export const APPID_ENV = 'WX_APPID';
 /** 小游戏书法字体（由 npm run font:build:wechat 生成并入库；CI 无源字体，只做覆盖检查） */
-export const WECHAT_FONT_SRC = 'public/assets/fonts/wechat/wenkai.ttf';
+export const WECHAT_FONT_SRC = 'wechat-assets/fonts/wenkai.ttf';
 export const FONT_DEST_DIR = 'assets/fonts';
 export const GLYPH_REPORT = 'font-report/missing-glyphs.json';
 const FORBIDDEN = [/\bdocument\./g, /\bwindow\./g];
