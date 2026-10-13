@@ -24,6 +24,10 @@ export default defineConfig(({ mode }) => {
       copyPublicDir: false,
       rollupOptions: { input: debug ? { debug: resolve(import.meta.dirname, 'debug.html') } : { index: resolve(import.meta.dirname, 'index.html') } },
     },
-    test: { include: ['tests/**/*.test.ts'] },
+    test: {
+      include: ['tests/**/*.test.ts'],
+      // 覆盖率只出报告不设门槛（npm run test:coverage；CI 写入 job summary）
+      coverage: { provider: 'v8', include: ['src/**/*.ts'], exclude: ['src/data/generated/**'], reporter: ['text', 'text-summary', 'json-summary'] },
+    },
   } as never;
 });
