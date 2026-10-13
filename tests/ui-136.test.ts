@@ -90,3 +90,25 @@ describe('#136 致命意图光晕', () => {
     expect(v[2]).toBeCloseTo(0.1);
   });
 });
+
+describe('#136 局外偏好键只声明一处', async () => {
+  const store = await import('../src/game/prefs/store');
+  const seen = await import('../src/game/prefs/seen-bosses');
+  const set = await import('../src/game/prefs/settings');
+  it('seen-bosses / settings 都用 store.ts 的同一个键', () => {
+    expect(store.PREFS_KEY).toBe('mojuan.prefs.v1');
+    expect(seen.PREFS_KEY).toBe(store.PREFS_KEY);
+    expect(set.PREFS_KEY).toBe(store.PREFS_KEY);
+  });
+  it('readPrefs：坏档 / 数组 / 缺失都返回空对象', () => {
+    const mk = (v: string | null) => ({ get: () => v, set() {}, remove() {} });
+    expect(store.readPrefs(mk('{bad'))).toEqual({});
+    expect(store.readPrefs(mk('[1]'))).toEqual({});
+    expect(store.readPrefs(mk(null))).toEqual({});
+    expect(store.readPrefs(mk('{"a":1}'))).toEqual({ a: 1 });
+  });
+  it('源码里 mojuan.prefs.v1 字面量只出现在 store.ts', async () => {
+    const { readFileSync } = await import('node:fs');
+    for (const f of ['seen-bosses.ts', 'settings.ts']) expect(readFileSync(`src/game/prefs/${f}`, 'utf8')).not.toMatch(/=\s*'mojuan\.prefs\.v1'/);
+  });
+});
