@@ -3,6 +3,7 @@
  * 层级：背景 → 顶条 → HUD → 卷轴（烘焙长图：纸底 + 远山 + 路径 + 节点 + Boss 牌）→ 可走节点脉冲（每帧叠加）→ 金轴 → 底栏 → 浮层。
  * 卷轴烘焙走 BakeCache（mapscroll，源图 map_base 半尺寸，烘焙后释放）；走完一步重烘一次。
  */
+import { hitInside } from '../../engine/hit';
 import type { GestureEvent } from '../../engine/input';
 import type { BakeCache } from '../../engine/memory';
 import type { OverlayStack } from '../../engine/modal';
@@ -588,7 +589,7 @@ export class MapScene implements Scene {
     const prep = { x: box.x + 20, y: box.y + box.h - 66, w: btnW, h: 46 };
     const fight = { x: box.x + 40 + btnW, y: prep.y, w: btnW, h: 46 };
     const hud = this.d.hud();
-    const inside = (r: Rect, p: Vec2) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+    const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
     this.log.push('boss_confirm');
     const handle = this.d.overlays.push<boolean>({
       id: 'popup:boss-confirm',

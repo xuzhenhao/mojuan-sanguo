@@ -7,6 +7,7 @@ import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
 import { FlowMachine, PAGES, viewOf, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
+import { triggerDebugRevive, wantDebugRevive } from '../../game/scenes/battle/debug-revive';
 import { BattleScene } from '../../game/scenes/battle/scene';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
@@ -118,10 +119,11 @@ engine.scenes.register('map', () =>
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
 const economy = registerP4({ engine, query, safe: designSafe, send, run });
 // P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）
+let battleScene: BattleScene | null = null;
 engine.scenes.register(
   'battle',
   () =>
-    new BattleScene({
+    (battleScene = new BattleScene({
       overlays: engine.overlays,
       now: () => platform.now(),
       safe: designSafe(),
@@ -159,7 +161,7 @@ engine.scenes.register(
         run.active && p.nodeId && p.nodeType && p.enemies
           ? run.buildBattle(io, { nodeId: p.nodeId, nodeType: p.nodeType, encounterName: p.encounterName ?? '', enemies: p.enemies }, false)
           : null,
-    }),
+    })),
 );
 const router = new Router(flow, engine.scenes);
 // P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
@@ -192,6 +194,32 @@ if (showStatusBar(platform.launchQuery(), location.pathname))
     },
   });
 
+// 调试 ?debug=hit（#118）：描边画出所有可点区域的命中框（≥44）。只在开发构建，正式构建整段被摇树去掉
+if (import.meta.env.DEV && query.debug === 'hit') {
+  void import('../../engine/hit').then(({ hitDebug }) => {
+    hitDebug.on = true;
+    let page = flow.page;
+    engine.overlays.push({
+      id: 'debug-hit',
+      kind: 'system',
+      modal: false,
+      animating: () => true,
+      draw(s) {
+        if (page !== flow.page) {
+          page = flow.page;
+          hitDebug.rects.clear(); // 换页清空，新页重绘时 markHit 重新登记
+        }
+        const c = s.ctx as unknown as CanvasRenderingContext2D;
+        c.save?.();
+        c.strokeStyle = '#00E5FF';
+        c.lineWidth = 1;
+        for (const r of hitDebug.rects.values()) c.strokeRect?.(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+        c.restore?.();
+      },
+    });
+  });
+}
+
 // 启动页可用 ?page=map 等直接进入（截图与测试用）
 const q = query.page as Page | undefined;
 if (q && pages.includes(q)) {
@@ -208,6 +236,10 @@ if (query.toast) {
   const at = (ms: number) => setTimeout(() => texts.slice(0, n).forEach((t) => showNotice(engine.overlays, t, 600000)), ms);
   at(800);
 }
+if (wantDebugRevive(query, import.meta.env.DEV))
+  setTimeout(() => {
+    if (battleScene?.g) void triggerDebugRevive(battleScene.g);
+  }, 1200);
 if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overlays, engine), 800);
 
 /** H5 启动：在点将页上检查存档，弹「继续本局 / 放弃本局」（flow.md §1，PRD 5.13） */

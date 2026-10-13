@@ -1,3 +1,4 @@
+import type { ReviveEvent } from '../../../core/battle';
 /**
  * 战斗页弹层接入点（P1a #41 ↔ P1b）：响应弹窗、长按详情、灵光一闪等浮层由外部实现，
  * 战斗场景只负责在正确时机调用这些钩子，并提供只读上下文（布局、命中测试、焦点重绘）。
@@ -88,6 +89,8 @@ export interface BattleOverlayHooks {
   /** 响应窗口：返回打出的牌或 null（承受/放弃/超时）。场景在等待期间锁定自身输入 */
   respond?(req: ResponseRequest, ctx: BattleOverlayContext): Promise<CardInst | null>;
   /** 长按详情：在 `longpress` 命中元素时调用；返回 true 表示已打开（场景不再处理该手势） */
+  /** 复活层（#106）：true = 复活；不提供时战斗页用内置「将星未陨」弹层 */
+  revive?(ev: ReviveEvent, ctx: BattleOverlayContext): Promise<boolean>;
   detail?(hit: BattleHit, ctx: BattleOverlayContext): boolean;
   /** 长按进度（0–1，420ms 环形进度）；不提供时场景自己画默认环 */
   longPressProgress?(at: Vec2, progress: number, hit: BattleHit | null, ctx: BattleOverlayContext): void;

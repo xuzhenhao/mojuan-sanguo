@@ -2,6 +2,7 @@
  * 战斗弹层的共用绘制工具（render-spec §1 令牌色）。只用 Ctx2DLike 必备方法；
  * 弧线、描边等可选方法存在时才使用（测试替身里没有也不报错）。
  */
+import { hitInside } from '../../engine/hit';
 import type { Ctx2DLike, Rect, Vec2 } from '../../engine/types';
 
 export const C = {
@@ -39,7 +40,8 @@ export type Ctx2DExt = Ctx2DLike &
   }>;
 
 export const ext = (c: Ctx2DLike) => c as Ctx2DExt;
-export const inside = (r: Rect, p: Vec2) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+/** 可点区域命中：命中框补足到 ≥ 44×44（#118，engine/hit.ts），视觉不变 */
+export const inside = (r: Rect, p: Vec2) => hitInside(r, p);
 
 /** 金描边框（strokeRect 不可用时退化为 4 条细矩形） */
 export function frame(c: Ctx2DLike, r: Rect, color: string = C.gold, w = 1.5) {

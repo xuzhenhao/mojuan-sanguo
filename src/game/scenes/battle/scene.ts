@@ -19,6 +19,7 @@ import {
   heroHpView,
 } from './hpview';
 import { textWidth } from '../../overlays/theme';
+import { hitInside } from '../../../engine/hit';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -31,8 +32,12 @@ import type { Ctx2DLike, Rect, Vec2 } from '../../../engine/types';
 import { CARD_H, CARD_W, clamp, hitHand, layoutHand, lockDirection, type DragMode, type HandLayout } from './hand';
 import { cardDetail, enemyDetail, LongPressDetail, openDetail, skillDetail, type DetailContent } from '../../overlays/detail';
 import { makeRespond } from '../../overlays/response';
+import { openRevive } from '../../overlays/revive';
+import { reviveFxDone, reviveFxFrame, type ReviveFx } from './revive-fx';
+import { CONFIG } from '../../../data/config';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
+import { drawScreenBg } from './screen';
 import { judgeViewOf, type JudgeView } from './judge';
 import { diff, PresentationQueue, type Snapshot } from './present';
 import { battleSkillButtons, nextSkillStep, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
@@ -67,7 +72,7 @@ export interface BattleDeps {
   /** 战斗结束（胜利大印播完后）回调：交给流程发 battle_end */
   onEnd?(win: boolean): void;
   now?(): number;
-  /** 是否减少动态（默认读 prefers-reduced-motion） */
+  /** 是否减少动态（默认读 prefers-reduced-motion）：#129 濒死红边、#106 复活动画均立即切换 */
   reducedMotion?(): boolean;
   safe?: Rect;
   /** 结束回合二次确认（1.5s） */
@@ -96,12 +101,19 @@ export interface BattleDeps {
   warn?(msg: string): void;
 }
 
-const inside = (r: Rect, p: Vec2) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
+
+/** 意图图标：只出闪 = 「闪」（config/rules.yaml maxFlashMarks「敌人闪标记」，PRD 4.4 ②），不是护盾 */
+export function intentIcon(dmg: number, defOnly: boolean) {
+  return dmg > 0 ? '⚔' : defOnly ? '闪' : '✦';
+}
 
 export class BattleScene implements Scene<BattleParams> {
   readonly id = 'battle';
   g!: Game;
   mode: BattleMode = 'idle';
+  /** 复活后的化墨 / 意图交叉淡入（PRD 4.4.1） */
+  reviveFx: ReviveFx | null = null;
   readonly q = new PresentationQueue();
   private ctx!: SceneContext;
   private snap!: Snapshot;
@@ -182,6 +194,7 @@ export class BattleScene implements Scene<BattleParams> {
     } else {
       const hs = this.deps.heroes?.();
       this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main ?? hs?.main, sub: p.sub ?? hs?.sub });
+      this.g.reviveLeft = CONFIG.rules.revive.count; // 直达战斗（无 RunState）：按每局次数给，便于验收复活层
       this.snap = this.snapshot();
       this.g.startBattle();
     }
@@ -226,6 +239,21 @@ export class BattleScene implements Scene<BattleParams> {
       if (this.deps.debugDefaults) return options[0] ?? null; // 仅调试版/测试
       this.deps.warn?.('[battle] 未接入灵光一闪弹层，本次不铭刻');
       return null;
+    },
+    revive: async (ev) => {
+      const h = this.deps.hooks?.revive;
+      if (h) return h(ev, this.overlayCtx);
+      const ov = this.deps.overlays;
+      if (!ov) return !!this.deps.debugDefaults; // 单测替身：调试默认复活，正式无弹层栈则放弃
+      return openRevive(
+        ov,
+        { hero: this.g.main.name, hp: ev.hp, armor: ev.armor, perRun: CONFIG.rules.revive.count, left: ev.left, enemies: this.g.alive().length },
+        () => this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H },
+      );
+    },
+    revived: (ev) => {
+      this.reviveFx = { start: this.fxNow(), prev: ev.prev, cancelled: new Set(ev.cancelled) };
+      this.ctx.invalidate('main');
     },
     hurt: () => {
       this.shakeT = 250;
@@ -711,8 +739,18 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (before || this.press) this.ctx.invalidate('main');
   }
+  fxNow() {
+    return this.deps.now?.() ?? performance.now();
+  }
+  reducedMotion() {
+    return this.deps.reducedMotion?.() ?? prefersReducedMotion();
+  }
+  reviveFxActive() {
+    if (this.reviveFx && reviveFxDone(this.reviveFx, this.fxNow(), this.reducedMotion())) this.reviveFx = null;
+    return !!this.reviveFx;
+  }
   animating() {
-    return this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || (this.lp?.progress ?? 0) > 0;
+    return this.reviveFxActive() || this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || (this.lp?.progress ?? 0) > 0;
   }
 
   // ---------- 弹层上下文 ----------
@@ -827,21 +865,22 @@ export class BattleScene implements Scene<BattleParams> {
     return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
   }
 
-  drawBg(ctx: Ctx2DLike) {
+  /**
+   * 金山影矩形（#118 测试用）：全部在 0…W 内。
+   * #130 起屏风（screen.ts）自带描金山影，drawBg 不再画这组矩形，避免山影画两遍；保留为 #118 的出框回归基准。
+   */
+  mountainRects(): Rect[] {
     const w = this.W;
-    const h = this.H;
-    rect(ctx, { x: 0, y: 0, w, h }, C.lac0);
-    const steps = 6;
-    for (let i = 0; i < steps; i++) {
-      const k = i / steps;
-      rect(ctx, { x: w * k * 0.25, y: h * k * 0.2, w: w * (1 - k * 0.5), h: h * (1 - k * 0.4) }, [C.lac1, C.lac2, C.lac3, C.lac2, C.lac4, C.lac3][i]);
-    }
-    // 金山影
-    ctx.globalAlpha = 0.18;
-    for (let i = 0; i < 5; i++) rect(ctx, { x: i * (w / 5) - 10, y: 150 + (i % 2) * 30, w: w / 5 + 30, h: 220 }, C.goldDk);
-    ctx.globalAlpha = 1;
-    frame(ctx, { x: 6, y: 6, w: w - 12, h: h - 12 }, C.goldLo, 1);
-    frame(ctx, { x: 9, y: 9, w: w - 18, h: h - 18 }, C.goldDk, 1);
+    return Array.from({ length: 5 }, (_, i) => {
+      const x0 = Math.max(0, i * (w / 5) - 10);
+      const x1 = Math.min(w, i * (w / 5) + w / 5 + 20);
+      return { x: x0, y: 150 + (i % 2) * 30, w: x1 - x0, h: 220 };
+    });
+  }
+
+  /** 金漆屏风（#130，render-spec §8.8.1），替换原 6 层同心色块占位与矩形山影 */
+  drawBg(ctx: Ctx2DLike) {
+    drawScreenBg(ctx, this.W, this.H);
   }
 
   drawCard(ctx: Ctx2DLike, c: CardInst, r: Rect, st: CardState) {
@@ -927,18 +966,24 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, { x: ir.x - 4, y: ir.y - 4, w: ir.w + 8, h: ir.h + 8 }, 'rgba(255,80,50,0.35)');
       ctx.globalAlpha = a0;
     }
-    rect(ctx, ir, lethal ? C.cinnabar : C.lac1);
-    frame(ctx, ir, lethal ? C.cinnGlow : C.gold, lethal ? 1.5 : 1);
-    const defOnly = it.dmg === 0 && it.acts.includes('闪');
-    const icon = it.dmg > 0 ? '⚔' : defOnly ? '盾' : '✦';
-    text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: it.dmg > 0 ? C.dmg : defOnly ? C.defIntent : C.gold, align: 'center' });
-    text(ctx, it.dmg > 0 ? String(it.dmg) : defOnly ? `${it.acts.filter((x) => x === '闪').length}` : '?', ir.x + 34, ir.y + 14, {
-      size: 16,
-      color: C.paper,
-      font: FONT.num,
-      align: 'center',
-      bold: true,
-    });
+    const fx = this.reviveFx && this.reviveFx.prev.has(e.uid) ? reviveFxFrame(this.reviveFx, e.uid, this.fxNow(), this.reducedMotion()) : null;
+    if (fx && fx.oldAlpha > 0) {
+      const old = { ...it, ...this.reviveFx!.prev.get(e.uid)! };
+      const ia = ctx.globalAlpha;
+      ctx.globalAlpha = ia * fx.oldAlpha;
+      this.drawIntent(ctx, ir, old, false);
+      if (fx.ink > 0) {
+        ctx.globalAlpha = ia * fx.oldAlpha * fx.ink;
+        rect(ctx, ir, C.ink); // 化墨
+      }
+      ctx.globalAlpha = ia;
+    }
+    {
+      const ia = ctx.globalAlpha;
+      ctx.globalAlpha = ia * (fx ? fx.newAlpha : 1);
+      this.drawIntent(ctx, ir, it, lethal);
+      ctx.globalAlpha = ia;
+    }
     // 闪标记 / 判定区
     const cr = this.countdownRect(e)!;
     circle(ctx, cr.x + 15, cr.y + 15, 14, C.lac0);
@@ -947,6 +992,22 @@ export class BattleScene implements Scene<BattleParams> {
     if (e.marks > 0) text(ctx, `闪×${e.marks}`, r.x + r.w / 2, r.y + r.h + 10, { size: 11, color: C.defIntent, align: 'center' });
     if (e.judge.length) text(ctx, e.judge.map((c) => def(c).name[0]).join(''), r.x + r.w - 8, r.y + r.h + 10, { size: 11, color: C.gold, align: 'right' });
     ctx.globalAlpha = a0;
+  }
+
+  /** 意图框（图标 + 数字） */
+  drawIntent(ctx: Ctx2DLike, ir: Rect, it: ReturnType<typeof enemyIntent>, lethal: boolean) {
+    rect(ctx, ir, lethal ? C.cinnabar : C.lac1);
+    frame(ctx, ir, lethal ? C.cinnGlow : C.gold, lethal ? 1.5 : 1);
+    const defOnly = it.dmg === 0 && it.acts.includes('闪');
+    const icon = intentIcon(it.dmg, defOnly);
+    text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: it.dmg > 0 ? C.dmg : defOnly ? C.defIntent : C.gold, align: 'center' });
+    text(ctx, it.dmg > 0 ? String(it.dmg) : defOnly ? `${it.acts.filter((x) => x === '闪').length}` : '?', ir.x + 34, ir.y + 14, {
+      size: 16,
+      color: C.paper,
+      font: FONT.num,
+      align: 'center',
+      bold: true,
+    });
   }
 
   /**
