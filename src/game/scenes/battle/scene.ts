@@ -3,6 +3,8 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
+import { openEpiphany } from '../../overlays/epiphany';
+import { EPIPHANY } from '../../../data/affixes';
 import { CARDS } from '../../../data/cards';
 import {
   handName,
@@ -236,7 +238,14 @@ export class BattleScene implements Scene<BattleParams> {
     epiphany: async (card, options, reroll) => {
       const h = this.deps.hooks?.epiphany;
       if (h) return h({ card, options, reroll }, this.overlayCtx);
-      if (this.deps.debugDefaults) return options[0] ?? null; // 仅调试版/测试
+      if (this.deps.debugDefaults) return options[0] ?? null; // 仅调试版（/debug/）/测试：自动选第一个
+      // #105：默认用正式灵光一闪弹层（H5 无刷新，reroll 不用）
+      if (this.deps.overlays)
+        return openEpiphany(
+          this.deps.overlays,
+          { card, options, count: this.g.epiCount, max: EPIPHANY.maxPerBattle },
+          { width: this.W, height: this.H, reducedMotion: () => this.reducedMotion() },
+        );
       this.deps.warn?.('[battle] 未接入灵光一闪弹层，本次不铭刻');
       return null;
     },

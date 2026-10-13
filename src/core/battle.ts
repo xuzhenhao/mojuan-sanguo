@@ -64,6 +64,9 @@ export interface PlayerDelayedEvent {
 }
 
 /** 平台适配层需实现的 IO（Web DOM / 微信小游戏 Canvas 各自实现） */
+/** 灵光一闪选择：词条 + （满 2 条时）替换目标 */
+export type EpiphanyPick = AffixDef & { replace?: string };
+
 export interface BattleIO {
   log(t: string): void;
   update(): void;
@@ -76,7 +79,11 @@ export interface BattleIO {
    */
   respond(text: string, legal: (c: CardInst) => boolean, pass: string, timed: boolean, kind?: RespondKind): Promise<CardInst | null>;
   /** 灵光一闪三选一：reroll 可调用一次（看广告刷新） */
-  epiphany(c: CardInst, options: AffixDef[], reroll: () => AffixDef[]): Promise<AffixDef | null>;
+  /**
+   * 灵光一闪三选一（subpages-v05 §1.3）：返回选中词条；该牌已满 2 条时可带 replace（被替换的旧词条 id）。
+   * null = 放弃（次数照常消耗）。
+   */
+  epiphany(c: CardInst, options: AffixDef[], reroll: () => AffixDef[]): Promise<EpiphanyPick | null>;
   /** 手满弃置（PRD §5.4）：新摸到的牌因手牌达到硬上限直接进弃牌堆；可选，表现层用来提示「手满，弃置」 */
   handOverflow?(ev: HandOverflowEvent): void;
   /** 敌人阶段切换（可选） */
@@ -596,7 +603,9 @@ export class Game {
     this.sincePity = 0;
     const a = await this.io.epiphany(c, pick3(this.rng, pool), () => pick3(this.rng, pool));
     if (a) {
-      addAffix(c, a.id);
+      const i = a.replace ? c.mods.indexOf(a.replace) : -1;
+      if (i >= 0) c.mods[i] = a.id;
+      else addAffix(c, a.id);
       this.log(`灵光一闪！【${def(c).name}】获得「${a.n}」`);
     }
   }
