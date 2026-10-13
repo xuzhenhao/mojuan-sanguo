@@ -82,6 +82,7 @@ export interface BattleDeps {
   hooks?: BattleOverlayHooks;
   /** 战斗结束（胜利大印播完后）回调：交给流程发 battle_end */
   onEnd?(win: boolean): void;
+  /** 动效时钟（ms），入口传 platform.now */
   now?(): number;
   /** 是否减少动态（默认读 prefers-reduced-motion）：#129 濒死红边、#106 复活动画均立即切换 */
   reducedMotion?(): boolean;
@@ -802,8 +803,9 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (before || this.press) this.ctx.invalidate('main');
   }
+  /** 动效时钟：入口注入 platform.now；未注入（单测）回退 ES 内置 Date.now，不碰平台全局 performance（#200） */
   fxNow() {
-    return this.deps.now?.() ?? performance.now();
+    return this.deps.now?.() ?? Date.now();
   }
   reducedMotion() {
     return this.deps.reducedMotion?.() ?? prefersReducedMotion();
@@ -1033,7 +1035,7 @@ export class BattleScene implements Scene<BattleParams> {
     const lethal = it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
     if (lethal) {
       const a0 = ctx.globalAlpha;
-      const k = lethalGlowAlpha(this.deps.now?.() ?? performance.now(), this.reducedMotion());
+      const k = lethalGlowAlpha(this.fxNow(), this.reducedMotion());
       // 发光 = 叠层半透明描边（#105 大卡写法，不用模糊阴影）：外 7px α.18 + 内 3px α.40
       for (const g of LETHAL_GLOW) {
         ctx.globalAlpha = a0 * k * g.alpha;
@@ -1281,7 +1283,7 @@ export class BattleScene implements Scene<BattleParams> {
     if (!only || only === 'main') {
       const r = { ...L.main, x: L.main.x + shake };
       // dying（§3.3）：朱砂 2px 外轮廓脉动，只给主将
-      const ea = dyingEdgeAlpha(this.dyingEdge, g.p.hp, this.deps.now?.() ?? performance.now(), this.deps.reducedMotion?.() ?? prefersReducedMotion());
+      const ea = dyingEdgeAlpha(this.dyingEdge, g.p.hp, this.fxNow(), this.deps.reducedMotion?.() ?? prefersReducedMotion());
       if (ea > 0) {
         const a = ctx.globalAlpha;
         ctx.globalAlpha = a * ea;
