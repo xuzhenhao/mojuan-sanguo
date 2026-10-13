@@ -47,6 +47,10 @@ export interface WxRealtimeLog {
   info(...args: unknown[]): void;
   warn(...args: unknown[]): void;
   error(...args: unknown[]): void;
+  /** 基础库 ≥2.7.3：设置过滤关键字（不可含空格），便于后台检索 */
+  setFilterMsg?(msg: string): void;
+  /** 追加过滤关键字（不可含空格） */
+  addFilterMsg?(msg: string): void;
 }
 /** 上屏 / 离屏画布：与 Canvas2DLike 兼容；首个 createCanvas 为上屏 */
 export type WxCanvas = Canvas2DLike;

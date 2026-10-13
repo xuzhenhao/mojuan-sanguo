@@ -9,7 +9,7 @@
 | `platform.ts`            | 画布、触摸→TouchPoint、onShow/onHide、raf、now、systemInfo、launchQuery |
 | `storage.ts`             | `wx.*StorageSync`，>512KB 报警，写失败保留旧档                          |
 | `fonts.ts`               | `wx.loadFont`（#205）                                                   |
-| `telemetry.ts`           | 实时日志 transport 占位（#208）                                         |
+| `telemetry.ts`           | 实时日志 transport（#208，`getRealtimeLogManager`，剥 PII）             |
 | `audio.ts` / `loader.ts` | M2 空实现                                                               |
 | `start.ts`               | W4 黑屏占位（构建冒烟仍可测）                                           |
 | `wx-api.ts`              | 注入用的 wx 子集类型                                                    |
