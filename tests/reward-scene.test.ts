@@ -66,6 +66,15 @@ describe('奖励页 reward（#45）', () => {
     t.s.skipAnim();
     expect(t.s.buttons().map((b) => b.id)).toEqual(['skip', 'take']);
   });
+  it('底栏（略过/收入）：略过与收入同在底栏，略过在左、不重叠（render-spec §4）', () => {
+    const t = setup();
+    t.s.skipAnim();
+    const [skip, take] = t.s.buttons();
+    expect(skip.rect.y).toBe(take.rect.y);
+    expect(skip.rect.y).toBeGreaterThan(t.s.relicBar().y + t.s.relicBar().h);
+    expect(skip.rect.x + skip.rect.w).toBeLessThanOrEqual(take.rect.x - 12);
+    expect(take.rect.x + take.rect.w).toBeLessThanOrEqual(t.ctx.width);
+  });
   it('精英：点宝物条领取（独立于选卡）', () => {
     const t = setup('elite');
     t.s.skipAnim();

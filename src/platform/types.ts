@@ -65,6 +65,8 @@ export interface Platform {
   onTouch(h: TouchHandlers): void;
   onShow(cb: () => void): void;
   onHide(cb: () => void): void;
+  /** 视口尺寸变化（resize / visualViewport resize / 横竖屏切换） */
+  onResize?(cb: () => void): void;
   raf(cb: (t: number) => void): number;
   now(): number;
   /** 启动参数（H5 为 URL query） */

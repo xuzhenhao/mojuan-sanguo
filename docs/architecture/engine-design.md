@@ -241,7 +241,7 @@ export interface TextStyle { font: string; size: number; color: string; stroke?:
 - **降帧**：静止时 0fps；只剩常驻循环（致命脉冲、墨角标呼吸、倒计时）时 10–30fps；有动画或拖拽时 60fps。
 - **高 DPR**：与 render-spec 对齐，渲染缓冲 = 逻辑 × min(dpr, 3)，低端设备**自动降低 DPR**（2 或 1.5）【已决定】；`ctx.setTransform(scale…)` 统一处理；资源按 2x 出图，3x 屏线性过滤。
 - **适配**：设计基准 **390×844 dp** 竖屏（锁竖屏），等宽缩放 `scale = screenW/390`，多出或缺少的高度由战场区弹性吸收；背景层 cover 铺满物理屏，其余层只放在安全区内；`safeArea` 来自 `wx.getWindowInfo()` / CSS `env(safe-area-inset-*)`，胶囊用 `wx.getMenuButtonBoundingClientRect()` 生成禁区；布局提供 `anchor: 'safe-top' | 'safe-bottom' | 'capsule-left'`。
-- **文字**（按 render-spec 4.1）分三类：①书法字（马善政楷书，OFL）按用到的字做子集（约 300 字、60–90KB），H5 用 FontFace、微信用 `wx.loadFont`，常用的卡名、武将名、按钮**预渲染进图集**，避免首帧闪烁；②数字用**位图字体**（`BitmapText`，2 套）；③说明文字用系统无衬线字体，不打包。所有 `Text` 节点都离屏缓存。
+- **文字**（按 render-spec 4.1）分三类：①书法字（霞鹜文楷 LXGW WenKai，OFL 1.1）按用到的字做子集（core 约 242 字 / 57KB，完整约 682 字 / 149KB woff2），H5 用 FontFace、微信用 `wx.loadFont`，常用的卡名、武将名、按钮**预渲染进图集**，避免首帧闪烁；②数字用**位图字体**（`BitmapText`，2 套）；③说明文字用系统无衬线字体，不打包。所有 `Text` 节点都离屏缓存。
 - 上屏画布是 **2D**，三块离屏画布直接 drawImage 合成；WebGL 只是**可选的特效叠加画布**（独立画布，叠在上方），见 4.12【已决定】。
 
 ### 4.3 UI 组件、布局、命中测试与手势（需求 3）
@@ -411,7 +411,7 @@ export interface PresentationQueue {
 ```
 
 #### 4.5.5 资源与包体
-- render-spec §9（B 定稿，PR #29）估算压缩后合计**约 2.5MB**：UI 400KB、特效 150KB、卡图 600KB、武将 480KB、敌人 550KB、背景 200KB、字体 80KB。首包约 **1.1MB**（ui_common、fx、字体、共享背景、第一章敌人），立绘、卡图和第 2/3 章敌人走分包。另有 WebGL 特效纹理约 0.7MB，放在 `fx_webgl` 分包（4.12.4）。H5 阶段“分包”对应按需加载的资源组。加上代码约 0.8MB，首包约 1.9MB。
+- render-spec §9（B 定稿，PR #29）估算压缩后合计**约 2.5MB**：UI 400KB、特效 150KB、卡图 600KB、武将 480KB、敌人 550KB、背景 200KB、字体 core 约 57KB（完整子集约 149KB）。首包约 **1.1MB**（ui_common、fx、字体、共享背景、第一章敌人），立绘、卡图和第 2/3 章敌人走分包。另有 WebGL 特效纹理约 0.7MB，放在 `fx_webgl` 分包（4.12.4）。H5 阶段“分包”对应按需加载的资源组。加上代码约 0.8MB，首包约 1.9MB。
 - 图集单张 ≤2048：`battle_ui`（2048）、`battle_fx`（1024）、`cards_art_{1,2}`（1024）；立绘和敌人按章节动态加载。资源管线（4.7）按这些分组输出 manifest 的 group。
 - 单一 B 皮肤：只打包 B 的资源；九宫格切线按 render-spec §10（框 24/24/24/24、按钮 16、面板 20，2x）写进图集 JSON 的 `slice` 字段。
 - 离屏缓存上限：卡 10、敌 6、徽章约 30，约 12MB@dpr2。引擎提供 `BitmapCachePool`，设上限并按 LRU 淘汰，切换战斗时清空。
@@ -425,7 +425,7 @@ export interface PresentationQueue {
    - **WebGL 路径**（render-spec §11 的 13 项，清单待对齐）：由 shader 实现，UI 提供参数和噪声/笔刷贴图，不需要序列帧；同屏特效实例 ≤8；全屏特效 pass 同时 ≤2；纹理放 `fx_webgl` 分包（约 0.7MB）；特效不承载关键信息，也不阻塞。
    - **2D 场景层**（卡牌、敌人、UI）：仍不能用 `ctx.filter`、`shadowBlur`、SVG 滤镜；去饱和、阴影、发光要预烘焙；只允许 `globalAlpha`、tint 和 `source-over / lighter / multiply / destination-in / destination-out`。
    - WebGL 是可选叠加层：关闭（`?webgl=0`、配置关闭或设备不支持）时 2D 画面完整可玩，只是没有这些特效；**不做 2D 替代特效**。自动降级延后到微信上线前。
-2. **字体**：书法字体只用一种（马善政楷书，OFL），按用到的字做子集，≤90KB；固定文案优先烘焙进图集。数字只用位图字体（最多 2 套）。说明文字用系统无衬线字体。不使用其他可商用风险字体。
+2. **字体**：书法字体只用一种（霞鹜文楷 LXGW WenKai，OFL 1.1），按用到的字做子集（core 约 57KB / 完整约 149KB woff2）；构建缺字即报错，禁止系统字体回退；固定文案优先烘焙进图集。数字只用位图字体（最多 2 套）。说明文字用系统无衬线字体。不使用其他可商用风险字体。
 3. **包体**：微信主包 ≤4MB（硬限），工程目标 ≤2.5MB，其中首包资源 ≤1.2MB（render-spec 现为约 1.1MB；WebGL 纹理约 0.7MB 放独立分包）。总包按 20MB 保守计算（官方另一处写 30MB）。独立分包 ≤4MB。其余资源走分包或 CDN。
 4. **DPR 和分辨率**：设计基准 390×844 dp，DPR 上限 3，资源按 2x 出图；低端设备自动降到 2 或 1.5【已决定】。
 5. **图集**：单张 ≤2048×2048，按场景分组，资源尺寸尽量用 2 的幂或便于装箱的尺寸。牌框用九宫格并标注切线。
@@ -585,12 +585,14 @@ export interface ErrorReport { message: string; stack?: string; version: string;
 
 ### 4.10 构建工具链（需求 9）
 
-> **部署（v0.6，用户验收决定）**：GitHub Pages 一次部署产出两个入口：
-> - 根目录 = **DOM 可玩版**（当前对外试玩）：https://xuzhenhao.github.io/mojuan-sanguo/
-> - `/next/` = **Canvas 新版**（引擎 + 页面流程）：https://xuzhenhao.github.io/mojuan-sanguo/next/
+> **部署（v0.7，P5 #46 对调入口后）**：GitHub Pages 一次部署产出：
+> - 根目录 = **Canvas 版**（引擎 + B 金漆屏风页面流程，默认入口）：https://xuzhenhao.github.io/mojuan-sanguo/
+> - `/debug/` = **DOM 调试版**（原可玩原型，测试用）：https://xuzhenhao.github.io/mojuan-sanguo/debug/
+> - `/next/` = 跳转页（`scripts/next-redirect.html`），保留查询参数跳到根目录，避免旧链接 404
+> - `/mockups/` = 设计稿（`public/` 直接拷到站点根目录，**不进任何构建产物**）
 >
-> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/next/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/`，带 public/mockups）→ 组装 `_site/`：DOM 版放根目录（`debug.html` 改名为 `index.html`），Canvas 版放 `next/`。CI 同样跑 size-check 和 build:debug。
-> **P5 对调入口（#46）**：Canvas 版到根目录，DOM 版移到 `/debug/`；只需改 `vite.config.ts` 的两个 base 和 `pages.yml` 的组装步骤。
+> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/debug/`）→ 组装 `_site/`：`dist/` 放根目录，`dist-debug/` 放 `debug/`（`debug.html` 改名为 `index.html`），再放 `next/` 跳转页和 `public/`。CI 同样跑 size-check 和 build:debug。base 定义在 `vite.config.ts` 的 `PAGES_BASE`，有测试（`tests/result.test.ts`）。
+> v0.6 时为根目录 DOM 版 + `/next/` Canvas 版（#36）。
 
 ```mermaid
 flowchart LR
@@ -658,7 +660,8 @@ flowchart LR
 - **`src/game/flow.ts` · FlowMachine**：页面状态机，非法事件抛错。由 core 局状态驱动：`viewOf(game)` 只读 `over / isLast / battleIdx / p.hp`；`sync()` 在 core 报告战斗结束时自动转到奖励或结算；`battle_end` 与 core 状态矛盾时拒绝。**不修改 src/core 和 config/**。
 - **`src/game/router.ts` · Router**：把页面变化映射到场景切换（默认用泼墨转场）。
 - **`src/game/scenes/placeholder.ts`**：6 个占位页面，带按钮推进流程、长按弹详情浮层；正式页面替换对应 id 即可。发布入口支持 `?page=map` 等参数直接进入某页（截图和测试用）。
-- 测试：`tests/engine-scene.test.ts`、`tests/flow.test.ts`。
+- **P5 结算与放弃本局（#46）**：`FlowMachine` 增加 `abandon`（点将 / 地图 / 战斗 / 奖励 / 集市 → 结算，PRD 5.13）和 `result_done.to`（`'map'` = 再来一局，默认 `'select'` = 返回点将，PRD 14.5）。结算页 `src/game/result/scene.ts`；启动续玩弹窗与放弃二次确认 `src/game/result/resume.ts` 只用 `OverlayStack.push`，设置浮层可复用 `confirmAbandon`。**离开结算页时**才入账局外存档（`mojuan.meta.v1`）并删除局内存档（`mojuan.run.v1`）。其他页面通过 `src/game/result/bridge.ts` 接入（`outcome` / `restart` / `resume`）。
+- 测试：`tests/engine-scene.test.ts`、`tests/flow.test.ts`、`tests/result.test.ts`。
 
 ### 4.12 WebGL 水墨增强层（【已决定 2026-10-12】）
 

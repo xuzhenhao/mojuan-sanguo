@@ -132,7 +132,7 @@ export const ECONOMY = {
   shopSlots: { common: 2, heroCard: 1, relic: 1, potion: 2 },
   /** 删牌下限（同 PRD 10.6 焚稿口径：至少 8 张且至少 1 张杀类） */
   minDeck: 8,
-  /**【占位】宝箱：PRD 10.8 = 75% 宝物三选一 / 25% 铜钱 50–80 + 卡牌三选一；flow.md 3.11 写 70/30，14.1 写铜钱 40–70。暂按 10.8 */
+  /** 宝箱：PRD 10.8 = 75% 宝物三选一 / 25% 铜钱 50–80 + 卡牌三选一 */
   chestRelicChance: 0.75,
   chestGold: [50, 80] as Range,
   /** 10.8 宝箱宝物稀有度 */

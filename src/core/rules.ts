@@ -42,6 +42,16 @@ export function enemyDodges(e: Enemy, unblockable: boolean, need = 1) {
   return false;
 }
 
+/** 敌方锦囊意图的说明（闪电：放入你的判定区） */
+export function trickTip(e: Pick<Enemy, 'trickOverrides'>, id: string) {
+  const name = CARDS[id]?.name ?? id;
+  if (id === 'D003') {
+    const n = e.trickOverrides?.D003?.amount ?? 3;
+    return `${name}：放入你的判定区，其每回合开始判定 ♠2–9 则你受${n}点雷电伤害，最多判定 4 次`;
+  }
+  return `${name}：锦囊`;
+}
+
 /** 敌人意图：本回合将出的牌与总伤害（伤害全部来自牌） */
 export function enemyIntent(e: Enemy, skipAtk = false) {
   const acts = e.pat[e.step % e.pat.length];
@@ -49,11 +59,12 @@ export function enemyIntent(e: Enemy, skipAtk = false) {
   const cnt: Record<string, number> = {};
   for (const a of acts) {
     const k = ENEMY_CARDS[a];
-    if (k.dmg && !skipAtk) dmg += k.dmg;
+    if (k?.dmg && !skipAtk) dmg += k.dmg;
     cnt[a] = (cnt[a] || 0) + 1;
   }
-  const nm = (a: string) => (a === '杀+' ? '杀[锋锐]' : a === '万箭' ? '万箭齐发' : a === '咒' ? '咒·弃1' : a);
-  const ic = (a: string) => ({ 杀: '🗡', '杀+': '🗡', 万箭: '🏹', 闪: '🛡', 咒: '⬇' })[a];
+  const nm = (a: string) =>
+    a === '杀+' ? '杀[锋锐]' : a === '万箭' ? '万箭齐发' : a === '咒' ? '咒·弃1' : a.startsWith('锦囊:') ? (CARDS[a.slice(3)]?.name ?? a.slice(3)) : a;
+  const ic = (a: string) => (a.startsWith('锦囊:') ? '⚡' : { 杀: '🗡', '杀+': '🗡', 万箭: '🏹', 闪: '🛡', 咒: '⬇' }[a]);
   const txt = Object.entries(cnt)
     .map(([a, n]) => `${ic(a)}${nm(a)}${n > 1 ? '×' + n : ''}`)
     .join(' ');
@@ -68,7 +79,9 @@ export function enemyIntent(e: Enemy, skipAtk = false) {
               ? '万箭齐发：1点伤害，不可闪'
               : a === '闪'
                 ? '备闪：获得1枚闪标记'
-                : '咒：随机弃你1张手牌',
+                : a === '咒'
+                  ? '咒：随机弃你1张手牌'
+                  : trickTip(e, a.slice(3)),
       )
       .join('；') + (e.skill ? '｜' + e.skill : '');
   return { acts, txt, dmg, tip };

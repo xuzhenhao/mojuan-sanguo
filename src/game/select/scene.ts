@@ -208,6 +208,7 @@ export class SelectScene implements Scene {
       kind: 'detail',
       dismissOnTapOutside: true,
       rect,
+      scrim: { color: 'rgba(0,0,0,.55)' },
       draw: (s) => drawDetail(s.ctx as unknown as Ctx, rect, hero, lines),
     });
     return true;
@@ -463,8 +464,6 @@ export function wrapChars(s: string, n: number): string[] {
 }
 
 function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[]) {
-  c.fillStyle = 'rgba(0,0,0,.55)';
-  c.fillRect(0, 0, 4000, 4000);
   panel(c, r);
   c.fillStyle = C.gold;
   c.font = `28px ${BRUSH}`;
@@ -524,10 +523,9 @@ function drawBackground(c: Ctx, w: number, h: number) {
   mt.addColorStop(1, 'rgba(201,165,90,0)');
   c.fillStyle = mt;
   c.beginPath();
-  const k = w / 390;
   const pts = [-20, 330, 40, 240, 90, 290, 150, 200, 220, 290, 280, 240, 340, 290, 410, 200, 410, 420, -20, 420];
-  c.moveTo(pts[0] * k, pts[1]);
-  for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i] * k, pts[i + 1]);
+  c.moveTo(pts[0], pts[1]);
+  for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]);
   c.closePath();
   c.fill();
   c.strokeStyle = 'rgba(138,106,42,.6)';

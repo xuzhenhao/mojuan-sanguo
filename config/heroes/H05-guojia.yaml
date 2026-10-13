@@ -47,7 +47,7 @@ starterDeck: # 12 张，红 6 / 黑 6
   - { card: T001, suit: H, rank: 9 }
   - { card: T012, suit: C, rank: 3 }
   - { card: X501, suit: S, rank: 1 }
-  - { card: B006, suit: C, rank: 9 }
+  - { card: B005, suit: C, rank: 9 } # 酒→桃：map sim 不算复活 24%→67%（#117）
   - { card: SH01, suit: D, rank: 4 }
 
 exclusiveCards: [X501]

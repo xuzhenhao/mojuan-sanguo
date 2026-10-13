@@ -12,6 +12,9 @@
 .sk.lock b::after{content:"锁";position:absolute;margin:30px 0 0 30px;font-size:11px;width:16px;height:16px;line-height:16px;text-align:center;background:var(--cinnabar);border-radius:2px}
 .sk.v b{background:radial-gradient(circle at 35% 30%,#7d8a8e,#2a3235);box-shadow:0 0 0 2px var(--silver),0 0 0 4px var(--lac-3)}
 .div{width:1px;height:40px;background:linear-gradient(transparent,var(--gold-lo),transparent);margin:0 6px}
+.zlc{margin-left:12px;white-space:nowrap;flex-shrink:0;height:24px;display:flex;align-items:center;gap:5px;padding:0 9px 0 3px;border-radius:12px;background:linear-gradient(rgba(42,20,16,.92),rgba(15,7,5,.95));box-shadow:0 0 0 1px var(--gold-mid),0 0 0 2px var(--lac-3);font-family:Brush;font-size:15px;color:var(--gold)}
+.zlc i{font-style:normal;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:12px;color:#eaf7ef;background:radial-gradient(circle at 35% 30%,#6fc39c,#1f6b4b);box-shadow:0 0 0 1px #bfe8cf}
+.dbg{display:none;position:absolute;left:12px;top:0;height:10px;font:9px/10px sans-serif;color:rgba(244,220,154,.55);z-index:20;pointer-events:none}body.hud .dbg{display:block}
 .deckp{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:14px}.deckp svg{width:20px;height:20px;fill:var(--gold-mid)}
 .grid{position:absolute;left:14px;right:14px;top:440px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px 8px}
 .g{height:116px;cursor:pointer}.g .nm{font-size:17px}.g .hp{position:absolute;left:0;right:0;bottom:3px;text-align:center;font-size:12px;color:#fff;text-shadow:0 0 3px #000}
@@ -159,7 +162,7 @@
  <div class="gf sv vice"><div class="w"><svg class="fig"><use href="#hero2"/></svg><span class="nm">刘备</span><span class="fac shu">蜀</span></div><span class="seal role">副</span></div>
  <div class="ico swap"><svg><use href="#i-refresh"/></svg></div>
 </div>
-<div class="skills"><div class="sk lock"><b>龙胆</b></div><div class="sk lock"><b>冲阵</b></div><div class="div"></div><div class="sk v"><b>招贤</b></div><div class="deckp"><svg><use href="#i-deck"/></svg><span class="num">12</span></div></div>
+<div class="skills"><div class="sk lock"><b>龙胆</b></div><div class="sk lock"><b>冲阵</b></div><div class="div"></div><div class="sk v"><b>招贤</b></div><div class="zlc"><i>珠</i>珠联·托孤</div><div class="deckp"><svg><use href="#i-deck"/></svg><span class="num">12</span></div></div>
 <div class="grid" id="grid"></div>
 <div class="zl"><svg style="width:18px;height:18px;fill:var(--gold)"><use href="#i-book"/></svg><div class="book"><div class="card atk E"><div class="in"><div class="art"><svg><use href="#i-spear"/></svg></div><div class="cn">冲阵</div></div></div><div class="emp">+</div></div>
  <div class="ink"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i><i></i></div>
@@ -174,4 +177,4 @@ const HEROES=[{n:'吕布',f:'qun',fa:'群',hp:9,s:'boss'},{n:'貂蝉',f:'qun',fa
 function longpress(el,fn){let t;el.addEventListener('pointerdown',()=>{t=setTimeout(fn,420)});['pointerup','pointerleave'].forEach(v=>el.addEventListener(v,()=>clearTimeout(t)));}
 
 grid.innerHTML=HEROES.map((h,i)=>`<div class="gf g ${i==2||i==3?'on':''} ${i%2?'':''}"><div class="w"><svg class="fig"><use href="#${h.s}"/></svg><span class="nm">${h.n}</span><span class="fac ${h.f}">${h.fa}</span><div class="hp"><i></i><span class="num">${h.hp}</span></div></div>${i==2?'<span class="seal mk">主</span>':''}${i==3?'<span class="seal mk v">副</span>':''}</div>`).join('');
-</script></body></html>
+</script><div class="dbg">WebGL 关 · dpr 2 · 纹理 30.1/50MB · select（仅调试版）</div><script>if(location.hash.includes("hud"))document.body.classList.add("hud")</script></body></html>

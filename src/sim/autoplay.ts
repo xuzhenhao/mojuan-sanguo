@@ -7,7 +7,7 @@ import { seeded } from '../core/rng';
 import { def, isRed, isShaPlay } from '../core/rules';
 import { BATTLES } from '../data/enemies';
 import { CONFIG } from '../data/config';
-import { heroAiTurn, heroDiscards, heroRespond } from './hero-ai';
+import { heroAiTurn, heroDiscards, heroRespond, heroWuxie } from './hero-ai';
 import type { CardInst, Enemy } from '../core/types';
 import { withContract, type ContractReport } from './io-contract';
 
@@ -16,6 +16,8 @@ export const LAYERS: Layer[] = ['huzhu', 'bagua', 'shan', 'armor', 'tao'];
 export const LAYER_CH: Record<Layer, string> = { huzhu: '护主', bagua: '八卦', shan: '闪', armor: '护甲', tao: '桃/酒回复' };
 
 export interface GameStats {
+  /** 无懈可击决策点上 AI 选择打出的次数 */
+  wuxie?: number;
   battleIdx: number;
   seed: number;
   win: boolean;
@@ -186,36 +188,52 @@ export function pickSub(main: string): string {
   const d = CONFIG.rules.defaultHeroes;
   return d.sub !== main ? d.sub : d.main;
 }
-const resolveHeroes = (h: HeroOpts): HeroOpts => (h.preset || !h.main || h.sub ? h : { ...h, sub: pickSub(h.main) });
+export const resolveHeroes = (h: HeroOpts): HeroOpts => (h.preset || !h.main || h.sub ? h : { ...h, sub: pickSub(h.main) });
 
 export interface RunOpts extends HeroOpts {
   battleIdx: number;
   seed: number;
   hp?: number;
+  /** 覆盖体力上限（地图模式 V09 刮骨） */
+  maxHp?: number;
+  /** 开场额外护甲（地图模式奖励折算 / 收编 / 复活） */
+  armorStart?: number;
   maxTurns?: number;
   /** 传入则用 headless 表现层契约消费者校验所有 core → 表现层事件（见 io-contract.ts） */
   contract?: ContractReport;
+  /** 指定本场敌人（如 Boss 单场 ['B1']）；不设则按 BATTLES[battleIdx] */
+  encounter?: { name: string; en: string[] };
 }
 
 /** 单场战斗：从给定体力开始，AI 打到结束 */
 export async function runBattle(o: RunOpts): Promise<GameStats> {
   let win = false;
+  let wuxie = 0;
   const io = silentIO((w) => (win = w));
   const ai = o.ai ?? 'hero';
   const ref: { g?: Game } = {};
   const gameIO = o.contract ? withContract(io, () => ref.g, o.contract).io : io;
   const g = new StatGame(seeded(o.seed), gameIO, { autoShan: ai === 'greedy', main: o.main, sub: o.sub, preset: o.preset });
-  io.respond = async (text, legal, _pass, timed) => {
+  io.respond = async (text, legal, _pass, timed, kind) => {
+    // 无懈可击决策点：两种 AI 都用（敌方锦囊目前只有妖咒，抵消即保住一张手牌）
+    if (kind === 'wuxie') {
+      const w = ai === 'hero' ? heroWuxie(g, legal) : (g.hand.find(legal) ?? null);
+      if (w) wuxie++;
+      return w;
+    }
     // timed = 闪响应窗口；非 timed = 濒死自救
     if (ai === 'hero' && timed) return heroRespond(g, Number(/伤害 (\d+)/.exec(text)?.[1] ?? 1), legal);
     return g.hand.find(legal) ?? null;
   };
   ref.g = g;
   g.battleIdx = o.battleIdx;
+  if (o.encounter) g.encounter = o.encounter;
+  if (o.maxHp !== undefined) g.p.maxHp = o.maxHp;
   if (o.hp !== undefined) g.p.hp = o.hp;
   const hpStart = g.p.hp;
   const plays = { attack: 0, defense: 0, other: 0 };
   g.startBattle();
+  if (o.armorStart) g.p.armor += o.armorStart;
   const maxTurns = o.maxTurns ?? 40;
   while (!g.over && g.turn <= maxTurns) {
     if (ai === 'hero') await heroAiTurn(g, plays);
@@ -241,6 +259,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
     firstTurnLoss: g.st.turnHit.get(1) ?? 0,
     firstTurnEnemySha: g.st.sha1,
     plays,
+    wuxie,
   };
 }
 
@@ -382,4 +401,26 @@ export async function batch(n: number, randomSeed = Date.now(), h0: HeroOpts = {
     if (c.hpAtLast !== null) hpAtLast.push(c.hpAtLast);
   }
   return { heroes: h, per, ch: { n, clear, hpAtLast } };
+}
+
+/** 单场遭遇（如 Boss B1）满血 n 局：胜率 / 超时 / 掉血 / 回合；可选契约校验 */
+export async function encounterBatch(enemies: string[], n: number, seed: number, h0: HeroOpts = {}, contract?: ContractReport) {
+  const h = resolveHeroes(h0);
+  const rs: GameStats[] = [];
+  for (let i = 0; i < n; i++)
+    rs.push(await runBattle({ ...h, battleIdx: 0, seed: seed * 31 + i, encounter: { name: enemies.join('+'), en: enemies }, contract }));
+  const med = (xs: number[]) => {
+    const a = xs.slice().sort((x, y) => x - y);
+    return a.length ? a[Math.floor((a.length - 1) / 2)] : 0;
+  };
+  const wins = rs.filter((r) => r.win);
+  return {
+    heroes: h,
+    n,
+    winRate: wins.length / n,
+    timeouts: rs.filter((r) => r.timeout).length,
+    hpLossMedianPct: med(rs.map((r) => (r.hpStart - r.hpEnd) / r.maxHp)),
+    turnsMedian: med(rs.map((r) => r.turns)),
+    le3Rate: rs.filter((r) => r.win && r.hpEnd <= 3).length / n,
+  };
 }

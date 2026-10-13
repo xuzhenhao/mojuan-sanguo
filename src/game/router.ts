@@ -1,6 +1,6 @@
 /** 路由：把 FlowMachine 的页面变化映射到 SceneManager（带泼墨转场） */
 import { INK_TRANSITION, type SceneManager, type Transition } from '../engine/scene';
-import type { FlowEvent, FlowMachine, Page } from './flow';
+import { PAGES, type FlowEvent, type FlowMachine } from './flow';
 
 export class Router {
   constructor(
@@ -8,7 +8,7 @@ export class Router {
     private scenes: SceneManager,
     private transition: Transition = INK_TRANSITION,
   ) {
-    for (const p of ['select', 'map', 'battle', 'reward', 'shop', 'result'] as Page[]) if (!scenes.has(p)) throw new Error(`缺少页面场景 ${p}`);
+    for (const p of PAGES) if (!scenes.has(p)) throw new Error(`缺少页面场景 ${p}`);
   }
   start(params?: unknown) {
     return this.scenes.go(this.flow.page, params, { durationMs: 0 });

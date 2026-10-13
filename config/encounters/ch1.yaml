@@ -5,3 +5,20 @@ battles:
   - { name: 黄巾前哨, kind: 普通, enemies: [E101, E101, E102] }
   - { name: 流民之乱, kind: 普通, enemies: [E104, E101, E103] }
   - { name: 精英·张宝, kind: 精英, enemies: [E1E1, E102] }
+
+# ───────── 地图战斗组包（PRD 10.5，数值定稿 design-v1 §13；H5 地图模式用，上面的 battles 仍供三战制回归） ─────────
+rules:
+  easyBattles: 2 # 本章前 2 场普通战斗用 easy，第 3 场起 normal
+  noRepeatInPool: true # 同一池内不连续抽到同一组合
+pools:
+  easy:
+    - { name: 流民先锋, enemies: [E101, E104] }
+    - { name: 妖道护卫, enemies: [E101, E101, E103] }
+  normal:
+    - { name: 黄巾前哨, enemies: [E101, E101, E102] }
+    - { name: 流民之乱, enemies: [E104, E101, E103] }
+    - { name: 弓手掩护, enemies: [E104, E101, E102] }
+  elite:
+    - { name: 精英·张宝, enemies: [E1E1, E102] } # E1E2 暂不启用
+  boss:
+    - { name: 张角·墨魇, enemies: [B1] } # 二阶段召唤本期不做

@@ -1,5 +1,5 @@
 /** 引擎测试替身：不依赖 DOM 的假画布 / 假平台 */
-import type { Platform } from '../src/platform/types';
+import type { Platform, SystemInfo } from '../src/platform/types';
 import type { Canvas2DLike, CanvasLike, Ctx2DLike } from '../src/engine/types';
 
 export interface FakeCanvas extends Canvas2DLike {
@@ -36,7 +36,8 @@ export function fakeCanvas(w = 0, h = 0, opts: { webgl?: boolean } = {}): FakeCa
   return c;
 }
 
-export function fakePlatform(o: { query?: Record<string, string>; webgl?: boolean; dpr?: number } = {}) {
+export function fakePlatform(o: { query?: Record<string, string>; webgl?: boolean; dpr?: number; info?: () => SystemInfo } = {}) {
+  let resize: (() => void) | null = null;
   const screen = fakeCanvas();
   const offscreens: FakeCanvas[] = [];
   const overlays: FakeCanvas[] = [];
@@ -46,7 +47,8 @@ export function fakePlatform(o: { query?: Record<string, string>; webgl?: boolea
   let touch: Parameters<Platform['onTouch']>[0] | null = null;
   const p: Platform = {
     name: 'web',
-    systemInfo: () => ({ width: 390, height: 844, dpr: o.dpr ?? 2, safeArea: { x: 0, y: 0, w: 390, h: 844 }, capsule: null, platform: 'web' }),
+    systemInfo: o.info ?? (() => ({ width: 390, height: 844, dpr: o.dpr ?? 2, safeArea: { x: 0, y: 0, w: 390, h: 844 }, capsule: null, platform: 'web' })),
+    onResize: (cb) => (resize = cb),
     mainCanvas: () => screen,
     createOverlayCanvas(): CanvasLike | null {
       if (!o.webgl) return null;
@@ -80,6 +82,7 @@ export function fakePlatform(o: { query?: Record<string, string>; webgl?: boolea
     overlays,
     warns,
     touch: () => touch!,
+    resize: () => resize?.(),
     setNow: (t: number) => (now = t),
     /** 执行当前排队的一帧，返回执行的回调数 */
     flush(t: number) {
