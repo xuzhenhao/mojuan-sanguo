@@ -1013,7 +1013,7 @@ export class BattleScene implements Scene<BattleParams> {
     if (lethal) {
       const a0 = ctx.globalAlpha;
       const k = lethalGlowAlpha(this.deps.now?.() ?? performance.now(), this.reducedMotion());
-      // 发光 = 叠层半透明描边（#105 大卡写法，不用 blur/shadowBlur）：外 7px α.18 + 内 3px α.40
+      // 发光 = 叠层半透明描边（#105 大卡写法，不用模糊阴影）：外 7px α.18 + 内 3px α.40
       for (const g of LETHAL_GLOW) {
         ctx.globalAlpha = a0 * k * g.alpha;
         frame(ctx, { x: ir.x - g.out, y: ir.y - g.out, w: ir.w + g.out * 2, h: ir.h + g.out * 2 }, C.cinnGlow, g.width);
