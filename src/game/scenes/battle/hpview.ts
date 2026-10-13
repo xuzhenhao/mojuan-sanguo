@@ -1,3 +1,4 @@
+import { clearTextWidthCache } from '../../overlays/theme';
 /**
  * 战斗页体力显示（#129，render-spec §8.8.2）——纯布局函数，场景只负责照着画。
  * - 武将：上限 ≤6 用勾玉（17⌀，间距 clamp((innerW − n×17)/(n−1), 2, 4)，整排居中，不出卡框）；
@@ -51,4 +52,18 @@ export function fitNameCached(name: string, cardW: number, measure: (t: string, 
   let v = nameCache.get(k);
   if (!v) nameCache.set(k, (v = fitName(name, cardW, measure)));
   return v;
+}
+export function clearNameFitCache() {
+  nameCache.clear();
+}
+/** 等 document.fonts 里的霞鹜文楷（族名 Brush）可用后：清牌名字号缓存与量宽缓存，再重绘（加载前量的是回退字体宽度） */
+export function refitAfterBrush(fonts: Pick<FontFaceSet, 'load'>, redraw: () => void): Promise<void> {
+  return fonts.load('20px "Brush"').then(
+    () => {
+      clearNameFitCache();
+      clearTextWidthCache();
+      redraw();
+    },
+    () => undefined,
+  );
 }

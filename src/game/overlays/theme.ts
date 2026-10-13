@@ -65,6 +65,10 @@ export function text(c: Ctx2DLike, s: string, x: number, y: number, font: string
 
 /** 文字宽度：优先 measureText（按 font+文本缓存）；无 measureText 时按字号估算 */
 const widthCache = new Map<string, number>();
+/** 字体换装后（如霞鹜文楷加载完成）宽度全部作废 */
+export function clearTextWidthCache() {
+  widthCache.clear();
+}
 export function textWidth(c: Ctx2DLike, s: string, px: number) {
   const m = ext(c).measureText;
   if (m) {
