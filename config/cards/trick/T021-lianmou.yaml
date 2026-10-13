@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 C1：连谋（普通费减·锦囊向补充） ─────────
+id: T021
+name: 连谋
+shortName: 连谋
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: N
+desc: "摸 1 张牌；本回合你使用的下一张锦囊费用 −1（最低 0）。"
+abilities:
+  - id: lianmou
+    name: 连谋
+    desc: 摸 1 张牌；本回合下一张锦囊费用 −1。
+    trigger: { when: play }
+    do:
+      - { do: draw, target: self, amount: 1 }
+      - { do: apply_status, target: self, status: trick_cost_next, amount: 1 }

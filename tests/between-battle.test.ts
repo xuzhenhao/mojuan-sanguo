@@ -47,13 +47,17 @@ describe('#58 陆逊·谦逊只展示一次、只 +1 军令', () => {
     expect(HEROES.H08.mainSkills.filter((s) => s.name === '谦逊')).toHaveLength(1);
     expect(HEROES.H08.mainSkills.find((s) => s.name === '谦逊')!.desc).toContain('每回合 +1 军令');
   });
-  it('每回合军令 = 上限 + 1（不叠加两次）', async () => {
+  it('每回合军令 = 留存 + 地板 + 谦逊 1（不叠加两次谦逊）', async () => {
     const { g } = mkGame({}, 1, { main: 'H08', sub: 'H07' });
     g.startBattle();
+    // 首回合：地板 3 + 谦逊 1
     expect(g.p.ling).toBe(g.p.maxLing + 1);
     g.hand = [];
+    const left = g.p.ling; // 未出牌，整回合余量
     g.turnEnd();
     await g.endTurn([]);
-    expect(g.p.ling).toBe(g.p.maxLing + 1);
+    // 回合结束保留 ≤ carryMax(2)；下回合 = 保留 + 地板 + 谦逊
+    const carry = Math.min(left, CONFIG.rules.juling!.carryMax);
+    expect(g.p.ling).toBe(carry + g.p.maxLing + 1);
   });
 });

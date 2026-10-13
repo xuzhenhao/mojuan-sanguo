@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 C1：整策 ─────────
+id: T019
+name: 整策
+shortName: 整策
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: N
+desc: "本回合你使用的下一张锦囊费用 −1（最低 0）。"
+abilities:
+  - id: zhengce
+    name: 整策
+    desc: 本回合下一张锦囊费用 −1。
+    trigger: { when: play }
+    do:
+      - { do: apply_status, target: self, status: trick_cost_next, amount: 1 }

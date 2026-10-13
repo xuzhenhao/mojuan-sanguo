@@ -24,6 +24,7 @@ import {
   SUIT_CH,
 } from './rules';
 import type { AffixDef, BattleDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, PlayerDelayed, Slot } from './types';
+import { cardHasExemptTag, costFloor, julingCfg, lingPerTurn, maxPlaysPerTurn, reduceStackMax, zeroCostPerTurn, type LingSlotSnapshot } from './juling';
 
 /** 战间回复后的体力（core 与自动试玩共用同一规则，#56） */
 /** 战间回复：amount 默认取 rules.map.betweenBattleHeal（游戏，H5 = 0，PRD §10.4）；模拟传 rules.sim.baselineBetweenBattleHeal */
@@ -164,6 +165,12 @@ export class Game {
   effects = new Effects(this);
   judgeDeck: JudgeCard[] = [];
   zeroCostPlays = new Map<string, number>();
+  /** 本回合额外产令（不含 perTurn 基础令；受 juling.maxGainPerTurn） */
+  lingGainedThisTurn = 0;
+  /** 本回合主动出牌次数（不含响应；受 loop.maxPlaysPerTurn） */
+  playsThisTurn = 0;
+  /** 最近一次军令变化，供 lingSlot().delta / 飘字 */
+  lingDelta = 0;
   extraActs = new Map<Enemy, string[]>();
   /** 玩家判定区：敌方放置的延时锦囊（张角【闪电】） */
   pJudge: PlayerDelayed[] = [];
@@ -191,8 +198,8 @@ export class Game {
       hp: this.main.hp,
       maxHp: this.main.hp,
       armor: 0,
-      ling: 3,
-      maxLing: RULES.lingPerTurn,
+      ling: 0,
+      maxLing: lingPerTurn(),
       equip: {},
       jiu: 0,
       aogu: 0,
@@ -248,13 +255,84 @@ export class Game {
   }
   costOf(c: CardInst) {
     const d = def(c);
-    let k = c.asSha ? 1 : d.cost;
-    k += this.effects.cardStat(c, 'card_cost'); // 轻招 / 巧思
+    const base = c.asSha ? 1 : d.cost;
+    let reduce = 0;
+    reduce += this.effects.cardStat(c, 'card_cost'); // 轻招 / 精研（通常为负）
     if (isShaPlay(c)) {
-      k += this.effects.stat('sha_cost'); // 诸葛弩（受 limit 约束）
-      if (this.p.lianShan) k--;
+      reduce += this.effects.stat('sha_cost'); // 诸葛弩（受 limit 约束）
+      if (this.p.lianShan) reduce -= 1;
     }
-    return Math.max(0, k);
+    reduce += this.tempCostReduce(c);
+    const cap = reduceStackMax();
+    if (reduce < -cap) reduce = -cap;
+    return Math.max(costFloor(), base + reduce);
+  }
+  /** 状态带来的临时费减（厉兵 / 整策 / 破军令 / 减负） */
+  tempCostReduce(c: CardInst) {
+    const p = this.p.status;
+    let r = 0;
+    if (isShaPlay(c)) {
+      if (p.sha_cost_next) r -= 1;
+      if (p.sha_cost_turn) r -= 1;
+    } else if (def(c).trick) {
+      if (p.trick_cost_next) r -= 1;
+      if (p.trick_cost_turn) r -= 1;
+    }
+    return r;
+  }
+  /** 产令：受 hardCap 与 maxGainPerTurn（额外产令）约束；返回实际获得量。maxGain 截断静默（不标「满」）。 */
+  addLing(n: number, opts: { countGain?: boolean } = {}) {
+    if (n <= 0) {
+      this.lingDelta = 0;
+      return 0;
+    }
+    const j = julingCfg();
+    let gain = n;
+    if (opts.countGain !== false && j) {
+      const left = Math.max(0, j.maxGainPerTurn - this.lingGainedThisTurn);
+      gain = Math.min(gain, left); // 静默截断，不置 full
+      this.lingGainedThisTurn += gain;
+    }
+    if (gain <= 0) {
+      this.lingDelta = 0;
+      return 0;
+    }
+    const hard = j?.hardCap ?? 99;
+    const before = this.p.ling;
+    this.p.ling = Math.min(hard, this.p.ling + gain);
+    const got = this.p.ling - before;
+    this.lingDelta = got;
+    return got;
+  }
+  /** 回合结束保留军令（juling.carryMax） */
+  applyLingCarry() {
+    const j = julingCfg();
+    if (!j) return;
+    if (this.p.ling > j.carryMax) {
+      const before = this.p.ling;
+      this.log(`军令保留：${before}→${j.carryMax}`);
+      this.p.ling = j.carryMax;
+      this.lingDelta = this.p.ling - before;
+    }
+  }
+  /**
+   * 令槽只读快照（#230 锁定 → #231）：`LingSlotSnapshot`。
+   * 「满」= full，仅 hardCap；maxGainPerTurn 截断不置 full。
+   */
+  lingSlot(): LingSlotSnapshot {
+    const j = julingCfg();
+    const cap = lingPerTurn();
+    const hardCap = j?.hardCap ?? cap;
+    const current = this.p.ling;
+    return {
+      current,
+      cap,
+      hardCap,
+      overflow: current > cap,
+      carryMax: j?.carryMax ?? 0,
+      delta: this.lingDelta,
+      full: current >= hardCap,
+    };
   }
   /** 手牌上限 = max(2, 体力) + hand_limit（遗计、托孤…） */
   handLimit() {
@@ -364,13 +442,33 @@ export class Game {
   playerTurn() {
     this.turn++;
     const p = this.p;
-    p.ling = p.maxLing;
+    const per = lingPerTurn();
+    p.maxLing = per;
+    const j = julingCfg();
+    const hard = j?.hardCap ?? 99;
+    // 留令：上回合 carry 后的余量 + 本回合地板；首回合无留存
+    const beforeLing = p.ling;
+    if (this.turn === 1) p.ling = per;
+    else p.ling = Math.min(hard, p.ling + per);
+    this.lingDelta = p.ling - beforeLing;
+    this.lingGainedThisTurn = 0;
+    this.playsThisTurn = 0;
     if (this.turn > 1) p.jiu = 0; // 首回合保留战斗开始获得的酒（凤仪亭）
     p.aogu = 0;
     p.yiyong = 0;
     p.lianShan = 0;
     delete p.status.xieling;
     delete p.status.empty_draw;
+    delete p.status.sha_cost_next;
+    delete p.status.sha_cost_turn;
+    delete p.status.trick_cost_next;
+    delete p.status.trick_cost_turn;
+    // pending_ling（蓄势）在摸牌前结算，计入额外产令
+    if (p.status.pending_ling) {
+      const got = this.addLing(p.status.pending_ling);
+      if (got) this.log(`待令：下回合军令 +${got}`);
+      delete p.status.pending_ling;
+    }
     this.shaIndex = 0;
     this.turnEndDone = false;
     if (this.turn > 1 && p.armor > RULES.armorKeep) {
@@ -381,7 +479,7 @@ export class Game {
     this.zeroCostPlays.clear();
     const n = RULES.drawPerTurn + (this.turn === 1 ? RULES.firstTurnBonus : 0) + this.effects.stat('draw_per_turn');
     this.drawN(n);
-    this.log(`你的回合${this.turn}：军令回满，摸${n}张`);
+    this.log(`你的回合${this.turn}：军令${p.ling}，摸${n}张`);
     this.effects.emitSync('turn_start', this.effects.playerSources());
     this.io.update();
   }
@@ -393,8 +491,11 @@ export class Game {
     if (this.costOf(c) > this.p.ling) return '军令不足';
     if (d.tao && !c.asSha && this.p.hp >= this.p.maxHp) return '体力已满';
     if (d.needRed && !c.asSha && !this.hand.some((x) => x !== c && isRed(x))) return `${d.name}需另一张红色牌`;
-    const zl = CONFIG.rules.mechanics.zeroCostPerTurn;
-    if (zl != null && !d.shan && !d.response && this.costOf(c) === 0 && (this.zeroCostPlays.get(c.id) ?? 0) >= zl) return `0 费牌每回合限 ${zl} 次`;
+    const maxP = maxPlaysPerTurn();
+    if (maxP != null && !d.shan && !d.response && this.playsThisTurn >= maxP) return `本回合最多出 ${maxP} 张牌`;
+    const zl = zeroCostPerTurn();
+    if (zl != null && !d.shan && !d.response && !cardHasExemptTag(c.id) && this.costOf(c) === 0 && (this.zeroCostPlays.get(c.id) ?? 0) >= zl)
+      return `0 费牌每回合限 ${zl} 次`;
     const own = this.effects.cardSources(c, false).find((s) => s.ab.trigger.when === 'play' && !c.asSha);
     if (own && this.effects.remaining(own) <= 0) return '本回合已使用过';
     return null;
@@ -408,7 +509,12 @@ export class Game {
     const p = this.p;
     const cost = this.costOf(c);
     p.ling -= cost;
-    if (cost === 0 && !d.shan && !d.response) this.zeroCostPlays.set(c.id, (this.zeroCostPlays.get(c.id) ?? 0) + 1);
+    this.lingDelta = -cost;
+    if (!d.shan && !d.response) this.playsThisTurn++;
+    if (cost === 0 && !d.shan && !d.response && !cardHasExemptTag(c.id)) this.zeroCostPlays.set(c.id, (this.zeroCostPlays.get(c.id) ?? 0) + 1);
+    // 消费「下一张」费减
+    if (isShaPlay(c) && p.status.sha_cost_next) delete p.status.sha_cost_next;
+    else if (d.trick && !c.asSha && p.status.trick_cost_next) delete p.status.trick_cost_next;
     if (isShaPlay(c) && d.cost + this.effects.cardStat(c, 'card_cost') > 0) this.effects.stat('sha_cost', true);
     if (isShaPlay(c)) p.lianShan = 0;
     const wasSha = !!c.asSha;
@@ -617,6 +723,7 @@ export class Game {
     if (this.turnEndDone) return;
     this.turnEndDone = true;
     this.effects.emitSync('turn_end', this.effects.playerSources());
+    this.applyLingCarry();
     this.io.update();
   }
   discardNeeded() {

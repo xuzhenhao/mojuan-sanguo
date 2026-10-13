@@ -1,6 +1,25 @@
 # yaml-language-server: $schema=schema/rules.schema.json
 # ───────── 全局规则 ─────────
 lingPerTurn: 3 # 每回合军令
+
+# 军令循环（M3 · #230 / 数值草稿 jun-ling-cost-loop-draft.md，总策划已拍板）
+# lingPerTurn 仍保留作兼容；引擎优先读 juling.perTurn
+juling:
+  perTurn: 3 # 每回合基础军令（地板）
+  carryMax: 2 # 回合结束最多保留 2 令
+  hardCap: 6 # 任意时刻令上限
+  maxGainPerTurn: 2 # 本回合卡牌/技能额外产令上限（不含 perTurn）
+cost:
+  floor: 0 # 费用下限；不削精研/轻招/诸葛弩手感，靠 zeroCost + maxPlays 兜底
+  zeroCostPerTurn: 1 # 与 mechanics.zeroCostPerTurn 对齐；引擎优先读此处
+  reduceStackMax: 1 # 同一张牌所有 −费合计最多 −1
+  zeroCostExemptTags: [m4_exempt] # 循环核心 0 费牌白名单 tag
+loop:
+  maxPlaysPerTurn: 8 # 出牌次数硬顶（不含响应）
+  chapterRarity: # 带 loop tag 的卡按章投放；第 1 章仅 N/R，史诗从第 2 章起
+    1: [N, R]
+    2: [N, R, E]
+    3: [N, R, E, L]
 drawPerTurn: 3 # 每回合摸牌
 firstTurnBonus: 2 # 首回合额外摸牌
 minHandLimit: 2 # 手牌上限 = max(2, 当前体力)

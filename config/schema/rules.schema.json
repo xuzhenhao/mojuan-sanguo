@@ -1418,6 +1418,99 @@
           }
         }
       }
+    },
+    "juling": {
+      "type": "object",
+      "description": "军令「留令」路线 1（M3 · #230）：回合开始地板 + 回合结束保留 + 硬顶 + 额外产令软上限",
+      "additionalProperties": false,
+      "required": [
+        "perTurn",
+        "carryMax",
+        "hardCap",
+        "maxGainPerTurn"
+      ],
+      "properties": {
+        "perTurn": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "每回合基础军令（地板；替代/并行 lingPerTurn）"
+        },
+        "carryMax": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "回合结束最多保留的军令"
+        },
+        "hardCap": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "任意时刻军令硬上限（含留存与产令）"
+        },
+        "maxGainPerTurn": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "本回合由卡牌/技能额外获得的令上限（不含 perTurn 基础令）"
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "description": "费用护栏（M3 · #230）",
+      "additionalProperties": false,
+      "properties": {
+        "floor": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "费用下限（已拍板 0）"
+        },
+        "zeroCostPerTurn": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "0 费非响应牌每回合每种限次；缺省回退 mechanics.zeroCostPerTurn"
+        },
+        "reduceStackMax": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "同一张牌所有−费效果合计最多减多少"
+        },
+        "zeroCostExemptTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "带这些 tag 的牌不受 zeroCostPerTurn 限制（循环白名单）"
+        }
+      }
+    },
+    "loop": {
+      "type": "object",
+      "description": "军令循环护栏与投放（M3 · #230）",
+      "additionalProperties": false,
+      "properties": {
+        "maxPlaysPerTurn": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "出牌次数硬顶（不含响应）"
+        },
+        "chapterRarity": {
+          "type": "object",
+          "description": "带 loop tag 的卡按章允许的稀有度；键为章节号",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "N",
+                "R",
+                "E",
+                "L"
+              ]
+            },
+            "minItems": 1
+          }
+        }
+      }
     }
   },
   "additionalProperties": false

@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 G3：天策（史诗；第 2 章起） ─────────
+id: T022
+name: 天策
+shortName: 天策
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: E
+desc: "获得 2 点军令。（第 2 章起投放）"
+abilities:
+  - id: tiance_ling
+    name: 天策
+    desc: 获得 2 点军令。
+    trigger: { when: play }
+    do:
+      - { do: gain_ling, target: self, amount: 2 }

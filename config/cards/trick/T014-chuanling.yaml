@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 G1：传令 ─────────
+id: T014
+name: 传令
+shortName: 传令
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: N
+desc: "获得 1 点军令。"
+abilities:
+  - id: chuanling
+    name: 传令
+    desc: 获得 1 点军令。
+    trigger: { when: play }
+    do:
+      - { do: gain_ling, target: self, amount: 1 }

@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊·循环 G2：待令（稀有；第 1 章每类 1 张） ─────────
+id: T017
+name: 待令
+shortName: 待令
+type: 锦囊
+tags: [trick, loop]
+cost: 1
+rarity: R
+desc: "获得 1 点军令；下回合开始时再获得 1 点军令。"
+abilities:
+  - id: dailing
+    name: 待令
+    desc: 获得 1 点军令；下回合开始时再获得 1 点军令。
+    trigger: { when: play }
+    do:
+      - { do: gain_ling, target: self, amount: 1 }
+      - { do: apply_status, target: self, status: pending_ling, amount: 1 }
