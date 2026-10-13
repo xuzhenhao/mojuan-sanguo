@@ -97,10 +97,20 @@ export class EventScene implements Scene<EventParams> {
     this.env.track?.(ev, data);
   }
 
-  // ---------- 布局（v3/event.html） ----------
-  static readonly PIC: Rect = { x: 18, y: 56, w: 354, h: 300 };
+  // ---------- 布局（v3/event.html；UI 验收：插画区约 45% 高，右侧留 70px 竖排标题） ----------
+  /** 插画区右侧留给竖排标题的列宽 */
+  static readonly TITLE_COL = 70;
+  /** 插画区：高约页高的 45%，避免选项与底栏之间大段空白 */
+  picRect(): Rect {
+    const { width: w, height: h } = this.ctx;
+    return { x: 18, y: 56, w: w - 36, h: Math.round(h * 0.45) };
+  }
+  /** 情景文案起点（插画下 16px） */
+  descY() {
+    return this.picRect().y + this.picRect().h + 16;
+  }
   optRect(i: number): Rect {
-    return { x: 18, y: 430 + i * 76, w: this.ctx.width - 36, h: 64 };
+    return { x: 18, y: this.descY() + 52 + i * 76, w: this.ctx.width - 36, h: 64 };
   }
   blocked(i: number): string | null {
     const o = this.ev?.options[i];
@@ -192,28 +202,34 @@ export class EventScene implements Scene<EventParams> {
     drawTag(c, '奇遇');
     this.drawPic(c);
     if (!this.ev) {
-      label(c, '此处空无一物，忽闻伏兵四起……', w / 2, 400, SANS(15), T.paper, 'center');
+      label(c, '此处空无一物，忽闻伏兵四起……', w / 2, this.descY() + 20, SANS(15), T.paper, 'center');
     } else if (this.result) this.drawResult(c);
     else {
       c.font = SANS(14);
       const lines = wrap(c, this.ev.desc, w - 48, 14);
-      lines.slice(0, 2).forEach((ln, k) => label(c, ln, w / 2, 384 + k * 22, SANS(14), '#d8c8a0', 'center'));
+      lines.slice(0, 2).forEach((ln, k) => label(c, ln, w / 2, this.descY() + 16 + k * 22, SANS(14), DESC, 'center'));
       this.ev.options.forEach((_, i) => this.drawOption(c, i));
     }
     drawBottomBar(c, w, h, this.env.run().read().deck.length);
     for (const b of this.buttons()) drawButton(c, b);
   }
 
-  /** 插画占位：纸色底 + 「？」奇遇印；标题竖排在右 */
+  /** 插画占位：纸色底 + 墨线朱印「？」；右侧 70px 竖排标题（UI 验收） */
   private drawPic(c: Surface['ctx']) {
-    const r = EventScene.PIC;
+    const r = this.picRect();
+    const col = EventScene.TITLE_COL;
     c.fillStyle = T.paper2;
     c.fillRect(r.x, r.y, r.w, r.h);
     frame3(c, r, T.goldMid);
-    circle(c, r.x + r.w / 2 - 20, r.y + r.h / 2, 54, 'rgba(143,195,224,.25)', '#8fc3e0', 3);
-    label(c, '？', r.x + r.w / 2 - 20, r.y + r.h / 2 + 22, BRUSH(64), '#2D4C5A', 'center');
+    // 印章居中于插画左区（排除标题列）
+    const cx = r.x + (r.w - col) / 2;
+    const cy = r.y + r.h / 2;
+    circle(c, cx, cy, 54, T.paper, T.ink, 1.5);
+    label(c, '？', cx, cy + 22, BRUSH(64), T.cinnabar, 'center');
     const title = this.ev?.title ?? '伏兵';
-    [...title].forEach((ch, k) => label(c, ch, r.x + r.w - 32, r.y + 56 + k * 44, BRUSH(40), T.ink, 'center'));
+    const tx = r.x + r.w - col / 2;
+    const ty0 = r.y + Math.max(40, (r.h - title.length * 44) / 2 + 18);
+    [...title].forEach((ch, k) => label(c, ch, tx, ty0 + k * 44, BRUSH(40), T.ink, 'center'));
   }
 
   private drawOption(c: Surface['ctx'], i: number) {
@@ -224,10 +240,11 @@ export class EventScene implements Scene<EventParams> {
     if (why) c.globalAlpha = ga * 0.4;
     vgrad(c, r, 'rgba(42,20,16,.95)', 'rgba(15,7,5,.95)');
     frame3(c, r, T.goldMid);
-    label(c, o.text, r.x + 14, r.y + (o.hint ? 30 : 40), BRUSH(22), T.gold);
-    if (o.hint) label(c, o.hint, r.x + 14, r.y + 52, SANS(12), T.paper3);
+    label(c, o.text, r.x + 14, r.y + (o.hint ? 28 : 40), BRUSH(22), T.gold);
+    // 副文案 ≥13px，色与情景文案（#d8c8a0）同亮
+    if (o.hint) label(c, o.hint, r.x + 14, r.y + 52, SANS(13), DESC, 'left');
     c.globalAlpha = ga;
-    if (why) label(c, why, r.x + r.w - 12, r.y + 38, SANS(12), '#ff8a73', 'right');
+    if (why) label(c, why, r.x + r.w - 12, r.y + 38, SANS(13), T.dmg, 'right');
   }
 
   private drawResult(c: Surface['ctx']) {
@@ -237,7 +254,13 @@ export class EventScene implements Scene<EventParams> {
     c.globalAlpha = ga * this.resultAlpha();
     c.font = BRUSH(18);
     const lines = wrap(c, r.text, w - 72, 18).slice(0, 2);
-    const box = { x: 24, y: 380, w: w - 48, h: 30 + lines.length * 24 + (r.changes.length + (r.judge ? 1 : 0)) * 26 + 10 };
+    // 结果卡贴在插画区下方（不再固定 380，避免大空洞）
+    const box = {
+      x: 24,
+      y: this.descY(),
+      w: w - 48,
+      h: 30 + lines.length * 24 + (r.changes.length + (r.judge ? 1 : 0)) * 26 + 10,
+    };
     vgrad(c, box, 'rgba(42,20,16,.95)', 'rgba(15,7,5,.95)');
     frame3(c, box, T.goldHi);
     let y = box.y + 36;
@@ -246,16 +269,32 @@ export class EventScene implements Scene<EventParams> {
       y += 24;
     }
     if (r.judge) {
-      const suit = { S: '♠', H: '♥', C: '♣', D: '♦' }[r.judge.suit];
-      label(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, SANS(14), r.judge.red ? '#ff8a73' : T.paper, 'center');
+      // Brush 子集无 ♣♠♥♦，改用中文花色（不引入回退字体）
+      const suit = SUIT_ZH[r.judge.suit];
+      label(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, SANS(14), r.judge.red ? T.dmg : T.paper, 'center');
       y += 26;
     }
     for (const ch of r.changes) {
-      label(c, ch.text, w / 2, y + 6, SANS(15), ch.kind === 'card-' || ch.text.includes('→') ? T.paper : T.jadeHi, 'center');
+      label(c, ch.text, w / 2, y + 6, SANS(15), changeColor(ch), 'center');
       y += 26;
     }
     c.globalAlpha = ga;
   }
+}
+
+/** 情景 / 选项副文案色（与 v3/event.html .desc 一致） */
+const DESC = '#d8c8a0';
+/** Brush 无扑克花色字形，用中文（core+ext 都覆盖） */
+const SUIT_ZH: Record<'S' | 'H' | 'C' | 'D', string> = { S: '黑桃', H: '红桃', C: '梅花', D: '方片' };
+
+/** 结果数值色：得牌 / 上涨 = 金；体力下降 = 朱砂；无绿色 */
+function changeColor(ch: { kind: string; text: string }): string {
+  if (ch.kind === 'card+') return T.gold;
+  if (ch.kind === 'card-') return T.paper;
+  if (ch.kind === 'armor') return T.gold;
+  const m = /(\d+)→(\d+)/.exec(ch.text);
+  if (m && Number(m[2]) < Number(m[1])) return T.cinnHi;
+  return T.gold;
 }
 
 /** 正式局读写 RunSession.state（不写盘，completeNode 写） */
