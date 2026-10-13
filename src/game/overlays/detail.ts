@@ -75,7 +75,7 @@ export function placeDetail(at: Vec2, h: number, safe: Rect): Rect {
 }
 
 export const TITLE_MIN_PX = 20;
-const titleFont = (px: number) => `${px}px "Brush", serif`;
+const titleFont = (px: number) => `${px}px "Brush"`;
 /** 右上费用珠 + 花色点数所占宽度 */
 export function badgeWidth(ctx: Surface['ctx'], c: DetailContent) {
   let w = 0;
