@@ -244,7 +244,10 @@ async function resumeRun() {
     await go('reward', { kind: t === 'BOSS' ? 'boss' : t === 'ELITE' ? 'elite' : 'normal' });
   } else if (pend?.type === 'SHOP') await go('shop', { kind: 'shop' });
   else if (pend?.type === 'CHEST') await go('chest', { kind: 'chest' });
-  else await go('map');
+  else if (pend?.type === 'REST') {
+    const n = st.map?.nodes.find((x) => x.id === pend.id);
+    await go('rest', { kind: 'rest', nodeId: pend.id, layer: n?.layer, fixed: n?.layer === 8 });
+  } else await go('map');
   showNotice(engine.overlays, plan.toast);
 }
 (window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router, run, economy, meta, slot, resultBridge };

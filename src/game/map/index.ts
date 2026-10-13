@@ -93,6 +93,7 @@ export function runPersist(): MapPersist {
         if (changed && !fresh) d.deck = starterDeck(d.heroMain).map(([id, suit, rank]) => ({ uid: allocCardUid(d), id, suit, rank, mods: [] }));
         d.hp = v.hp;
         d.maxHp = v.maxHp;
+        if (v.relics) d.relics = [...v.relics];
         if (!fresh) d.gold = v.gold;
       });
       const st = mapStore();

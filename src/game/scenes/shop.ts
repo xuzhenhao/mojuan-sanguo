@@ -376,8 +376,22 @@ export function drawMerchant(c: Surface['ctx'], x: number, y: number) {
   }
 }
 
-/** 牌组选择（删牌）：不可删的牌置灰；结果为 uid，取消为 undefined */
-export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, title: string) {
+export interface DeckPickOpts {
+  /** 可选判定（默认集市删牌规则 canRemove） */
+  ok?(c: CardInst): boolean;
+  /** 标题下的规则提示 */
+  hint?: string;
+  /** 点可选牌后的二次确认（默认焚稿确认）；null = 不确认，直接返回 */
+  confirm?: { title: string; line(c: CardInst): string; ok: string } | null;
+  /** 点置灰牌时的 toast（不填则无反馈） */
+  reject?(c: CardInst): string | null;
+  /** 卡右上角金签（如淬炼满词条「可替换」，render-spec §8.7） */
+  tag?(c: CardInst): string | null;
+}
+const BURN_CONFIRM = { title: '焚稿', line: (c: CardInst) => `删除「${def(c).name}」？`, ok: '删除' };
+
+/** 牌组选择（删牌 / 淬炼）：不可选的牌置灰；结果为 uid，取消为 undefined */
+export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, title: string, o: DeckPickOpts = {}) {
   const cols = 5;
   const cw = 64;
   const ch = 92;
@@ -387,7 +401,9 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
   const rect = (i: number): Rect => ({ x: x0 + (i % cols) * (cw + gap), y: y0 + Math.floor(i / cols) * (ch + gap), w: cw, h: ch });
   const cancel: Button = { id: 'cancel', rect: { x: w / 2 - 50, y: h - BAR_H - 56, w: 100, h: 42 }, text: '取消', kind: 'secondary', font: BRUSH(17) };
   const deck = [...inv.deck];
-  const ok = (c: CardInst) => canRemove(inv, c.uid);
+  const ok = o.ok ?? ((c: CardInst) => canRemove(inv, c.uid));
+  const hint = o.hint ?? '删后至少 8 张，且至少保留 1 张杀类';
+  const cf = o.confirm === undefined ? BURN_CONFIRM : o.confirm;
   return env.overlays.push<number>({
     id: 'deck-pick',
     kind: 'popup',
@@ -395,7 +411,7 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
     draw: (s) => {
       const c = s.ctx;
       label(c, title, w / 2, 110, BRUSH(24), T.gold, 'center');
-      label(c, '删后至少 8 张，且至少保留 1 张杀类', w / 2, 134, SANS(12), T.paper3, 'center');
+      label(c, hint, w / 2, 134, SANS(12), T.paper3, 'center');
       deck.forEach((card, i) => {
         const r = rect(i);
         const ga = c.globalAlpha;
@@ -407,6 +423,13 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
         paintCard(c, card);
         g.restore?.();
         c.globalAlpha = ga;
+        if (card.mods.length) label(c, '◆'.repeat(card.mods.length), r.x + r.w - 4, r.y + r.h - 4, SANS(10), T.gold, 'right');
+        const tg = ok(card) ? o.tag?.(card) : null;
+        if (tg) {
+          c.fillStyle = T.gold;
+          c.fillRect(r.x + r.w - 40, r.y - 6, 42, 16);
+          label(c, tg, r.x + r.w - 19, r.y + 6, BRUSH(11), T.lac1, 'center');
+        }
       });
       drawButton(c, cancel);
     },
@@ -420,9 +443,14 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
       const i = deck.findIndex((_, k) => inside(rect(k), e.at));
       if (i >= 0 && ok(deck[i])) {
         const card = deck[i];
-        void confirm(env.overlays, w, h, { title: '焚稿', lines: [`删除「${def(card).name}」？`], ok: '删除', okKind: 'primary' }).result.then(
-          (y) => y && hd.close(card.uid),
-        );
+        if (!cf) hd.close(card.uid);
+        else
+          void confirm(env.overlays, w, h, { title: cf.title, lines: [cf.line(card)], ok: cf.ok, okKind: 'primary' }).result.then(
+            (y) => y && hd.close(card.uid),
+          );
+      } else if (i >= 0) {
+        const m = o.reject?.(deck[i]);
+        if (m) toast(env.overlays, m, w, 80);
       } else if (inside(cancel.rect, e.at)) hd.close(undefined);
       return true;
     },
