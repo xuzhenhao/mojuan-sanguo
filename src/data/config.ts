@@ -106,6 +106,8 @@ export interface ConfigBundle {
     };
     /** 复活（PRD §4.4.1；仅天命<5） */
     revive: { count: number; hpRatio: number; hpMin: number; armor: number };
+    /** 开放章节数（PRD 10.1；schema 可选，缺省 1） */
+    run?: { chapters: number };
     /** 奇遇（#174） */
     event: { startArmorCap: number };
     /** 结算将魂系数（PRD 14.5；#174） */
@@ -188,6 +190,5 @@ export function atomAmount(abilities: Ability[] | undefined, atom: string): numb
 /** rules.settlement（PRD 14.5） */
 export interface SettlementCfg {
   soul: { perChapter: number; perElite: number; perWin: number; perBoss: number; defeatMul: number; tianmingStep: number };
-  lastChapter: number;
   maxTianming: number;
 }

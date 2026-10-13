@@ -50,6 +50,9 @@ export interface RunOutcome {
 /** 将魂系数（PRD 14.5；config rules.settlement，#174） */
 export const SETTLEMENT_CONFIG: SettlementCfg = CONFIG.rules.settlement;
 
+/** 最后一章 = config rules.run.chapters（缺省 1，与 data/map RUN_CHAPTERS 同规则）；调用时读取 */
+export const lastChapter = (rules: Pick<typeof CONFIG.rules, 'run'> = CONFIG.rules): number => rules.run?.chapters ?? 1;
+
 export interface SoulLine {
   label: string;
   count: number;

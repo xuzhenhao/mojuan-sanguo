@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/data/config';
 import { START_ARMOR_CAP, applyOption, eventDef, type EventRun } from '../src/game/event/logic';
-import { SETTLEMENT_CONFIG, computeSoul, type RunOutcome } from '../src/game/result/settlement';
+import { SETTLEMENT_CONFIG, computeSoul, lastChapter, type RunOutcome } from '../src/game/result/settlement';
 import { emptyStats } from '../src/game/run/stats';
 
 const st = (o: Partial<EventRun> = {}): EventRun => ({
@@ -41,7 +41,6 @@ describe('#174 rules.settlement', () => {
     expect(SETTLEMENT_CONFIG).toBe(CONFIG.rules.settlement);
     expect(SETTLEMENT_CONFIG).toEqual({
       soul: { perChapter: 30, perElite: 8, perWin: 2, perBoss: 40, defeatMul: 0.5, tianmingStep: 0.1 },
-      lastChapter: 1,
       maxTianming: 10,
     });
   });
@@ -49,6 +48,22 @@ describe('#174 rules.settlement', () => {
     expect(computeSoul(outcome()).base).toBe(100);
     expect(computeSoul(outcome({ tianming: 3 })).total).toBe(130);
     expect(computeSoul(outcome({ win: false, chaptersCleared: 0 })).afterDefeat).toBe(35);
+  });
+  it('settlement 不再有 lastChapter，最后一章读 rules.run.chapters', () => {
+    expect('lastChapter' in CONFIG.rules.settlement).toBe(false);
+    expect(lastChapter()).toBe(CONFIG.rules.run!.chapters);
+  });
+  it('改 run.chapters 即改最后一章（调用时读取）', () => {
+    const run = CONFIG.rules.run!;
+    const old = run.chapters;
+    try {
+      run.chapters = 3;
+      expect(lastChapter()).toBe(3);
+    } finally {
+      run.chapters = old;
+    }
+    expect(lastChapter({ run: { chapters: 2 } })).toBe(2);
+    expect(lastChapter({})).toBe(1);
   });
   it('改系数即改结果（不再写死）', () => {
     const cfg = { ...CONFIG.rules.settlement.soul, perWin: 5 };
