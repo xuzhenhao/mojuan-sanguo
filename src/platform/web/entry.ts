@@ -137,6 +137,7 @@ engine.scenes.register(
         void router.send({ type: 'battle_end', win }, win ? { kind } : undefined);
       },
       heroes: () => run.params,
+      battleNo: () => (run.active ? run.battleNo : undefined),
       build: (io, p) =>
         run.active && p.nodeId && p.nodeType && p.enemies
           ? run.buildBattle(io, { nodeId: p.nodeId, nodeType: p.nodeType, encounterName: p.encounterName ?? '', enemies: p.enemies }, false)

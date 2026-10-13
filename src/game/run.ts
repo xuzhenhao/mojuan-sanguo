@@ -13,6 +13,7 @@ import { BATTLES } from '../data/enemies';
 import { betweenBattleHeal } from '../core/battle';
 import type { CardInst } from '../core/types';
 import type { Inventory } from './economy/inventory';
+import { battleResultDelta, mergeStats, type RunStats } from './run/stats';
 import {
   cloneRunState,
   createRunState,
@@ -78,6 +79,8 @@ export class RunSession {
   private inv: Inventory | null = null;
   /** 绑定的存储（页面接入后由入口设置；所有写档都走新键 mojuan.runstate.v1） */
   store: RunStateStore | null = null;
+  /** 本场战斗开打时的体力与节点类型（结算统计增量用，不进存档：进节点快照里本来就是开打前状态） */
+  private battleStart: { hp: number; kind: 'normal' | 'elite' | 'boss' } | null = null;
 
   start(p: RunParams, io: BattleIO = NULL_IO, o: StartOpts = {}): Game {
     if (p.main === p.sub) throw new Error('主副将不能是同一人');
@@ -194,6 +197,7 @@ export class RunSession {
     this.rngs = {};
     this.game = null;
     this.checkpoint = st.pendingNode ? serializeRunState(st) : null;
+    this.battleStart = null;
     this.params = { main: st.heroMain, sub: st.heroSub, seed: st.runSeed };
   }
   /** 结束本局（结算 / 放弃） */
@@ -243,6 +247,7 @@ export class RunSession {
     g.p.maxHp = s.maxHp;
     g.encounter = { name: b.encounterName, en: [...b.enemies] };
     g.battleIdx = b.nodeType === 'BOSS' ? BATTLES.length - 1 : 0;
+    this.battleStart = { hp: s.hp, kind: b.nodeType === 'BOSS' ? 'boss' : b.nodeType === 'ELITE' ? 'elite' : 'normal' };
     this.game = g;
     if (start) g.startBattle();
     return g;
@@ -254,11 +259,33 @@ export class RunSession {
   settleBattle(win: boolean) {
     const g = this.game;
     if (!g) return;
+    const delta = this.battleDelta(g, win);
     this.update((d) => {
+      d.stats = mergeStats(d.stats, delta);
       d.hp = win ? betweenBattleHeal(Math.max(0, g.p.hp), g.p.maxHp, CONFIG.rules.map.betweenBattleHeal) : Math.max(0, g.p.hp);
       d.maxHp = g.p.maxHp;
       d.deck = cloneDeck(g.deckMaster.filter((c) => !isTempUid(c.uid)));
     });
+  }
+  /**
+   * 本场战斗的统计增量（PRD 21.4 stats）：胜场 / 精英 / Boss、回合数、灵光次数、
+   * 承受伤害（开打体力 − 结束体力）、造成伤害（敌人 maxHp − 剩余 hp）。maxTurnLoss 由战斗页逐回合记账，这里不推算。
+   */
+  battleDelta(g: Game, win: boolean): Partial<RunStats> {
+    const st = this.battleStart;
+    const kind = st?.kind ?? 'normal';
+    const dealt = g.en.reduce((n, e) => n + Math.max(0, e.max - Math.max(0, e.hp)), 0);
+    return {
+      ...battleResultDelta(kind, win),
+      turns: g.turn,
+      epiphanies: g.epiCount,
+      dmgTaken: st ? Math.max(0, st.hp - Math.max(0, g.p.hp)) : 0,
+      dmgDealt: dealt,
+    };
+  }
+  /** 当前（或下一场）战斗序号（1 起）：= 已胜场次 + 1。由 RunState.stats.battlesWon 推出，随存档持久化，续玩不重置 */
+  get battleNo(): number {
+    return (this.st?.stats.battlesWon ?? 0) + 1;
   }
   /** 战斗失败：标记「结束本局」并清 pendingNode，立即写档；刷新 / 续玩直接进结算页，不能重打 */
   endRun(store: RunStateStore | null = this.store) {

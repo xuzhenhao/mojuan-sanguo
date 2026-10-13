@@ -52,6 +52,8 @@ export interface BattleDeps {
    * 返回 null（没有局 / 直达调试）则按旧逻辑用 seed + 默认体力牌组建。
    */
   build?(io: BattleIO, params: BattleParams): Game | null;
+  /** 本局战斗序号（1 起，RunSession.battleNo）；不给时退回 core battleIdx + 1（直达调试） */
+  battleNo?(): number | undefined;
   /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
   debugDefaults?: boolean;
   warn?(msg: string): void;
@@ -775,7 +777,7 @@ export class BattleScene implements Scene<BattleParams> {
   /** 顶条文案：全部读 core 状态，不写死（#55） */
   topBar() {
     const g = this.g;
-    return { left: `第${g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
+    return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
   }
 
   drawBg(ctx: Ctx2DLike) {
