@@ -96,6 +96,9 @@ export function refitAfterBrush(fonts: Pick<FontFaceSet, 'load'>, redraw: () => 
 export const DYING_PERIOD_MS = 1200;
 export const DYING_ALPHA_MIN = 0.35;
 export const DYING_ALPHA_MAX = 0.9;
+/** #141 定稿：朱砂 #b8322a，2px，只描主将卡外轮廓 */
+export const DYING_EDGE_COLOR = '#b8322a';
+export const DYING_EDGE_W = 2;
 export const isDying = (hp: number) => hp <= 1;
 export function dyingAlpha(nowMs: number): number {
   const mid = (DYING_ALPHA_MIN + DYING_ALPHA_MAX) / 2;

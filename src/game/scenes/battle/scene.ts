@@ -4,7 +4,7 @@
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
 import { CARDS } from '../../../data/cards';
-import { BEAD_D, dyingAlpha, enemyHpView, isDying, fitNameCached, heroHpView } from './hpview';
+import { BEAD_D, DYING_EDGE_COLOR, DYING_EDGE_W, dyingAlpha, enemyHpView, isDying, fitNameCached, heroHpView } from './hpview';
 import { textWidth } from '../../overlays/theme';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
@@ -1051,11 +1051,11 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (!only || only === 'main') {
       const r = { ...L.main, x: L.main.x + shake };
-      // dying（§3.3）：朱砂红边脉动，只给主将
+      // dying（§3.3）：朱砂 2px 外轮廓脉动，只给主将
       if (isDying(g.p.hp)) {
         const a = ctx.globalAlpha;
         ctx.globalAlpha = a * dyingAlpha(this.deps.now?.() ?? performance.now());
-        rect(ctx, inset(r, -3), C.cinnabar);
+        frame(ctx, inset(r, -DYING_EDGE_W), DYING_EDGE_COLOR, DYING_EDGE_W); // 只描外轮廓，不动牌面
         ctx.globalAlpha = a;
       }
       goldFrame(ctx, r, 'gold', 4);
