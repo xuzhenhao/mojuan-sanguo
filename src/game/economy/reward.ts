@@ -1,4 +1,5 @@
 /** 战斗奖励（PRD 14.8 / 14.1 / 14.3 / 12.2 / 16.2.1）。纯逻辑，可单测；表现见 scenes/reward.ts */
+import { relicEffect } from '../../data/config';
 import type { Rng } from '../../core/rng';
 import type { Suit } from '../../core/types';
 import { ECONOMY, type BattleKind } from '../../data/economy';
@@ -39,8 +40,8 @@ export function rollCards(rng: Rng, inv: Inventory, kind: BattleKind): CardOffer
 export function rollReward(rng: Rng, inv: Inventory, kind: BattleKind): RewardOffer {
   const ch = Math.min(Math.max(inv.chapter, 1), 3) - 1;
   let gold = randInt(rng, ECONOMY.battleGold[kind][ch]);
-  if (kind === 'elite' && inv.relics.includes('R29')) gold += 20; // 鼓吹
-  if (inv.relics.includes('R04')) gold += 10; // 孙子残卷
+  if (kind === 'elite') gold += relicEffect(inv.relics, 'eliteGoldBonus'); // 如 R29 鼓吹
+  gold += relicEffect(inv.relics, 'goldBonus'); // 如 R04 孙子残卷
   const potion = rng() < ECONOMY.potionDrop[kind] ? pickPotion(rng) : null;
   let relics: string[] = [];
   if (kind === 'elite') relics = pickRelics(rng, inv.relics, 1, ECONOMY.relicRarity);

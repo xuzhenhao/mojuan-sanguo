@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P08
+name: 狂战药
+desc: "本回合杀 +1，受伤 +1"
+price: 40 # 14.2 集市基价（浮动前）

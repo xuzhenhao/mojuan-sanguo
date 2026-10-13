@@ -8,6 +8,7 @@
 import type { Rng } from '../rng';
 import type { AffixDef, CardInst } from '../types';
 import { affixPool, def, isShaPlay } from '../rules';
+import { relicEffect } from '../../data/config';
 
 export interface RestConfig {
   healMin: number;
@@ -22,10 +23,9 @@ export function applyRestHeal(hp: number, maxHp: number, cfg: RestConfig, relicB
   return { hp: next, healed: next - hp };
 }
 
-/** 营地疗伤的宝物加成：R03 青囊书 +2（PRD §15 V1） */
-export const REST_RELIC_HEAL: Record<string, number> = { R03: 2 };
+/** 营地疗伤的宝物加成：config/relics effects.restHeal 之和（如 R03 青囊书 +2，PRD §15 V1） */
 export function restRelicBonus(relics: readonly string[]) {
-  return relics.reduce((s, r) => s + (REST_RELIC_HEAL[r] ?? 0), 0);
+  return relicEffect(relics, 'restHeal');
 }
 
 // ───────── 淬炼 ─────────

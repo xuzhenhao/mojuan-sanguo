@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R02
+name: 虎符
+rarity: Boss
+desc: "每回合 +1 令；手牌上限 −1"

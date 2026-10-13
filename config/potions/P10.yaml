@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P10
+name: 灵光石
+desc: "下一张牌必触发灵光"
+price: 60 # 14.2 集市基价（浮动前）

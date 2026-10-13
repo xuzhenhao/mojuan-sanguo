@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R28
+name: 简册
+rarity: R
+desc: "兵书带入 +1"

@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R12
+name: 诸葛灯
+rarity: E
+desc: "开战看全部首意图，首回合 +1 令"

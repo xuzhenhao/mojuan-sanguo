@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R16
+name: 劫火油囊
+rarity: R
+desc: "火攻类费用 −1"

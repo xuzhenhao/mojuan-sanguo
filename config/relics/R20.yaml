@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R20
+name: 米肉账
+rarity: N
+desc: "集市多 1 丹药槽"
+effects: { shopPotionSlots: 1 }

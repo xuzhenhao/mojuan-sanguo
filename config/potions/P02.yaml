@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P02
+name: 金创药
+desc: "3 甲 + 摸 1"
+price: 45 # 14.2 集市基价（浮动前）
