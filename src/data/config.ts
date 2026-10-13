@@ -241,11 +241,15 @@ export interface EconomyCfg {
 }
 
 /** rules.fonts（#202）：族名、包内路径、首屏门控 */
+export type FontRoleName = 'brush' | 'sans';
+/** 系统通用字族（回退用） */
+export type GenericFamily = 'serif' | 'sans-serif';
+/** 字体角色：system = 系统字体（不加载）；否则族名 + 要加载的文件（无 faces 时复用同族已加载字体） */
+export type FontRole = 'system' | { family: string; faces?: { url: string; gate: boolean }[] };
 export interface FontsConfig {
   gateTimeoutMs: number;
-  families: { brush: string; sans: string };
-  fallback: { brush: 'serif' | 'sans-serif'; sans: 'serif' | 'sans-serif' };
-  faces: { family: string; url: string; gate: boolean }[];
+  fallback: Record<FontRoleName, GenericFamily>;
+  platforms: Record<'web' | 'wechat', Record<FontRoleName, FontRole>>;
 }
 export const FONTS: FontsConfig = CONFIG.rules.fonts;
 

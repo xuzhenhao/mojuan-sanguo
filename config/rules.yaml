@@ -176,13 +176,25 @@ battleTitle:
 # localBaseUrl：仅开发构建且 VITE_ASSET_LOCAL=1 时使用，dev server 在这个站内路径下提供本地 art/out/（先跑 scripts/build-portraits.py 产出 WebP）。
 assets: { baseUrl: 'https://test-oss.xiaobien.com/mojuan/assets/', devBaseUrl: 'https://test-oss.xiaobien.com/mojuan/assets/', localBaseUrl: '/__art-out/' }
 
-# ───────── 字体（#202）：各端经 platform.fonts.load(family, url) 加载；url 为包内相对路径（H5 拼 BASE_URL，微信端拼包内路径） ─────────
-# gate: true 的字体首屏等它就绪（最多 gateTimeoutMs），期间只画墨底不出字；超时或失败回退系统字体（brush→serif，sans→sans-serif），只打一行日志。
-# gate: false 的字体在首屏后后台加载，到位后重绘。
+# ───────── 字体（#202）：按平台配置每个字体角色（brush 书法 / sans 正文）；各端经 platform.fonts.load(family, url) 加载 ─────────
+# 角色写 system：直接用系统字体（fallback 里的通用字族），不加载任何文件。
+# 角色写 { family, faces }：faces 为包内相对路径（相对 public/）；gate: true 的首屏等它就绪（最多 gateTimeoutMs，期间只画墨底不出字），
+#   gate: false 的首屏后后台加载、到位后重绘。没有 faces 的角色复用同族名已加载的字体。
+# 只有真正要加载的 gate 字体才参与门控；超时或失败回退 fallback（brush→serif，sans→sans-serif），字号布局不变，只打一行日志。
 fonts:
   gateTimeoutMs: 3000
-  families: { brush: Brush, sans: Brush } # 书法 / 正文都用霞鹜文楷（#142）
   fallback: { brush: serif, sans: sans-serif }
-  faces:
-    - { family: Brush, url: 'assets/fonts/wenkai-core.woff2', gate: true }
-    - { family: Brush, url: 'assets/fonts/wenkai-ext.woff2', gate: false }
+  platforms:
+    web: # H5：书法 / 正文都用霞鹜文楷（#142）
+      brush:
+        family: Brush
+        faces:
+          - { url: 'assets/fonts/wenkai-core.woff2', gate: true }
+          - { url: 'assets/fonts/wenkai-ext.woff2', gate: false }
+      sans: { family: Brush }
+    wechat: # 小游戏：只加载书法字，正文用系统 sans-serif（字体格式 / 路径以 #205 为准）
+      brush:
+        family: Brush
+        faces:
+          - { url: 'assets/fonts/wenkai-core.woff2', gate: true }
+      sans: system

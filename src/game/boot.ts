@@ -33,7 +33,7 @@ import { pauseFlow } from './result/pause';
 import { SettingsStore, battleSettings } from './prefs/settings';
 import type { Platform } from '../platform/types';
 import type { RenderConfig } from '../engine/settings';
-import { loadGameFonts } from './fonts';
+import { loadGameFonts, setFontPlatform } from './fonts';
 import { FONTS } from '../data/config';
 import { refitFonts } from './scenes/battle/hpview';
 import { setReducedMotionSource } from './motion';
@@ -50,6 +50,7 @@ export interface BootOptions {
 
 export function bootGame(platform: Platform, opts: BootOptions) {
   /** 底纹层：真实视口 W×H 铺满宣纸色（cover），设计框外的余量不留黑边（render-spec §4.0） */
+  setFontPlatform(FONTS, platform.name);
   setReducedMotionSource(() => platform.prefersReducedMotion());
   bindTelemetry(platform.telemetry, () => platform.now());
   platform.onHide(flushTelemetry);
@@ -121,7 +122,7 @@ export function bootGame(platform: Platform, opts: BootOptions) {
       }),
   );
   // 字体（#202）：经 platform.fonts 按 rules.fonts 加载；首帧等门控字体（最多 gateTimeoutMs），超时 / 失败回退系统字体
-  const fontsReady = loadGameFonts(platform.fonts, FONTS, {
+  const fontsReady = loadGameFonts(platform.fonts, FONTS, platform.name, {
     warn: (m) => platform.warn(m),
     onLoaded: () => refitFonts(() => engine.invalidateAll()),
   });

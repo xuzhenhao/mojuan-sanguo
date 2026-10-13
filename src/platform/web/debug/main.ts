@@ -4,6 +4,7 @@ console.info(DEBUG_DOM_BUILD_MARKER);
 import './style.css';
 import { createWebFonts, webFontDeps } from '../fonts';
 import { FONTS } from '../../../data/config';
+import { facesOf } from '../../../game/fonts';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -514,5 +515,5 @@ newRun();
 // #142/#202：调试页同样按 rules.fonts 加载霞鹜文楷（CSS 族名 Brush）
 {
   const fonts = createWebFonts(webFontDeps(import.meta.env.BASE_URL));
-  for (const f of FONTS.faces) void fonts.load(f.family, f.url);
+  for (const f of facesOf(FONTS, 'web')) void fonts.load(f.family, f.url);
 }
