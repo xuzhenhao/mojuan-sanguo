@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OverlayStack } from '../src/engine/modal';
-import { openRevive, reviveLayout, REVIVE_ID } from '../src/game/overlays/revive';
-import { BattleScene } from '../src/game/scenes/battle/scene';
+import { openRevive, reviveCountText, reviveLayout, REVIVE_ID } from '../src/game/overlays/revive';
+import { BattleScene, intentIcon } from '../src/game/scenes/battle/scene';
 
 const SAFE = { x: 0, y: 0, w: 390, h: 844 };
 const mkOv = () => new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
@@ -60,5 +60,10 @@ describe('#106 复活层「将星未陨」', () => {
     expect(g.over).toBe(false);
     expect(g.p.hp).toBe(2);
     expect(g.reviveLeft).toBe(0);
+  });
+  it('文案：「本局剩余 N 次」；只出闪的意图图标是「闪」（闪标记，不是盾）', () => {
+    expect(reviveCountText(1)).toBe('本局剩余 1 次');
+    expect(intentIcon(0, true)).toBe('闪');
+    expect(intentIcon(2, false)).toBe('⚔');
   });
 });

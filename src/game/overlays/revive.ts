@@ -1,7 +1,7 @@
 /**
  * 复活子层「将星未陨」（PRD 4.4.1、subpages-v05 §2、mockups-v3/revive.html，#106）。
  * - 模态、暂停场景，不可点遮罩关闭，H5 无倒计时、无广告图标。
- * - 内容：标题、主将名、复活收益（体力 +hp、护甲 +armor）、「敌下回合」每个敌人闪 +1、按钮「放弃」「复活」、小字「本局 N 次」。
+ * - 内容：标题、主将名、复活收益（体力 +hp、护甲 +armor）、「敌下回合」每个敌人闪 +1、按钮「放弃」「复活」、小字「本局剩余 N 次」。
  */
 import type { OverlayStack } from '../../engine/modal';
 import type { Rect, Vec2 } from '../../engine/types';
@@ -11,8 +11,10 @@ export interface ReviveInfo {
   hero: string;
   hp: number;
   armor: number;
-  /** 选复活前剩余次数（文案「本局 N 次」用每局总次数） */
+  /** 每局复活总次数 */
   perRun: number;
+  /** 选复活前本局剩余次数（文案「本局剩余 N 次」） */
+  left?: number;
   /** 存活敌人数（「敌下回合」每人闪 +1） */
   enemies: number;
 }
@@ -32,6 +34,8 @@ export function reviveLayout(safe: Rect): ReviveLayout {
   const by = dlg.y + h - 22 - 48 - 26;
   return { dlg, giveUp: { x: dlg.x + 18, y: by, w: bw, h: 48 }, revive: { x: dlg.x + 18 + bw + 12, y: by, w: bw, h: 48 } };
 }
+
+export const reviveCountText = (left: number) => `本局剩余 ${left} 次`;
 
 export const REVIVE_ID = 'revive';
 
@@ -83,5 +87,5 @@ export function drawRevive(c: Ctx, L: ReviveLayout, info: ReviveInfo) {
   fill(c, L.revive, C.jade);
   frame(c, L.revive, C.gold, 1.5);
   textCenter(c, '复活', L.revive.x + L.revive.w / 2, L.revive.y + 31, '20px "Brush"', C.paper, 20);
-  textCenter(c, `本局 ${info.perRun} 次`, cx, L.revive.y + L.revive.h + 20, '12px "Brush"', '#a89c84', 12);
+  textCenter(c, reviveCountText(info.left ?? info.perRun), cx, L.revive.y + L.revive.h + 20, '12px "Brush"', '#a89c84', 12);
 }
