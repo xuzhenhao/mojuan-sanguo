@@ -121,6 +121,8 @@ export interface Settings {
   sub?: string;
   /** rules.presets 中的预设（如 legacy_guanyu_zhaoyun） */
   preset?: string;
+  /** 本局宝物（#231 最小接线：R02 虎符每回合 +1 令、手牌上限 −1） */
+  relics?: string[];
 }
 
 export interface Player {
@@ -171,6 +173,8 @@ export class Game {
   playsThisTurn = 0;
   /** 最近一次军令变化，供 lingSlot().delta / 飘字 */
   lingDelta = 0;
+  /** 本局宝物 id（战斗内效果最小接线） */
+  relics: string[] = [];
   extraActs = new Map<Enemy, string[]>();
   /** 玩家判定区：敌方放置的延时锦囊（张角【闪电】） */
   pJudge: PlayerDelayed[] = [];
@@ -193,6 +197,7 @@ export class Game {
     this.sub = HEROES[settings.sub ?? pre?.sub ?? R.defaultHeroes.sub];
     if (!this.main || !this.sub) throw new Error('未知武将');
     this.effects.forceCombos = pre?.forceCombos ?? [];
+    this.relics = settings.relics ?? [];
     this.deckMaster = starterDeck(this.main.id, pre?.deck).map(([id, suit, rank]) => ({ uid: ++this.uid, id, suit, rank, mods: [] }));
     this.p = {
       hp: this.main.hp,
@@ -334,9 +339,25 @@ export class Game {
       full: current >= hardCap,
     };
   }
-  /** 手牌上限 = max(2, 体力) + hand_limit（遗计、托孤…） */
+  /**
+   * 使用丹药（#231 最小接线：P03 提神剂本回合 +1 令 → addLing / lingDelta 供飘字）。
+   * 返回 null 成功，否则错误文案。调用方负责从背包移除。
+   */
+  usePotion(id: string): string | null {
+    if (id === 'P03') {
+      const got = this.addLing(1);
+      if (got) this.log(`提神剂：军令 +${got}`);
+      else this.log('提神剂：军令未增加（已触顶或本回合产令上限）');
+      this.io.update();
+      return null;
+    }
+    return `丹药 ${id} 暂未接线`;
+  }
+  /** 手牌上限 = max(2, 体力) + hand_limit（遗计、托孤…）；R02 虎符 −1 */
   handLimit() {
-    return Math.max(RULES.minHandLimit, this.p.hp) + this.effects.stat('hand_limit');
+    let n = Math.max(RULES.minHandLimit, this.p.hp) + this.effects.stat('hand_limit');
+    if (this.relics.includes('R02')) n -= 1;
+    return n;
   }
   /** 可否把这张牌当杀使用（武执、龙胆闪→杀） */
   canAsSha(c: CardInst) {
@@ -468,6 +489,11 @@ export class Game {
       const got = this.addLing(p.status.pending_ling);
       if (got) this.log(`待令：下回合军令 +${got}`);
       delete p.status.pending_ling;
+    }
+    // R02 虎符：每回合 +1 令（走 addLing → lingDelta / 飘字；受 maxGainPerTurn）
+    if (this.relics.includes('R02')) {
+      const got = this.addLing(1);
+      if (got) this.log(`虎符：军令 +${got}`);
     }
     this.shaIndex = 0;
     this.turnEndDone = false;

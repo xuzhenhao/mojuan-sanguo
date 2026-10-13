@@ -102,7 +102,7 @@ export class RunSession {
       startedAt: o.now ?? Date.now(),
     });
     this.st = st0;
-    this.game = new Game(this.rng('battle'), io, { autoShan: false, main: p.main, sub: p.sub });
+    this.game = new Game(this.rng('battle'), io, { autoShan: false, main: p.main, sub: p.sub, relics: [...(this.state?.relics ?? [])] });
     // 初始体力 / 牌组取 core 开局结果（拷贝，不共享引用；PR2 再让 Game 读写 RunState）
     const g = this.game;
     g.reviveLeft = st0.reviveLeft;
@@ -248,7 +248,7 @@ export class RunSession {
    */
   buildBattle(io: BattleIO, b: BattleNode, start = true): Game {
     const s = this.synced();
-    const g = new Game(this.rng('battle'), io, { autoShan: false, main: s.heroMain, sub: s.heroSub });
+    const g = new Game(this.rng('battle'), io, { autoShan: false, main: s.heroMain, sub: s.heroSub, relics: [...s.relics] });
     g.deckMaster = cloneDeck(s.deck);
     g.uid = TEMP_UID_BASE - 1;
     g.p.hp = s.hp;
