@@ -8,7 +8,7 @@
 【通用前缀】Card game character portrait of {武将}, Three Kingdoms warrior, modern stylized ink illustration for mobile game: ink linework with flat muted color blocks (ink black, deep red, ochre, gold), dry-brush uneven line weight, loose flying hair strands, splashed red cape/ink accents, simple beige rice-paper background, no text.
 【人物】young, strikingly handsome, refined slim face, sharp brows, cold proud gaze; elegant and domineering, not rugged, not bulky, not old, not cartoon/anime/clean vector.
 【标志特征】每个武将必写识别特征（吕布：gold crown with two long banded pheasant tail feathers 雉翎 rising like antennae + fangtian ji halberd）。
-【构图】half-body，为竖裁留位，武器和翎主体不出框。
+【构图】half-body，为竖裁留位，武器和翎主体不出框。武器贴身竖拿、翎向内弯、主体压在画面中间 40% 宽度内。
 【参考图】生图时一律带 lvbu-C3-b-canonical.jpg 做 reference 锁画风。
 
 ## 验收清单
