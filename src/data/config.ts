@@ -57,12 +57,18 @@ export interface HeroCfg {
   mainSkills: Ability[];
   subSkill: Ability;
   roster?: boolean;
+  /** 立绘 OSS 相对路径（#177），小图档加 @s */
+  portrait?: string;
+  /** 脸部中心（512×712 像素） */
+  portraitFocus?: { x: number; y: number };
   starterDeck: { card: string; suit: 'S' | 'H' | 'C' | 'D'; rank: number }[];
   combos?: { partner: string; name: string; enabled?: boolean; abilities: Ability[] }[];
 }
 export interface EnemyCfg {
   id: string;
   name: string;
+  /** 立绘 OSS 相对路径（#177，暂无美术） */
+  portrait?: string;
   chapter?: number;
   tier: '小怪' | '精英' | 'Boss';
   hp: number;
@@ -127,6 +133,8 @@ export interface ConfigBundle {
     /** 真实游戏 / 正式地图 */
     map: { betweenBattleHeal: number };
     presets?: Record<string, { main: string; sub: string; deck?: string; forceCombos?: string[] }>;
+    /** 美术资源位置（#177）：立绘在 OSS，切桶只改 baseUrl */
+    assets: { baseUrl: string };
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };
   cards: Record<string, CardCfg>;

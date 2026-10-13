@@ -8,6 +8,8 @@ hp: 7
 role: 护甲反击：厚血厚甲、慢节奏
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/caocao.webp
+portraitFocus: { x: 250, y: 250 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: jianxiong

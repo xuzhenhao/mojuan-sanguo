@@ -44,6 +44,7 @@ import type { SeenBosses } from '../../prefs/seen-bosses';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
 import { drawScreenBg } from './screen';
+import { drawNameBand, drawPortrait, nameBandRect } from '../../portrait';
 import { judgeViewOf, type JudgeView } from './judge';
 import { diff, PresentationQueue, type Snapshot } from './present';
 import { battleSkillButtons, nextSkillStep, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
@@ -121,6 +122,11 @@ export function intentIcon(dmg: number, defOnly: boolean) {
   return dmg > 0 ? '⚔' : defOnly ? '闪' : '✦';
 }
 
+/** 战斗副将卡立绘区：银框 3px 内（76×104 → 70×98） */
+const SUB_ART_INSET = 3;
+/** 副将脸部中心在立绘区内的目标点（css px；@2x 为 (76,64)） */
+const SUB_FACE_AT = { x: 38, y: 32 };
+
 export class BattleScene implements Scene<BattleParams> {
   readonly id = 'battle';
   g!: Game;
@@ -131,6 +137,8 @@ export class BattleScene implements Scene<BattleParams> {
   private epiOpen: Promise<void> | null = null;
   readonly q = new PresentationQueue();
   private ctx!: SceneContext;
+  /** 立绘加载完成后重绘（#177） */
+  private repaint = () => this.ctx?.invalidate();
   private snap!: Snapshot;
   scroll = 0;
   selected: CardInst | null = null;
@@ -280,7 +288,16 @@ export class BattleScene implements Scene<BattleParams> {
       if (!ov) return !!this.deps.debugDefaults; // 单测替身：调试默认复活，正式无弹层栈则放弃
       return openRevive(
         ov,
-        { hero: this.g.main.name, hp: ev.hp, armor: ev.armor, perRun: CONFIG.rules.revive.count, left: ev.left, enemies: this.g.alive().length },
+        {
+          hero: this.g.main.name,
+          portrait: this.g.main.portrait,
+          onPortraitReady: this.repaint,
+          hp: ev.hp,
+          armor: ev.armor,
+          perRun: CONFIG.rules.revive.count,
+          left: ev.left,
+          enemies: this.g.alive().length,
+        },
         () => this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H },
       );
     },
@@ -1245,7 +1262,12 @@ export class BattleScene implements Scene<BattleParams> {
       const r = { ...L.sub, x: L.sub.x + shake };
       goldFrame(ctx, r, 'silver', 3);
       rect(ctx, { x: r.x + 5, y: r.y + 5, w: r.w - 10, h: r.h - 10 }, '#3B2C22');
-      vtext(ctx, g.sub.name, r.x + 14, r.y + 18, 15, C.paper);
+      // 副将立绘（#177）：小图，卡内图区 70×98（银框 3px 内），按 portraitFocus 把脸对到 (38,32)（@2x 即 (76,64)）
+      const subArt = inset(r, SUB_ART_INSET);
+      drawPortrait(ctx, subArt, g.sub.portrait, 'small', { onReady: this.repaint, focus: g.sub.portraitFocus, target: SUB_FACE_AT });
+      // 竖排名字墨带 + 1px 描边（#177 UI 复核）
+      drawNameBand(ctx, nameBandRect(r.x + 14, r.y + 18, 15, [...g.sub.name].length, 16, subArt), C.inkBand);
+      vtext(ctx, g.sub.name, r.x + 14, r.y + 18, 15, C.paper, C.nameStroke);
       const ready = this.skillButtons().some((b) => !b.disabled);
       if (ready) {
         circle(ctx, r.x + r.w - 6, r.y + r.h - 6, 9, C.gold);
@@ -1263,9 +1285,13 @@ export class BattleScene implements Scene<BattleParams> {
         ctx.globalAlpha = a;
       }
       goldFrame(ctx, r, 'gold', 4);
-      rect(ctx, { x: r.x + 6, y: r.y + 6, w: r.w - 12, h: r.h - 34 }, '#3B2C22');
-      text(ctx, g.main.name.slice(-1), r.x + r.w / 2 + 10, r.y + 80, { size: 64, color: 'rgba(243,235,216,0.2)', font: FONT.brush, align: 'center' });
-      vtext(ctx, g.main.name, r.x + 20, r.y + 24, 26, C.paper);
+      const art = { x: r.x + 6, y: r.y + 6, w: r.w - 12, h: r.h - 34 };
+      rect(ctx, art, '#3B2C22');
+      // 主将立绘（#177）：小图 cover + 顶对齐；没图时保留原「大号淡字」占位
+      if (!drawPortrait(ctx, art, g.main.portrait, 'small', { onReady: this.repaint }))
+        text(ctx, g.main.name.slice(-1), r.x + r.w / 2 + 10, r.y + 80, { size: 64, color: 'rgba(243,235,216,0.2)', font: FONT.brush, align: 'center' });
+      drawNameBand(ctx, nameBandRect(r.x + 20, r.y + 24, 26, [...g.main.name].length, 27, art), C.inkBand);
+      vtext(ctx, g.main.name, r.x + 20, r.y + 24, 26, C.paper, C.nameStroke);
       this.drawHeroHp(ctx, r, g.p.hp, g.p.maxHp);
       if (g.p.armor > 0) this.shield(ctx, r.x - 14, r.y + r.h - 48, g.p.armor, 30);
       const st: string[] = [];

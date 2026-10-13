@@ -8,6 +8,8 @@ hp: 9
 role: 爆发连斩：一回合打 3 张杀的爽快感，防御薄
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/lvbu.webp
+portraitFocus: { x: 390, y: 373 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: wuchou

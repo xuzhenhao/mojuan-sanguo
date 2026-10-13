@@ -8,6 +8,8 @@ hp: 8
 role: 控场延时：用判定封敌人出杀，手牌循环
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/diaochan.webp
+portraitFocus: { x: 237, y: 240 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: lijian

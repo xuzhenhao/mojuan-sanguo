@@ -152,6 +152,32 @@
       "type": "boolean",
       "default": true,
       "description": "是否进入开局名单 / 选将界面（false = 保留配置但不可选，如关羽 H09）"
+    },
+    "portrait": {
+      "type": "string",
+      "pattern": "^portraits/heroes/[a-z0-9_-]+\\.webp$",
+      "description": "立绘（#177）：相对 rules.assets.baseUrl 的路径，如 portraits/heroes/liubei.webp（512×712）。小图档 256×356 在 .webp 前插 @s 推出（portraits/heroes/liubei@s.webp），不单独配置。缺省或加载失败时回退程序占位。"
+    },
+    "portraitFocus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 512
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 712
+        }
+      },
+      "description": "立绘脸部中心，单位为 512×712 大图像素；战斗副将小卡按此把脸对到卡内 (38,32)（@2x 即 (76,64)）"
     }
   },
   "additionalProperties": false

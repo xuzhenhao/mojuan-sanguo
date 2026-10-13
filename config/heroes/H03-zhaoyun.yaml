@@ -8,6 +8,8 @@ hp: 7
 role: 攻防转换：杀闪互转，每次转换都过牌
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/zhaoyun.webp
+portraitFocus: { x: 230, y: 245 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: longdan

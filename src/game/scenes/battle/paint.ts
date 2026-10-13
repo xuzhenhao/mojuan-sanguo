@@ -31,6 +31,10 @@ export const C = {
   azureHi: '#86AAB8',
   defIntent: '#9CC3D1',
   silver: '#CFD6D9',
+  /** 立绘上竖排名字的墨带（#177） */
+  inkBand: 'rgba(15,7,5,.72)',
+  /** 立绘上竖排名字的 1px 描边（#177） */
+  nameStroke: 'rgba(0,0,0,.6)',
 } as const;
 
 export const FONT = {
@@ -55,6 +59,8 @@ type Ext = Ctx2DLike & {
   save?(): void;
   restore?(): void;
   measureText?(t: string): { width: number };
+  strokeText?(t: string, x: number, y: number): void;
+  lineJoin?: string;
 };
 
 export function rect(ctx: Ctx2DLike, r: Rect, color: string) {
@@ -87,20 +93,27 @@ export function text(
   s: string,
   x: number,
   y: number,
-  o: { size?: number; color?: string; font?: string; align?: 'left' | 'center' | 'right'; bold?: boolean } = {},
+  o: { size?: number; color?: string; font?: string; align?: 'left' | 'center' | 'right'; bold?: boolean; outline?: string } = {},
 ) {
   const e = ctx as Ext;
   ctx.fillStyle = o.color ?? C.paper;
   ctx.font = `${o.bold ? 'bold ' : ''}${o.size ?? 14}px ${o.font ?? FONT.body}`;
   if ('textAlign' in e || e.measureText) e.textAlign = o.align ?? 'left';
   if ('textBaseline' in e || e.measureText) e.textBaseline = 'middle';
+  if (o.outline && e.strokeText) {
+    // 1px 外描边：2px 线宽描边后再填字，盖掉内侧一半
+    e.strokeStyle = o.outline;
+    e.lineWidth = 2;
+    e.lineJoin = 'round';
+    e.strokeText(s, x, y);
+  }
   ctx.fillText?.(s, x, y);
   if (e.measureText) e.textAlign = 'left';
 }
 
 /** 竖排文字（武将/敌人名） */
-export function vtext(ctx: Ctx2DLike, s: string, x: number, y: number, size: number, color: string = C.ink) {
-  [...s].forEach((ch, i) => text(ctx, ch, x, y + i * (size + 1), { size, color, font: FONT.brush, align: 'center' }));
+export function vtext(ctx: Ctx2DLike, s: string, x: number, y: number, size: number, color: string = C.ink, outline?: string) {
+  [...s].forEach((ch, i) => text(ctx, ch, x, y + i * (size + 1), { size, color, font: FONT.brush, align: 'center', outline }));
 }
 
 export function circle(ctx: Ctx2DLike, x: number, y: number, r: number, color: string) {

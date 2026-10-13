@@ -95,7 +95,7 @@ export interface ResultView {
   duration: string;
   seed: string;
   /** 2. 阵容 */
-  lineup: { main: string; sub: string; combo?: string };
+  lineup: { main: string; sub: string; combo?: string; /** 主将 id（立绘，#177） */ mainId?: string };
   /** 3. 战报 */
   report: { label: string; value: string }[];
   /** 4. 最终牌组、宝物、铜钱 */
@@ -134,7 +134,7 @@ export function buildView(o: RunOutcome, meta: MetaProgress, names: (heroId: str
     reach: `第${CN[o.chapter] ?? o.chapter}章${o.chapterName ? ` · ${o.chapterName}` : ''} · ${o.layer >= 9 ? 'Boss' : `第 ${o.layer} 层`}`,
     duration: fmtDuration(o.durationMs),
     seed: String(o.runSeed),
-    lineup: { main: names(o.heroMain), sub: names(o.heroSub), combo: o.combo },
+    lineup: { main: names(o.heroMain), sub: names(o.heroSub), combo: o.combo, mainId: o.heroMain },
     report: [
       { label: '战斗胜利', value: `${s.battlesWon}（普通 ${normal} / 精英 ${s.elitesKilled} / Boss ${s.bossKilled}）` },
       { label: '总回合数', value: String(s.turns) },

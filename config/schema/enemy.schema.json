@@ -190,6 +190,11 @@
         }
       },
       "additionalProperties": false
+    },
+    "portrait": {
+      "type": "string",
+      "pattern": "^portraits/enemies/[a-z0-9_-]+\\.webp$",
+      "description": "敌人立绘（#177，暂无美术）：相对 rules.assets.baseUrl 的路径，如 portraits/enemies/xxx.webp；小图档在 .webp 前插 @s。缺省时用 glyph 占位"
     }
   },
   "additionalProperties": false

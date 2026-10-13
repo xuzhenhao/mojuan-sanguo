@@ -23,7 +23,38 @@ export const B = {
   mask: 'rgba(5,2,1,.72)',
   /** 续玩 / 放弃 / 暂停设置这类不可逆或打断流程的弹层（#105 规范 .90） */
   maskDeep: 'rgba(5,2,1,.9)',
+  /** 立绘行页面底色（lac2 上叠 .5 的 lac4 / 败北 #2b1d18）及其全透明版：立绘左右下 40px 淡出到底色（#177） */
+  portraitBgWin: 'rgba(54,22,15,1)',
+  portraitBgWinClear: 'rgba(54,22,15,0)',
+  portraitBgLose: 'rgba(39,22,17,1)',
+  portraitBgLoseClear: 'rgba(39,22,17,0)',
+  /** 立绘底部压暗（自下而上 96px，.85 → 0；#177） */
+  portraitShade: 'rgba(15,7,5,.85)',
+  portraitShadeClear: 'rgba(15,7,5,0)',
+  silver: '#CFD6D9',
 } as const;
+
+type Grad = { addColorStop(o: number, c: string): void };
+type GradCtx = Ctx2DLike & { createLinearGradient?(x0: number, y0: number, x1: number, y1: number): Grad };
+
+/** 线性渐变矩形（无 createLinearGradient 的环境不画） */
+export function gradRect(c: Ctx2DLike, r: Rect, from: { x: number; y: number }, to: { x: number; y: number }, c0: string, c1: string) {
+  const g = (c as GradCtx).createLinearGradient?.(from.x, from.y, to.x, to.y);
+  if (!g) return;
+  g.addColorStop(0, c0);
+  g.addColorStop(1, c1);
+  c.fillStyle = g;
+  c.fillRect(r.x, r.y, r.w, r.h);
+}
+
+/** 立绘软边（#177 UI 复核）：底部 shade 段压暗，左 / 右 / 下 edge 段淡出到页面底色，顶边不动；不用 shadowBlur */
+export function portraitEdges(c: Ctx2DLike, r: Rect, edge: number, shade: number, bg: string, bgClear: string) {
+  const b = r.y + r.h;
+  gradRect(c, { x: r.x, y: b - shade, w: r.w, h: shade }, { x: 0, y: b }, { x: 0, y: b - shade }, B.portraitShade, B.portraitShadeClear);
+  gradRect(c, { x: r.x, y: r.y, w: edge, h: r.h }, { x: r.x, y: 0 }, { x: r.x + edge, y: 0 }, bg, bgClear);
+  gradRect(c, { x: r.x + r.w - edge, y: r.y, w: edge, h: r.h }, { x: r.x + r.w, y: 0 }, { x: r.x + r.w - edge, y: 0 }, bg, bgClear);
+  gradRect(c, { x: r.x, y: b - edge, w: r.w, h: edge }, { x: 0, y: b }, { x: 0, y: b - edge }, bg, bgClear);
+}
 
 /** 书法字（霞鹜文楷，FontFace 族名 Brush）；禁止系统楷体回退 */
 export const brush = (px: number) => `${px}px "Brush"`;
