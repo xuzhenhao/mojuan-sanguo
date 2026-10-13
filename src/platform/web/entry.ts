@@ -13,6 +13,7 @@ import { RunSession } from '../../game/run';
 import { initialState } from '../../game/select/model';
 import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
+import { createMapScene } from '../../game/map';
 import { registerP4 } from '../../game/scenes/p4-register';
 import { createWebPlatform, showStatusBar } from './platform';
 import { ResultScene } from '../../game/result/scene';
@@ -89,6 +90,15 @@ if (typeof FontFace !== 'undefined') {
       .catch((e) => platform.warn(`书法字体 ${kind} 加载失败`, e));
   void loadBrush(wenkaiCoreUrl, 'core').then(() => void loadBrush(wenkaiExtUrl, 'ext'));
 }
+// P3 地图（#44）：局种子取点将出征时 core 建局的种子
+engine.scenes.register('map', () =>
+  createMapScene(
+    engine,
+    (e, p) => void router.send(e, p),
+    undefined,
+    () => run.params?.seed,
+  ),
+);
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
 const economy = registerP4({ engine, query, safe: () => platform.systemInfo().safeArea, send, run });
 // P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）

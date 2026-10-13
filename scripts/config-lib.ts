@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { parse } from 'yaml';
+import iconSchema from '../config/schema/icon.schema.json';
 import { IMPLEMENTED as IMPL } from '../src/core/implemented';
 
 export interface Built {
@@ -15,6 +16,8 @@ export interface Built {
   encounters: Record<string, any>;
   decks: Record<string, any>;
 }
+
+const ICONS: string[] = iconSchema.enum;
 
 const SCHEMA_OF: Record<string, string> = {
   cards: 'card',
@@ -183,5 +186,21 @@ export function businessChecks(c: Built): string[] {
   for (const enc of Object.values(c.encounters))
     for (const b of enc.battles)
       for (const id of b.enemies) if (!c.enemies[id]) errs.push(`encounters/ch${enc.chapter}: 战斗「${b.name}」引用了不存在的敌人 ${id}`);
+  // 地图（P3 #44）：Boss 与组包引用的敌人必须存在；icon 字段必须是 PRD 19.1.2 枚举（schema/icon.schema.json）
+  for (const [ch, id] of Object.entries<any>(c.rules.map?.boss ?? {})) if (!c.enemies[id]) errs.push(`rules.yaml: map.boss.${ch} 引用了不存在的敌人 ${id}`);
+  for (const enc of Object.values(c.encounters))
+    for (const [pool, gs] of Object.entries<any>(enc.pools ?? {}))
+      for (const g of gs)
+        for (const id of g.enemies) if (!c.enemies[id]) errs.push(`encounters/ch${enc.chapter}: pools.${pool}「${g.name}」引用了不存在的敌人 ${id}`);
+  for (const w of c.rules.map?.weights ?? []) if (w.layers[0] > w.layers[1]) errs.push(`rules.yaml: map.weights 层段 ${w.layers} 起层大于止层`);
+  const walkIcon = (where: string, x: any) => {
+    if (Array.isArray(x)) x.forEach((v, i) => walkIcon(`${where}[${i}]`, v));
+    else if (x && typeof x === 'object')
+      for (const [k, v] of Object.entries(x)) {
+        if (k === 'icon' && !ICONS.includes(v as string)) errs.push(`${where}.icon: 图标 ${String(v)} 不在 PRD 19.1.2 枚举中`);
+        walkIcon(`${where}.${k}`, v);
+      }
+  };
+  walkIcon('config', { rules: c.rules, cards: c.cards, affixes: c.affixes, heroes: c.heroes, enemies: c.enemies, encounters: c.encounters });
   return errs;
 }
