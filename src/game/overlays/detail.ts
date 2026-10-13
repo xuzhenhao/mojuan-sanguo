@@ -18,8 +18,8 @@ import { C, ext, frame, text, textWidth, wrap } from './theme';
 
 export const INTENT_ROW = 26;
 export const DETAIL = { w: 180, maxH: 200, pad: 12, titlePx: 24, bodyPx: 13, lineH: 19.5, gap: 12 } as const;
-export const TITLE_FONT = `${DETAIL.titlePx}px "Brush", serif`;
-export const BODY_FONT = `${DETAIL.bodyPx}px "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC", sans-serif`;
+export const TITLE_FONT = `${DETAIL.titlePx}px "Brush"`;
+export const BODY_FONT = `${DETAIL.bodyPx}px "Brush"`;
 
 export interface DetailContent {
   title: string;
@@ -75,7 +75,7 @@ export function placeDetail(at: Vec2, h: number, safe: Rect): Rect {
 }
 
 export const TITLE_MIN_PX = 20;
-const titleFont = (px: number) => `${px}px "Brush", serif`;
+const titleFont = (px: number) => `${px}px "Brush"`;
 /** 右上费用珠 + 花色点数所占宽度 */
 export function badgeWidth(ctx: Surface['ctx'], c: DetailContent) {
   let w = 0;

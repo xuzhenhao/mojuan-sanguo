@@ -2,6 +2,9 @@
 export const DEBUG_DOM_BUILD_MARKER = '__MOJUAN_DEBUG_DOM__';
 console.info(DEBUG_DOM_BUILD_MARKER);
 import './style.css';
+import { loadBrushFonts, webFontDeps } from '../brush-font';
+import wenkaiCoreUrl from '../../../../public/assets/fonts/wenkai-core.woff2?url';
+import wenkaiExtUrl from '../../../../public/assets/fonts/wenkai-ext.woff2?url';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -508,3 +511,11 @@ document.addEventListener('click', (ev) => {
 // 调试/自动化测试钩子
 Object.assign(window, { G_: () => G, S_: S, UI_: ui });
 newRun();
+
+// #142：调试页同样加载霞鹜文楷（CSS 族名 Brush），不回退系统字体
+void loadBrushFonts(
+  webFontDeps((m, e) => {
+    if (import.meta.env.DEV) console.warn(m, e ?? '');
+  }),
+  { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
+);

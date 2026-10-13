@@ -199,8 +199,19 @@ export class Engine {
   start() {
     this.invalidateAll();
   }
+  /** #142：首帧门控——promise 落定前 frame() 不画任何东西（避免 scenes.go / resize 等提前用默认字体画字），落定后整屏重绘 */
+  framesHeld = false;
+  holdFramesUntil(p: Promise<unknown>) {
+    this.framesHeld = true;
+    const release = () => {
+      this.framesHeld = false;
+      this.invalidateAll();
+    };
+    return p.then(release, release);
+  }
 
   frame(dt: number) {
+    if (this.framesHeld) return;
     this.gestures.tick(this.platform.now());
     this.scenes.update(dt);
     this.overlays.update(dt);
