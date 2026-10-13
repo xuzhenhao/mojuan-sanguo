@@ -4,6 +4,7 @@
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
 import { openEpiphany } from '../../overlays/epiphany';
+import { drawVecGlyph } from '../../overlays/glyphs';
 import { EPIPHANY } from '../../../data/affixes';
 import { CARDS } from '../../../data/cards';
 import {
@@ -117,6 +118,8 @@ export class BattleScene implements Scene<BattleParams> {
   mode: BattleMode = 'idle';
   /** 复活后的化墨 / 意图交叉淡入（PRD 4.4.1） */
   reviveFx: ReviveFx | null = null;
+  /** 灵光一闪弹层打开中（关闭后再开排队的响应窗口，#105 规格 §2） */
+  private epiOpen: Promise<void> | null = null;
   readonly q = new PresentationQueue();
   private ctx!: SceneContext;
   private snap!: Snapshot;
@@ -230,6 +233,7 @@ export class BattleScene implements Scene<BattleParams> {
       return this.q.push('judge', 650, true, { reason }).then(() => this.q.push('judge_hold', 250).then(() => void (this.judging = null)));
     },
     respond: async (txt, legal, pass, timed) => {
+      if (this.epiOpen) await this.epiOpen; // 规格 §2：排队的响应窗口等灵光一闪关闭后再开
       const req: ResponseRequest = { text: txt, legal, pass, timed, attacker: this.lastActor, legalCards: this.g.hand.filter(legal) };
       const h = this.deps.hooks?.respond;
       if (h) return h(req, this.overlayCtx);
@@ -241,12 +245,19 @@ export class BattleScene implements Scene<BattleParams> {
       if (h) return h({ card, options, reroll }, this.overlayCtx);
       if (this.deps.debugDefaults) return options[0] ?? null; // 仅调试版（/debug/）/测试：自动选第一个
       // #105：默认用正式灵光一闪弹层（H5 无刷新，reroll 不用）
-      if (this.deps.overlays)
-        return openEpiphany(
+      if (this.deps.overlays) {
+        const p = openEpiphany(
           this.deps.overlays,
           { card, options, count: this.g.epiCount, max: EPIPHANY.maxPerBattle },
           { width: this.W, height: this.H, reducedMotion: () => this.reducedMotion() },
         );
+        const done = p.then(() => undefined);
+        this.epiOpen = done;
+        void done.then(() => {
+          if (this.epiOpen === done) this.epiOpen = null;
+        });
+        return p;
+      }
       this.deps.warn?.('[battle] 未接入灵光一闪弹层，本次不铭刻');
       return null;
     },
@@ -1290,8 +1301,7 @@ export class BattleScene implements Scene<BattleParams> {
         bold: true,
       });
       if (j.name) text(ctx, j.name, cr.x + cr.w / 2, cr.y + 56, { size: 11, color: C.ink, align: 'center' });
-      if (j.effective != null)
-        text(ctx, j.effective ? '✗' : '✓', r.x + r.w - 26, r.y + 40, { size: 22, color: j.effective ? C.cinnabar : C.jade, align: 'center', bold: true });
+      if (j.effective != null) drawVecGlyph(ctx, j.effective ? '✗' : '✓', r.x + r.w - 26, r.y + 32, 22, j.effective ? C.cinnabar : C.jade); // Brush 无 ✗✓：画矢量
     } else {
       rect(ctx, cr, C.cinnabar);
       frame(ctx, cr, C.gold, 1);

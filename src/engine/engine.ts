@@ -181,8 +181,17 @@ export class Engine {
     const ga = ctx.globalAlpha;
     ctx.setTransform(k, 0, 0, k, 0, 0);
     ctx.globalAlpha = ga * Math.max(0, Math.min(1, sc.alpha ?? 1));
-    ctx.fillStyle = sc.color;
-    ctx.fillRect(0, 0, this.viewport.width, this.viewport.height);
+    const { width: vw, height: vh } = this.viewport;
+    const rd = sc.radial;
+    const mk = (ctx as Partial<CanvasRenderingContext2D>).createRadialGradient;
+    if (rd && mk) {
+      const x = vw * rd.cx;
+      const y = vh * rd.cy;
+      const g = mk.call(ctx, x, y, 0, x, y, Math.hypot(vw, vh) * rd.r);
+      for (const [o, col] of rd.stops) g.addColorStop(o, col);
+      (ctx as { fillStyle: unknown }).fillStyle = g;
+    } else ctx.fillStyle = sc.color;
+    ctx.fillRect(0, 0, vw, vh);
     ctx.globalAlpha = ga;
     ctx.setTransform(...layerTransform(this.viewport, k));
   }
