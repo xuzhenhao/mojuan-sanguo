@@ -8,20 +8,34 @@ import type { OverlayHandle, OverlayStack } from '../../engine/modal';
 import type { Surface } from '../../engine/surfaces';
 import type { Ctx2DLike } from '../../engine/types';
 import { DESIGN_RECT } from '../../engine/viewport';
+import { wrap } from './theme';
 
 export const NOTICE_MS = 2500;
 export const NOTICE_FADE_MS = 180;
 /** 字体只用霞鹜文楷（Brush），不写任何系统字体回退 */
 export const NOTICE_FONT = '16px "Brush"';
 /** 宽度按内容自适应：最小 200dp，最大 屏宽 − 48dp，水平居中；多条同时在屏时统一取最宽一条的宽度（#136） */
-export const NOTICE_STYLE = { bg: 'rgba(7,3,2,0.9)', line: '#8A6A2A', text: '#F3EBD8', h: 40, padX: 22, gap: 8, minW: 200, sideMargin: 24 } as const;
+export const NOTICE_STYLE = {
+  bg: 'rgba(7,3,2,0.9)',
+  line: '#8A6A2A',
+  text: '#F3EBD8',
+  h: 40,
+  padX: 22,
+  gap: 8,
+  minW: 200,
+  maxW: 340,
+  sideMargin: 24,
+  lineH: 22,
+  padY: 9,
+} as const;
 /** 同时最多显示条数：新来的在下、旧的往上挤，超出移掉最旧 */
 export const NOTICE_MAX = 2;
 /**
  * 堆叠起点（设计坐标 y）：页面顶部 HUD 下边缘往下 8dp，绝不盖 HUD。
  * 地图：HUD 底 98 → 卷轴金轴 100–112 → 120；战斗：顶条 10+26 → 44；其他无 HUD 页默认 64。
  */
-export const NOTICE_TOP: Record<string, number> = { map: 112 + 8, battle: 36 + 8 };
+/** 点将：标题「点将」底约 110 → 118（#214 跟进：坏档提示不压标题） */
+export const NOTICE_TOP: Record<string, number> = { map: 112 + 8, battle: 36 + 8, select: 118 };
 export const NOTICE_TOP_DEFAULT = 64;
 let topOf: () => number = () => NOTICE_TOP_DEFAULT;
 /** 入口按当前页设置起点（entry.ts：NOTICE_TOP[flow.page] ?? 默认） */
@@ -29,11 +43,15 @@ export function setNoticeTop(f: (() => number) | null) {
   topOf = f ?? (() => NOTICE_TOP_DEFAULT);
 }
 /** 第 slot 条的矩形（slot 0 = 最上面 = 最旧） */
-export function noticeRect(textW: number, slot: number, W: number = DESIGN_RECT.w) {
+/** lines：折行后的行数（超过 maxW 时折行，不缩字号）；高度按行数增长 */
+export function noticeRect(textW: number, slot: number, W: number = DESIGN_RECT.w, lines = 1) {
   const S = NOTICE_STYLE;
-  const w = Math.max(S.minW, Math.min(W - S.sideMargin * 2, textW + S.padX * 2));
-  return { x: (W - w) / 2, y: topOf() + slot * (S.h + S.gap), w, h: S.h };
+  const w = Math.max(S.minW, Math.min(W - S.sideMargin * 2, S.maxW, textW + S.padX * 2));
+  const h = lines > 1 ? lines * S.lineH + S.padY * 2 : S.h;
+  return { x: (W - w) / 2, y: topOf() + slot * (S.h + S.gap), w, h };
 }
+/** 胶囊内可用文字宽 */
+export const noticeTextMaxW = (W: number = DESIGN_RECT.w) => Math.min(W - NOTICE_STYLE.sideMargin * 2, NOTICE_STYLE.maxW) - NOTICE_STYLE.padX * 2;
 /** slot：堆叠序号（0 = 最上面一条） */
 /** stackW：同屏各条文字宽度的最大值（统一胶囊宽度用）；缺省按本条文字宽 */
 export type NoticeRenderer = (s: Surface, text: string, t: number, slot: number, stackW?: number) => void;
@@ -43,15 +61,23 @@ export function measureNotice(c: Ctx2DLike, text: string) {
   return (c as Ctx2DLike & { measureText?(t: string): { width: number } }).measureText?.(text).width ?? text.length * 16;
 }
 
+/** 折行（theme.wrap：逐字 + 标点避头尾），字号固定 16 不缩 */
+export function noticeLines(c: Ctx2DLike, text: string, W: number = DESIGN_RECT.w): string[] {
+  c.font = NOTICE_FONT;
+  return wrap(c, text, noticeTextMaxW(W), 16);
+}
+
 const alphaAt = (t: number, ms = NOTICE_MS) => Math.max(0, Math.min(1, t / NOTICE_FADE_MS, (ms - t) / NOTICE_FADE_MS));
 
 function capsule(c: Ctx2DLike, x: number, y: number, w: number, h: number) {
-  const r = h / 2;
+  const r = Math.min(h, NOTICE_STYLE.h) / 2;
   const g = c as Ctx2DLike & { beginPath?(): void; arc?(...a: number[]): void; closePath?(): void; fill?(): void; stroke?(): void };
   if (g.beginPath && g.arc && g.fill) {
     g.beginPath();
-    g.arc(x + r, y + r, r, Math.PI / 2, (Math.PI * 3) / 2);
-    g.arc(x + w - r, y + r, r, -Math.PI / 2, Math.PI / 2);
+    g.arc(x + r, y + h - r, r, Math.PI / 2, Math.PI);
+    g.arc(x + r, y + r, r, Math.PI, (Math.PI * 3) / 2);
+    g.arc(x + w - r, y + r, r, -Math.PI / 2, 0);
+    g.arc(x + w - r, y + h - r, r, 0, Math.PI / 2);
     g.closePath?.();
     g.fill();
     g.stroke?.();
@@ -63,17 +89,19 @@ export const formalNotice: NoticeRenderer = (s, text, t, slot, stackW) => {
   const S = NOTICE_STYLE;
   const W = DESIGN_RECT.w; // 弹层用 390 设计坐标（render-spec §4.0）
   const tw = Math.max(measureNotice(c, text), stackW ?? 0);
-  const { x, y, w } = noticeRect(tw, slot, W);
+  const lines = noticeLines(c, text, W);
+  const { x, y, w, h } = noticeRect(Math.min(tw, noticeTextMaxW(W)), slot, W, lines.length);
   const ga = c.globalAlpha;
   c.globalAlpha = ga * alphaAt(t);
   c.fillStyle = S.bg;
   (c as Ctx2DLike & { strokeStyle?: string; lineWidth?: number }).strokeStyle = S.line;
   (c as Ctx2DLike & { lineWidth?: number }).lineWidth = 1;
-  capsule(c, x, y, w, S.h);
+  capsule(c, x, y, w, h);
   c.fillStyle = S.text;
   (c as Ctx2DLike & { textAlign?: string }).textAlign = 'center';
   (c as Ctx2DLike & { textBaseline?: string }).textBaseline = 'middle';
-  c.fillText?.(text, W / 2, y + S.h / 2 + 1);
+  const top = y + h / 2 - ((lines.length - 1) * S.lineH) / 2 + 1;
+  lines.forEach((ln, i) => c.fillText?.(ln, W / 2, top + i * S.lineH));
   (c as Ctx2DLike & { textBaseline?: string }).textBaseline = 'alphabetic';
   c.globalAlpha = ga;
 };
