@@ -241,9 +241,14 @@ export class ResultScene implements Scene {
   private killerCard(c: Ctx2DLike, name: string) {
     const k = this.k;
     const r = this.rect({ x: 28, y: 170, w: 56, h: 78 });
+    // 底不透明（#177 UI 复核：≥ .95，压在立绘上也看得清），朱砂边外再加 1px paper3 环（灰度下朱砂边会消失）
+    const a = c.globalAlpha;
+    c.globalAlpha = 1;
     c.fillStyle = B.lac1;
     c.fillRect(r.x, r.y, r.w, r.h);
     frame(c, r, B.cinnabar, 1.5);
+    frame(c, { x: r.x - 1.25, y: r.y - 1.25, w: r.w + 2.5, h: r.h + 2.5 }, B.paper3, 1);
+    c.globalAlpha = a;
     center(c, name.slice(0, 4), r.x + r.w / 2, r.y + 44 * k, brush(14 * k), B.paper, 14 * k);
     center(c, '致命', r.x + r.w / 2, r.y + r.h + 14 * k, body(10 * k), B.cinnHi, 10 * k);
   }
