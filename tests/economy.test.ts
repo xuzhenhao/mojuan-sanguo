@@ -63,7 +63,7 @@ describe('卡牌候选（14.8）', () => {
 });
 
 describe('价格（14.2）', () => {
-  it('±10% 取整到 5；T002 固定 40；断袖香囊 −20%', () => {
+  it('±10% 取整到 5；T002 基价 40 同样浮动；断袖香囊 −20%', () => {
     const rng = seeded(4);
     const inv = demoInventory();
     for (let i = 0; i < 40; i++) {
@@ -72,9 +72,17 @@ describe('价格（14.2）', () => {
       expect(p).toBeGreaterThanOrEqual(55);
       expect(p).toBeLessThanOrEqual(65);
     }
-    expect(cardPrice(rng, 'T002', inv)).toBe(40);
+    const seen = new Set<number>();
+    for (let i = 0; i < 60; i++) {
+      const p = cardPrice(rng, 'T002', inv);
+      expect(p % 5).toBe(0);
+      expect(p).toBeGreaterThanOrEqual(35);
+      expect(p).toBeLessThanOrEqual(45);
+      seen.add(p);
+    }
+    expect(seen.size).toBeGreaterThan(1);
     inv.relics.push('R09');
-    expect(cardPrice(rng, 'T002', inv)).toBe(30);
+    for (let i = 0; i < 20; i++) expect(cardPrice(rng, 'T002', inv)).toBeLessThanOrEqual(35);
   });
 });
 

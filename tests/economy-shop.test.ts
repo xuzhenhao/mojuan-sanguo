@@ -54,3 +54,43 @@ describe('集市（10.7）', () => {
     expect(inv.deck.every((c) => !canRemove(inv, c.uid))).toBe(true);
   });
 });
+
+describe('定价读配置（#70）与 RunSession 背包', () => {
+  it('非定价卡按 rules.shop.cardPrice ±10%', async () => {
+    const { CONFIG } = await import('../src/data/config');
+    const { cardPrice } = await import('../src/game/economy/pools');
+    const rng = seeded(21);
+    const inv = demoInventory();
+    const base = CONFIG.rules.shop!.cardPrice.N;
+    for (let i = 0; i < 30; i++) {
+      const p = cardPrice(rng, 'B001', inv);
+      expect(Math.abs(p - base)).toBeLessThanOrEqual(base * 0.1 + 2.5);
+    }
+  });
+  it('集市购买 / 删牌写入 RunSession.inventory（经济随机流），写档后读回一致，不写旧键', async () => {
+    const { RunSession } = await import('../src/game/run');
+    const { RUN_STATE_KEY, LEGACY_RUN_SAVE_KEY } = await import('../src/game/run/state');
+    const m = new Map<string, string>();
+    const store = { get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) };
+    const run = new RunSession();
+    run.start({ main: 'H03', sub: 'H04', seed: 3 });
+    const inv = run.inventory;
+    inv.gold = 999;
+    const st = openShop(run.rng('economy'), inv);
+    const n = inv.deck.length;
+    const bought = st.cards[0];
+    expect(buy(inv, st, bought)).toBe('ok');
+    expect(inv.deck).toHaveLength(n + 1);
+    const uid = inv.deck.find((c) => canRemove(inv, c.uid))!.uid;
+    expect(removeService(inv, st, uid)).toBe(true);
+    run.save(store);
+    expect(m.has(LEGACY_RUN_SAVE_KEY)).toBe(false);
+    expect(m.has(RUN_STATE_KEY)).toBe(true);
+    const r2 = new RunSession();
+    expect(r2.load(store).ok).toBe(true);
+    const inv2 = r2.inventory;
+    expect(inv2.gold).toBe(inv.gold);
+    expect(inv2.deck.map((c) => c.uid)).toEqual(inv.deck.map((c) => c.uid));
+    expect(inv2.deck.some((c) => c.uid === uid)).toBe(false);
+  });
+});
