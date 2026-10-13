@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BattleScene } from '../src/game/scenes/battle/scene';
 import { drawScreenBg, MOUNT_BOTTOM, MOUNT_TOP, PANEL_EVEN, PANEL_ODD, paperDots, screenLayout } from '../src/game/scenes/battle/screen';
 
 describe('#130 金漆屏风几何', () => {
@@ -91,5 +92,30 @@ describe('#130 金漆屏风绘制', () => {
           expect(y + ch).toBeLessThanOrEqual(h);
         }
       }
+  });
+});
+
+describe('#130 战斗场景 bg 层接入屏风', () => {
+  it('BattleScene.draw("bg") 走屏风：有 clip，5 条折痕，填充不出框', () => {
+    for (const [w, h] of [
+      [390, 844],
+      [360, 640],
+      [465, 780],
+    ]) {
+      const sc = new BattleScene({ debugDefaults: true });
+      sc.enter({ width: w, height: h, invalidate() {} } as never, { seed: 7 });
+      const { c, calls } = mockCtx(true);
+      sc.draw('bg', { ctx: c } as never);
+      expect(calls.some((x) => x[0] === 'clip')).toBe(true);
+      const creases = calls.filter((x) => x[0] === 'fillRect' && x[3] === 1 && x[4] === h && x[2] === 0);
+      expect(creases.length).toBe(10); // 每条折痕 金线 + 暗线
+      for (const [k, x, y, cw = 0, ch = 0] of calls)
+        if (k === 'fillRect') {
+          expect(x).toBeGreaterThanOrEqual(0);
+          expect(y).toBeGreaterThanOrEqual(0);
+          expect(x + cw).toBeLessThanOrEqual(w + 0.5);
+          expect(y + ch).toBeLessThanOrEqual(h);
+        }
+    }
   });
 });
