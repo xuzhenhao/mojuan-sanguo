@@ -92,6 +92,8 @@ export interface BattleIO {
    * 不提供则视为不弹层（直接战败）。
    */
   revive?(ev: ReviveEvent): Promise<boolean>;
+  /** 选复活后（意图换成闪之前）通知表现层：各敌复活前意图、本回合被取消出牌的敌人（PRD 4.4.1 动画） */
+  revived?(ev: { prev: Map<number, { acts: EnemyAct[]; dmg: number }>; cancelled: number[] }): void;
   onBattleEnd(win: boolean): void;
 }
 
@@ -953,8 +955,16 @@ export class Game {
     this.reviveLeft--;
     this.p.hp = reviveHp(this.p.maxHp);
     this.p.armor += rv.armor;
+    const prev = new Map(
+      this.alive().map((e) => {
+        const i = enemyIntent(e);
+        return [e.uid, { acts: [...i.acts], dmg: i.dmg }] as [number, { acts: EnemyAct[]; dmg: number }];
+      }),
+    );
+    const cancelled = this.inEnemyTurn ? this.alive().map((e) => e.uid) : [];
     for (const e of this.alive()) e.reviveFlash = true;
     if (this.inEnemyTurn) this.enemyTurnCancelled = true;
+    this.io.revived?.({ prev, cancelled });
     this.log(`将星未陨：复活，体力 ${this.p.hp}，护甲 +${rv.armor}`);
     this.io.update();
   }
