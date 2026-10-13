@@ -99,6 +99,8 @@ export interface RunState {
   /** 各随机流的内部状态（mulberry32 uint32） */
   rng: Record<RngStream, number>;
   stats: RunStats;
+  /** 本局已结束（战斗失败）：续玩直接进结算页，不再重进节点（#122 PR2 「结束本局」） */
+  ended?: { reason: 'defeat'; nodeId: string | null } | null;
 }
 
 /** 由局种子派生各随机流初始状态：battle = runSeed（与现 RunSession 一致），economy = runSeed ^ 0x45a5（与现 EconomySession.bind 一致） */

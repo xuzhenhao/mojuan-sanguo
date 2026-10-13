@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createMapScene, mapSession, resetMapSession } from '../src/game/map';
-import { loadRunSave, RUN_SAVE_KEY, setRunSaveStore } from '../src/core/run/save';
+import { createMapScene, loadMapSave, mapSession, resetMapSession } from '../src/game/map';
+import { setRunSaveStore } from '../src/core/run/save';
+import { RUN_STATE_KEY } from '../src/game/run/state';
 import { CONFIG } from '../src/data/config';
 import { OverlayStack } from '../src/engine/modal';
 import { BattleScene } from '../src/game/scenes/battle/scene';
@@ -35,7 +36,7 @@ describe('点将结果传到地图（线上 P0：吕布+陆逊 显示成赵云+�
       () => 11,
       () => LB,
     );
-    const s = loadRunSave()!;
+    const s = loadMapSave()!;
     expect([s.heroMain, s.heroSub, s.runSeed]).toEqual(['H01', 'H08', 11]); // 首次进地图即落盘
     const head = mapSession(fakeEngine(), 1, 11).head();
     expect([head.heroMain, head.heroSub]).toEqual(['H01', 'H08']);
@@ -47,7 +48,7 @@ describe('点将结果传到地图（线上 P0：吕布+陆逊 显示成赵云+�
   it('同 seed 已有默认武将（赵云+刘备）旧存档：进地图改写为吕布+陆逊，刷新后（无点将参数）仍是吕布+陆逊', () => {
     // 先按旧逻辑写一份默认武将存档
     mapSession(fakeEngine(), 1, 22).save({ hp: 8, maxHp: 8 });
-    expect(loadRunSave()!.heroMain).toBe(CONFIG.rules.defaultHeroes.main);
+    expect(loadMapSave()!.heroMain).toBe(CONFIG.rules.defaultHeroes.main);
     resetMapSession();
     createMapScene(
       fakeEngine(),
@@ -56,7 +57,7 @@ describe('点将结果传到地图（线上 P0：吕布+陆逊 显示成赵云+�
       () => 22,
       () => LB,
     );
-    let s = loadRunSave()!;
+    let s = loadMapSave()!;
     expect([s.heroMain, s.heroSub, s.maxHp, s.hp]).toEqual(['H01', 'H08', hp('H01'), hp('H01')]);
     // 刷新：内存会话没了、run.params 为空，地图从存档 seed 续上
     resetMapSession();
@@ -67,16 +68,16 @@ describe('点将结果传到地图（线上 P0：吕布+陆逊 显示成赵云+�
       () => undefined,
       () => null,
     );
-    s = loadRunSave()!;
+    s = loadMapSave()!;
     expect([s.heroMain, s.heroSub]).toEqual(['H01', 'H08']);
     expect((scene as unknown as { d: { hud(): { hero: string } } }).d.hud().hero).toBe('吕布');
-    expect(JSON.parse(store.m.get(RUN_SAVE_KEY)!).runSeed).toBe(22);
+    expect(JSON.parse(store.m.get(RUN_STATE_KEY)!).runSeed).toBe(22);
   });
   it('同 seed 复用内存会话（再来一局换武将）也改写；未满血时体力不超过新上限', () => {
     const a = mapSession(fakeEngine(), 1, 33, { main: 'H03', sub: 'H04' });
     a.save({ hp: 3 });
     mapSession(fakeEngine(), 1, 33, LB);
-    const s = loadRunSave()!;
+    const s = loadMapSave()!;
     expect([s.heroMain, s.heroSub, s.hp, s.maxHp]).toEqual(['H01', 'H08', 3, hp('H01')]);
   });
   it('战斗页：地图 params 不带主副将时用本局点将结果', () => {

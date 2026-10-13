@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { MapScene, type MapSceneDeps } from '../src/game/map/scene';
 import { MapSession } from '../src/game/map/session';
-import { RUN_SAVE_KEY, loadRunSave, setRunSaveStore } from '../src/core/run/save';
+import { setRunSaveStore } from '../src/core/run/save';
+import { loadMapSave, resetMapSession, runPersist } from '../src/game/map';
+import { RUN_STATE_KEY } from '../src/game/run/state';
 import { isComingSoon, routeFor } from '../src/game/map/route';
 import { MAP_CONFIG, poolsOf } from '../src/data/map';
 import { OverlayStack } from '../src/engine/modal';
@@ -40,7 +42,8 @@ const memStore = () => {
 function setup(seed = 3) {
   const store = memStore();
   setRunSaveStore(store);
-  const session = new MapSession(seed, 1, MAP_CONFIG, poolsOf(1));
+  resetMapSession();
+  const session = new MapSession(seed, 1, MAP_CONFIG, poolsOf(1), runPersist());
   const overlays = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
   const budget = new TextureBudget(50 * 1048576, 45 * 1048576);
   const atlases = new AtlasManager(budget, CANVAS2D_ATLASES, () => 'rgba8', {}, { halfSize: true });
@@ -107,9 +110,10 @@ describe('P3 地图页', () => {
     expect(sent[0].p).toMatchObject({ kind: 'battle', nodeType: 'BATTLE', nodeId: id, layer: 1, intro: 'none' });
     expect((sent[0].p as { encounterId: string }).encounterId).toMatch(/^easy:/);
     expect(session.state.current).toBe(id);
-    expect(JSON.parse(store.m.get(RUN_SAVE_KEY)!).mapState.current).toBe(id);
-    expect(loadRunSave()!.nodePath).toEqual([id]);
-    expect([...store.m.keys()]).toEqual([RUN_SAVE_KEY]);
+    expect(JSON.parse(store.m.get(RUN_STATE_KEY)!).map.current).toBe(id);
+    expect(JSON.parse(store.m.get(RUN_STATE_KEY)!).pendingNode).toEqual({ id, type: 'BATTLE' });
+    expect(loadMapSave()!.nodePath).toEqual([id]);
+    expect([...store.m.keys()]).toEqual([RUN_STATE_KEY]); // 不写旧键 mojuan.run.v1
   });
   it('点不可走节点只弹类型详情；长按弹说明', () => {
     const { scene, session, overlays, sent } = setup();
@@ -160,7 +164,7 @@ describe('P3 地图页', () => {
   it('续玩：同种子从存档恢复 mapState', () => {
     const { session } = setup(11);
     walk(session);
-    const again = new MapSession(11, 1, MAP_CONFIG, poolsOf(1));
+    const again = new MapSession(11, 1, MAP_CONFIG, poolsOf(1), runPersist());
     expect(again.state.current).toBe(session.state.current);
   });
 });
@@ -194,8 +198,9 @@ describe('营地/奇遇（地图内最小版）', () => {
     expect(overlays.size).toBe(0);
     expect(session.state.current).toBe(rest.id);
     expect(sent).toHaveLength(0);
-    const saved = JSON.parse(store.m.get('mojuan.run.v1')!);
-    expect([saved.hp, saved.mapState.current]).toEqual([5, rest.id]);
+    expect(store.m.has('mojuan.run.v1')).toBe(false);
+    const saved = JSON.parse(store.m.get(RUN_STATE_KEY)!);
+    expect([saved.hp, saved.map.current, saved.pendingNode]).toEqual([5, rest.id, null]);
     expect(scene.log).toContain('rest_heal:2');
   });
   it('营地回血不超过体力上限；最大体力 10 → 回复 3', () => {

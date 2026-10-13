@@ -8,6 +8,11 @@
 import { Game, type BattleIO } from '../core/battle';
 import { rngFromState, type StatefulRng } from '../core/rng';
 import { ECONOMY } from '../data/economy';
+import { CONFIG } from '../data/config';
+import { BATTLES } from '../data/enemies';
+import { betweenBattleHeal } from '../core/battle';
+import type { CardInst } from '../core/types';
+import type { Inventory } from './economy/inventory';
 import {
   cloneRunState,
   createRunState,
@@ -25,7 +30,19 @@ import {
   type RunState,
   RUN_STATE_KEY,
   writeRunStateTo,
+  isTempUid,
+  TEMP_UID_BASE,
+  clearRunStateIn,
 } from './run/state';
+
+/** 进战斗：地图节点 + 组包 */
+export interface BattleNode {
+  nodeId: string;
+  nodeType: 'BATTLE' | 'ELITE' | 'BOSS';
+  encounterName: string;
+  enemies: string[];
+}
+const cloneDeck = (d: CardInst[]) => d.map((c) => ({ ...c, mods: [...c.mods] }));
 
 /** 占位 IO：战斗页接入前不做任何表现 */
 export const NULL_IO: BattleIO = {
@@ -57,12 +74,18 @@ export class RunSession {
   /** 进节点快照（序列化文本）：节点内中途存档一律写它 */
   private checkpoint: string | null = null;
   private rngs: Partial<Record<RngStream, StatefulRng>> = {};
+  /** 经济页共享的活背包（原 EconomySession.inventory）：读写都折回 RunState */
+  private inv: Inventory | null = null;
+  /** 绑定的存储（页面接入后由入口设置；所有写档都走新键 mojuan.runstate.v1） */
+  store: RunStateStore | null = null;
 
   start(p: RunParams, io: BattleIO = NULL_IO, o: StartOpts = {}): Game {
     if (p.main === p.sub) throw new Error('主副将不能是同一人');
     this.params = p;
     this.rngs = {};
     this.st = null;
+    this.inv = null;
+    this.checkpoint = null;
     const st0 = createRunState({
       runSeed: p.seed,
       heroMain: p.main,
@@ -101,6 +124,7 @@ export class RunSession {
     fn(draft);
     this.st = cloneRunState(draft); // 再拷一次：fn 闭包里留存的 draft 改不到会话
     for (const k of RNG_STREAMS) this.rngs[k]?.setState(draft.rng[k]);
+    if (this.inv) this.fillInventory(this.inv);
     return cloneRunState(draft);
   }
   /** 本局随机流（同一 stream 返回同一活对象） */
@@ -166,6 +190,7 @@ export class RunSession {
   }
   private adopt(st: RunState) {
     this.st = cloneRunState(st);
+    this.inv = null;
     this.rngs = {};
     this.game = null;
     this.checkpoint = st.pendingNode ? serializeRunState(st) : null;
@@ -174,10 +199,83 @@ export class RunSession {
   /** 结束本局（结算 / 放弃） */
   clear() {
     this.st = null;
+    this.inv = null;
     this.checkpoint = null;
     this.rngs = {};
     this.game = null;
     this.params = null;
+  }
+
+  // ───────── 经济（原 EconomySession，#122 PR2 并入） ─────────
+  /** 活背包：同一局返回同一对象（奖励 / 集市 / 宝箱原地修改），写档时折回 RunState */
+  get inventory(): Inventory {
+    if (!this.inv) this.inv = this.fillInventory({} as Inventory);
+    return this.inv;
+  }
+  private fillInventory(v: Inventory): Inventory {
+    const s = this.need();
+    v.gold = s.gold;
+    v.potions = [...s.potions];
+    v.relics = [...s.relics];
+    v.deck = cloneDeck(s.deck);
+    v.main = s.heroMain;
+    v.sub = s.heroSub;
+    v.chapter = s.chapter;
+    v.rewardRefreshUsed = s.counters.rewardRefreshUsed;
+    v.shopRefreshUsed = s.counters.shopRefreshUsed;
+    v.removeUsed = s.counters.removeUsed;
+    v.destiny = s.tianming;
+    v.nextUid = s.nextUid;
+    return v;
+  }
+
+  // ───────── 战斗（Game 由 RunState 建，体力 / 牌组跨场延续） ─────────
+  /**
+   * 用 RunState 建本场 core Game：主副将、体力、牌组（永久 uid）取自 state，随机流用 battle 流。
+   * start=false 时由调用方（战斗页，先挂好 g 再开战）调用 startBattle。
+   * Game.uid 移到临时号段：战斗内衍生牌 / 敌人实例的 uid 都 ≥ TEMP_UID_BASE，不进存档。
+   */
+  buildBattle(io: BattleIO, b: BattleNode, start = true): Game {
+    const s = this.synced();
+    const g = new Game(this.rng('battle'), io, { autoShan: false, main: s.heroMain, sub: s.heroSub });
+    g.deckMaster = cloneDeck(s.deck);
+    g.uid = TEMP_UID_BASE - 1;
+    g.p.hp = s.hp;
+    g.p.maxHp = s.maxHp;
+    g.encounter = { name: b.encounterName, en: [...b.enemies] };
+    g.battleIdx = b.nodeType === 'BOSS' ? BATTLES.length - 1 : 0;
+    this.game = g;
+    if (start) g.startBattle();
+    return g;
+  }
+  /**
+   * 战斗结算：体力、牌组（含战斗中铭刻的词条，去掉临时牌）写回 RunState。
+   * 胜利时按 rules.map.betweenBattleHeal（H5 = 0）做战后回复——不是 sim.baselineBetweenBattleHeal。
+   */
+  settleBattle(win: boolean) {
+    const g = this.game;
+    if (!g) return;
+    this.update((d) => {
+      d.hp = win ? betweenBattleHeal(Math.max(0, g.p.hp), g.p.maxHp, CONFIG.rules.map.betweenBattleHeal) : Math.max(0, g.p.hp);
+      d.maxHp = g.p.maxHp;
+      d.deck = cloneDeck(g.deckMaster.filter((c) => !isTempUid(c.uid)));
+    });
+  }
+  /** 战斗失败：标记「结束本局」并清 pendingNode，立即写档；刷新 / 续玩直接进结算页，不能重打 */
+  endRun(store: RunStateStore | null = this.store) {
+    this.update((d) => {
+      d.ended = { reason: 'defeat', nodeId: d.pendingNode?.id ?? null };
+      d.pendingNode = null;
+    });
+    this.checkpoint = null;
+    if (store) writeRunStateTo(store, this.synced());
+  }
+  get ended() {
+    return this.st?.ended ?? null;
+  }
+  /** 删除本局存档（结算离开 / 放弃）：新旧键都删 */
+  wipe(store: RunStateStore | null = this.store) {
+    if (store) clearRunStateIn(store);
   }
 
   private need(): RunState {
@@ -187,6 +285,16 @@ export class RunSession {
   /** 把活随机流的内部状态写回 RunState */
   private synced(): RunState {
     const s = this.need();
+    const v = this.inv;
+    if (v) {
+      s.gold = v.gold;
+      s.potions = [...v.potions];
+      s.relics = [...v.relics];
+      s.deck = cloneDeck(v.deck.filter((c) => !isTempUid(c.uid)));
+      s.nextUid = v.nextUid;
+      s.tianming = v.destiny;
+      s.counters = { rewardRefreshUsed: v.rewardRefreshUsed, shopRefreshUsed: v.shopRefreshUsed, removeUsed: v.removeUsed };
+    }
     for (const k of RNG_STREAMS) {
       const r = this.rngs[k];
       if (r) s.rng[k] = r.getState();

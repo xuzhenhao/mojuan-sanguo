@@ -4,7 +4,7 @@
  */
 import { availableNodes, generateMap, getNode, moveTo, type MapConfig, type MapNode, type MapState } from '../../core/run/map';
 import { drawEncounter, groupOf, newEncounterState, type EncounterPools, type EncounterState } from '../../core/run/encounters';
-import { loadRunSave, writeRunSave, type RunSave } from '../../core/run/save';
+import type { RunSave } from '../../core/run/save';
 import { isComingSoon, routeFor } from './route';
 import { applyRestHeal, type RestConfig } from '../../core/run/rest';
 
@@ -35,6 +35,16 @@ const DEFAULT_BASE = (): RunSaveBase => ({
   battleStartSnapshot: null,
 });
 
+/** 存档层：#122 PR2 起由 RunSession 适配（map/index.ts runPersist），读写 RunState 新键 */
+export interface MapPersist {
+  load(): RunSave | null;
+  write(s: RunSave): void;
+  /** 进节点快照（RunSession.enterNode） */
+  enterNode?(n: { id: string; type: string }): void;
+  /** 节点结算完成（RunSession.completeNode） */
+  completeNode?(): void;
+}
+
 export class MapSession {
   state: MapState;
   enc: EncounterState;
@@ -44,18 +54,18 @@ export class MapSession {
     readonly cfg: MapConfig,
     readonly pools: EncounterPools,
     /** 存档写入：null = 不落盘（测试） */
-    private persist: { load(): RunSave | null; write(s: RunSave): void } | null = { load: loadRunSave, write: writeRunSave },
+    private persist: MapPersist | null = null,
     private base: () => RunSaveBase = DEFAULT_BASE,
     private now: () => number = () => Date.now(),
     private restCfg: RestConfig = { healMin: 2, healRatio: 0.3 },
   ) {
     const saved = persist?.load();
-    const ok = saved && saved.runSeed === runSeed && saved.chapter === chapter;
+    const ok = saved && saved.mapState && saved.runSeed === runSeed && saved.chapter === chapter;
     this.state = ok ? saved.mapState : generateMap(runSeed, chapter, cfg);
     this.enc = ok ? saved.encounters : newEncounterState();
   }
   /** 存档里的局种子（续玩用） */
-  static savedSeed(load: () => RunSave | null = loadRunSave): number | null {
+  static savedSeed(load: () => RunSave | null): number | null {
     return load()?.runSeed ?? null;
   }
   /** 地图状态并进 RunSave（mojuan.run.v1）：已有同局存档则只更新 mapState / encounters / nodePath */
@@ -88,12 +98,15 @@ export class MapSession {
     const n = this.node(id);
     if (!n || (n.type !== 'REST' && n.type !== 'EVENT')) throw new Error(`pass 只用于营地/奇遇：${id}`);
     this.state = moveTo(this.state, id);
+    this.save();
+    this.persist?.enterNode?.({ id, type: n.type });
     if (n.type === 'REST') {
       const r = this.restPreview();
       this.save({ hp: r.hp });
+      this.persist?.completeNode?.();
       return { type: 'REST', ...r };
     }
-    this.save();
+    this.persist?.completeNode?.();
     return { type: 'EVENT' };
   }
   /** 走到节点：抽组包（战斗类）→ 写盘 → 返回路由事件与参数 */
@@ -111,6 +124,7 @@ export class MapSession {
     }
     this.state = moveTo(this.state, id, patch);
     this.save();
+    this.persist?.enterNode?.({ id, type: n.type });
     return routeFor(this.chapter, this.node(id)!, enc);
   }
   group(encounterId: string) {

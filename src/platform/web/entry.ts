@@ -13,7 +13,9 @@ import { RunSession } from '../../game/run';
 import { initialState } from '../../game/select/model';
 import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
-import { createMapScene } from '../../game/map';
+import { bindMapRun, createMapScene, mapSession } from '../../game/map';
+import { noticeText } from '../../game/run/state';
+import { showNotice } from '../../game/overlays/notice';
 import { registerP4 } from '../../game/scenes/p4-register';
 import { createWebPlatform, paintPaperBackdrop, showStatusBar } from './platform';
 import { DESIGN_RECT } from '../../engine/viewport';
@@ -36,6 +38,9 @@ const engine = new Engine(platform, { backdrop: paintPaperBackdrop }, cfg);
 const designSafe = () => ({ ...DESIGN_RECT });
 
 const run = new RunSession();
+// #122 PR2：本局唯一数据源 RunState，存档只写新键 mojuan.runstate.v1（旧键读到即迁移并删除）
+run.store = platform.storage;
+bindMapRun(run, platform.storage);
 const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : null));
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = PAGES;
@@ -59,6 +64,7 @@ engine.scenes.register(
         const o = outcome();
         if (!isDemo()) meta.settle(o);
         slot.remove();
+        run.clear();
         abandoned = null;
         resultBridge.outcome = null;
         if (to === 'map' && resultBridge.restart) {
@@ -118,8 +124,23 @@ engine.scenes.register(
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
       warn: (m) => platform.warn(m),
-      onEnd: (win) => send({ type: 'battle_end', win }),
+      onEnd: (win) => {
+        const pend = run.inNode;
+        if (run.active && run.game) {
+          run.settleBattle(win);
+          if (win) run.completeNode(platform.storage);
+          else run.endRun(platform.storage); // 失败：存档标记「结束本局」，刷新直接进结算页
+          // 胜利 → 奖励页也是一个节点：先存进节点快照，刷新后奖励候选一致
+          if (win && pend) run.enterNode({ id: `${pend.id}#reward`, type: 'REWARD' }, platform.storage);
+        }
+        const kind = pend?.type === 'BOSS' ? 'boss' : pend?.type === 'ELITE' ? 'elite' : 'normal';
+        void router.send({ type: 'battle_end', win }, win ? { kind } : undefined);
+      },
       heroes: () => run.params,
+      build: (io, p) =>
+        run.active && p.nodeId && p.nodeType && p.enemies
+          ? run.buildBattle(io, { nodeId: p.nodeId, nodeType: p.nodeType, encounterName: p.encounterName ?? '', enemies: p.enemies }, false)
+          : null,
     }),
 );
 const router = new Router(flow, engine.scenes);
@@ -168,11 +189,49 @@ async function checkResume() {
   if (flow.page !== 'select') return;
   const s = slot.peek();
   if (!s) return;
+  const raw0 = slot.raw() as { ended?: unknown } | null;
+  if (raw0?.ended) {
+    // 已「结束本局」（战斗失败后刷新）：不弹续玩，直接进结算页
+    resultBridge.outcome = { ...outcomeFromSave(s, raw0, Date.now()), abandoned: false };
+    flow.page = 'result';
+    flow.history.push('result');
+    await engine.scenes.go('result', undefined, { durationMs: 0 });
+    return;
+  }
   const r = await resumeFlow(engine.overlays, engine, s, heroName);
   if (r === 'abandon') {
     abandoned = outcomeFromSave(s, slot.raw(), Date.now());
     void router.send({ type: 'abandon' });
-  } else if (resultBridge.resume) resultBridge.resume(slot.raw());
-  else platform.warn('继续本局：续玩恢复尚未接入（等待地图/战斗页的 run 模块）');
+  } else void resumeRun();
+}
+
+/**
+ * 继续本局（#122 PR2）：RunSession.load 读新键（旧键迁移一次并删除）；节点内中途刷新 → 回到进节点快照重进该节点。
+ * 提示走通用 toast 钩子 noticeText（PR3 出正式样式）。
+ */
+async function resumeRun() {
+  const r = run.load(platform.storage, { configVersion: 'dev' });
+  if (!r.ok) {
+    platform.warn(`继续本局：读档失败（${r.reason}）`);
+    return;
+  }
+  const st = run.state;
+  const pend = st.pendingNode;
+  const go = (page: Page, params?: unknown) => {
+    flow.page = page;
+    flow.history.push(page);
+    return engine.scenes.go(page, params, { durationMs: 0 });
+  };
+  if (pend && (pend.type === 'BATTLE' || pend.type === 'ELITE' || pend.type === 'BOSS')) {
+    const node = st.map?.nodes.find((n) => n.id === pend.id) as { encounterId?: string } | undefined;
+    const grp = node?.encounterId ? mapSession(engine, st.chapter, st.runSeed).group(node.encounterId) : null;
+    await go('battle', { nodeId: pend.id, nodeType: pend.type, encounterName: grp?.name ?? '', enemies: grp?.enemies ?? [] });
+  } else if (pend?.type === 'REWARD') {
+    const t = st.map?.nodes.find((n) => `${n.id}#reward` === pend.id)?.type;
+    await go('reward', { kind: t === 'BOSS' ? 'boss' : t === 'ELITE' ? 'elite' : 'normal' });
+  } else if (pend?.type === 'SHOP') await go('shop', { kind: 'shop' });
+  else if (pend?.type === 'CHEST') await go('chest', { kind: 'chest' });
+  else await go('map');
+  showNotice(engine.overlays, noticeText(r.notice, pend));
 }
 (window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router, run, economy, meta, slot, resultBridge };
