@@ -93,8 +93,9 @@ export function drawPause(c: Ctx2DLike, f: DialogFrame, s: Settings, cfg: Settin
     if (row.kind === 'toggle') {
       const on = !!s.toggles[row.key];
       const t = toggleRect(row.rect);
+      // 关：goldLo 细描边（外圈 pill + 内缩 1px 填底），开：jade 实底
+      if (!on) pill(c, { x: t.x - 1, y: t.y - 1, w: t.w + 2, h: t.h + 2 }, B.goldLo);
       pill(c, t, on ? B.jade : B.lac3);
-      if (!on) frame(c, t, B.goldLo, 1);
       dot(c, on ? t.x + t.w - 13 : t.x + 13, t.y + 13, 10, on ? B.paper : B.paper3);
     } else {
       const opts = cfg.choices[row.key]?.options ?? [];
