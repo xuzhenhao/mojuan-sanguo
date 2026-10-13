@@ -16,6 +16,8 @@ export interface Built {
   encounters: Record<string, any>;
   decks: Record<string, any>;
   events: Record<string, any>;
+  relics: Record<string, any>;
+  potions: Record<string, any>;
 }
 
 const ICONS: string[] = iconSchema.enum;
@@ -28,6 +30,8 @@ const SCHEMA_OF: Record<string, string> = {
   encounters: 'encounter',
   decks: 'deck',
   events: 'event',
+  relics: 'relic',
+  potions: 'potion',
 };
 const AFFIX_ORDER = ['sha', 'shan', 'tao', 'jiu', 'trick', 'equip'];
 
@@ -61,7 +65,7 @@ export function loadConfig(root: string): { config: Built; errors: string[] } {
     }
   };
 
-  const config: Built = { rules: {}, cards: {}, affixes: [], heroes: {}, enemies: {}, encounters: {}, decks: {}, events: {} };
+  const config: Built = { rules: {}, cards: {}, affixes: [], heroes: {}, enemies: {}, encounters: {}, decks: {}, events: {}, relics: {}, potions: {} };
   const rulesFile = join(root, 'rules.yaml');
   config.rules = read(rulesFile) ?? {};
   check('rules', config.rules, 'rules.yaml');
@@ -165,6 +169,8 @@ export function businessChecks(c: Built): string[] {
     }
   }
   // 奇遇（#91）：引用的卡牌 / 武将必须存在；每个事件至少一个无条件选项（不会卡住）
+  // #173 宝物：Boss 额外宝物池至少要有 1 件 Boss 级
+  if (!Object.values<any>(c.relics).some((r) => r.rarity === 'Boss')) errs.push('relics: 至少需要 1 件 Boss 级宝物');
   for (const ev of Object.values<any>(c.events)) {
     const walkO = (xs: any[] = []) => {
       for (const o of xs) {

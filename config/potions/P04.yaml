@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P04
+name: 焚书油
+desc: "删手牌 1，摸 3"
+price: 40 # 14.2 集市基价（浮动前）

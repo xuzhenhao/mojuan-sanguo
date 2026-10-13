@@ -39,6 +39,8 @@ import { makeRespond } from '../../overlays/response';
 import { openRevive } from '../../overlays/revive';
 import { reviveFxDone, reviveFxFrame, type ReviveFx } from './revive-fx';
 import { CONFIG } from '../../../data/config';
+import { drawBossIntro, INTRO_MS, introFrame, SKIP_FADE_MS, type IntroData, type IntroKind } from './boss-intro';
+import type { SeenBosses } from '../../prefs/seen-bosses';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
 import { drawScreenBg } from './screen';
@@ -68,6 +70,9 @@ export interface BattleDevOverrides {
   boss?: boolean;
   longName?: boolean;
   detail?: string;
+  /** `?intro=first|repeat|phase[&introT=<ms>]`：预览首领登场 / 阶段台词（#107）；introT 定格在该时刻供截图 */
+  intro?: IntroKind;
+  introT?: number;
 }
 
 export interface BattleDeps {
@@ -105,6 +110,8 @@ export interface BattleDeps {
   /** 当前地图节点类型（'BOSS' / 'ELITE' / …）；Boss 血条判定优先看它，没有再看敌人数据 tier（#129） */
   nodeType?(): string | undefined;
   warn?(msg: string): void;
+  /** 局外偏好：已看过登场的首领 id（#107；不给则每次按首次播） */
+  seenBosses?: SeenBosses;
 }
 
 const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
@@ -208,6 +215,7 @@ export class BattleScene implements Scene<BattleParams> {
       this.snap = this.snapshot();
       this.g.startBattle();
     }
+    if (!p.game) this.startIntro();
     if (this.deps.dev && !p.game) this.applyDev(this.deps.dev);
     this.snap = this.snapshot();
     ctx.invalidate();
@@ -275,6 +283,11 @@ export class BattleScene implements Scene<BattleParams> {
         { hero: this.g.main.name, hp: ev.hp, armor: ev.armor, perRun: CONFIG.rules.revive.count, left: ev.left, enemies: this.g.alive().length },
         () => this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H },
       );
+    },
+    enemyPhase: (ev) => {
+      // #107 阶段切换：阶段台词约 1s（不重开墨带）；召唤的弓手同时按入场出现
+      const line = ev.enemy.intro?.phaseLine;
+      if (line) void this.q.push('boss_phase', INTRO_MS.phase, true, { intro: this.introData(ev.enemy, 'phase', line) });
     },
     revived: (ev) => {
       this.reviveFx = { start: this.fxNow(), prev: ev.prev, cancelled: new Set(ev.cancelled) };
@@ -500,6 +513,10 @@ export class BattleScene implements Scene<BattleParams> {
       return !!hit;
     }
     this.press = null;
+    if (this.introStep) {
+      if (e.type === 'tap') this.skipIntro();
+      return true; // 演出期间阻塞输入，只接受点击跳过
+    }
     if (this.q.blockingBusy && e.type === 'tap' && this.mode === 'busy') {
       this.q.skip(); // 点屏跳过当前可跳过动画
       return true;
@@ -880,6 +897,12 @@ export class BattleScene implements Scene<BattleParams> {
       ring(ctx, this.press.at.x, this.press.at.y - 30, 16, 'rgba(233,200,119,0.35)', 3);
       ring(ctx, this.press.at.x, this.press.at.y - 30, 16, C.gold, 3, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * this.press.p);
     }
+    const is = this.introStep;
+    if (is) {
+      const d = is.data as { intro: IntroData; skipAt?: number; freezeT?: number };
+      const tt = d.freezeT ?? is.t;
+      drawBossIntro(ctx, d.intro, introFrame(d.intro.kind, tt, this.reducedMotion(), d.skipAt), w, h, d.intro.kind === 'first');
+    }
     this.drawSeal(ctx);
     this.lp?.draw(s);
   }
@@ -1003,9 +1026,10 @@ export class BattleScene implements Scene<BattleParams> {
       }
       ctx.globalAlpha = ia;
     }
-    {
+    const introA = this.intentIntroAlpha();
+    if (introA > 0) {
       const ia = ctx.globalAlpha;
-      ctx.globalAlpha = ia * (fx ? fx.newAlpha : 1);
+      ctx.globalAlpha = ia * (fx ? fx.newAlpha : 1) * introA;
       this.drawIntent(ctx, ir, it, lethal);
       ctx.globalAlpha = ia;
     }
@@ -1066,8 +1090,70 @@ export class BattleScene implements Scene<BattleParams> {
   }
   /** 敌人体力矩形（不出卡框；测试与绘制共用） */
   /** 开发调试：强制血量 / Boss / 最长牌名 / 打开某张牌的详情（只在开发构建传入） */
+  // ---------- 首领登场演出（#107） ----------
+  /** 正在播的登场 / 阶段演出步骤 */
+  get introStep() {
+    const s = this.q.current;
+    return s && (s.id === 'boss_intro' || s.id === 'boss_phase') ? s : null;
+  }
+  introData(e: Enemy, kind: IntroKind, line?: string): IntroData {
+    return { kind, name: e.name, chapter: CONFIG.enemies[e.id]?.chapter ?? 1, line };
+  }
+  /** 开战：首领（节点类型 boss，直达调试看 tier）有台词就播登场；看过的首领播 0.8s */
+  startIntro(force?: IntroKind, freezeT?: number) {
+    const boss = this.g.en.find((e) => e.tier === 'Boss' && e.intro?.line && this.isBoss(e));
+    const src = boss ?? (force ? this.previewBoss() : null);
+    if (!src) return;
+    const seen = this.deps.seenBosses;
+    let kind: IntroKind = force ?? (seen?.has(src.id) ? 'repeat' : 'first');
+    if (!force) seen?.add(src.id);
+    const line = kind === 'phase' ? src.intro?.phaseLine : src.intro?.line;
+    if (!line && kind === 'phase') kind = 'first';
+    const data: Record<string, unknown> = { intro: this.introData(src, kind, line ?? src.intro?.line) };
+    if (freezeT != null) data.freezeT = freezeT;
+    const dur = freezeT != null ? 1e9 : INTRO_MS[kind];
+    void this.q.pushFront(kind === 'phase' ? 'boss_phase' : 'boss_intro', dur, data);
+    const step = this.q.current!;
+    const resolve = step.done;
+    // 同步接上意图弹出（不等微任务，避免演出结束那一帧意图闪现）
+    step.done = () => {
+      resolve?.();
+      if (kind !== 'phase') void this.q.push('intent_in', this.reducedMotion() ? 0 : 250, false);
+    };
+  }
+  /** 调试预览：本场没有首领时借第 1 章首领的名字与台词 */
+  private previewBoss(): Enemy | null {
+    const id = String((CONFIG.rules as { boss?: Record<string, string> }).boss?.[1] ?? 'B1');
+    const cfg = CONFIG.enemies[id];
+    return cfg?.intro ? ({ id, name: cfg.name, tier: cfg.tier, intro: cfg.intro } as Enemy) : null;
+  }
+  /** 点击跳过：从当前帧起 150ms 淡出 */
+  skipIntro() {
+    const s = this.introStep;
+    if (!s || !s.data || s.data.skipAt != null) return;
+    if (s.data.freezeT != null) return;
+    s.data.skipAt = s.t;
+    s.durationMs = Math.min(s.durationMs, s.t + SKIP_FADE_MS);
+  }
+  /** 意图：登场演出中不显示；结束后 250ms 弹出 */
+  intentIntroAlpha(): number {
+    const s = this.q.current;
+    if (s?.id === 'boss_intro') return 0;
+    const f = this.q.free.find((x) => x.id === 'intent_in');
+    return f ? this.q.progress(f) : 1;
+  }
+
   applyDev(d: BattleDevOverrides) {
     const g = this.g;
+    if (d.intro) {
+      // 预览：替换开战时自动排上的登场演出
+      const cur = this.introStep;
+      if (cur) {
+        cur.durationMs = 0;
+        this.q.update(0);
+      }
+      this.startIntro(d.intro, d.introT);
+    }
     const max = d.maxHp ?? d.hp;
     if (max) {
       g.p.maxHp = max;

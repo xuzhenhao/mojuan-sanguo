@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R25
+name: 的卢蹄铁
+rarity: R
+desc: "后排敌人每回合首杀无效"

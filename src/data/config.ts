@@ -63,6 +63,7 @@ export interface HeroCfg {
 export interface EnemyCfg {
   id: string;
   name: string;
+  chapter?: number;
   tier: '小怪' | '精英' | 'Boss';
   hp: number;
   row: 'front' | 'back';
@@ -76,6 +77,8 @@ export interface EnemyCfg {
   armorStart?: number;
   desc?: string;
   abilities?: Ability[];
+  /** 首领登场台词（#107）：line = 登场墨带；phaseLine = 阶段 2 切换 */
+  intro?: { line?: string; phaseLine?: string };
 }
 export interface ConfigBundle {
   rules: {
@@ -124,6 +127,10 @@ export interface ConfigBundle {
   enemies: Record<string, EnemyCfg>;
   encounters: Record<string, { chapter: number; battles: { name: string; kind?: string; enemies: string[] }[] }>;
   events: Record<string, EventCfg>;
+  /** 宝物（config/relics，#173） */
+  relics: Record<string, RelicCfg>;
+  /** 丹药（config/potions，#173） */
+  potions: Record<string, PotionCfg>;
   decks: Record<string, { id: string; name: string; cards: { card: string; suit: 'S' | 'H' | 'C' | 'D'; rank: number }[] }>;
 }
 
@@ -184,4 +191,37 @@ export const shopPrice = (id: string) => {
 export function atomAmount(abilities: Ability[] | undefined, atom: string): number | undefined {
   for (const a of abilities ?? []) for (const d of a.do) if (d.do === atom) return d.amount;
   return undefined;
+}
+
+/** 宝物的参数化局外效果（config/relics effects，#173）；战斗内效果仍由 core 按能力结算 */
+export interface RelicEffects {
+  /** 每场战斗胜利铜钱 +N */
+  goldBonus?: number;
+  /** 精英战奖励铜钱 +N */
+  eliteGoldBonus?: number;
+  /** 集市价格 −比例 */
+  shopDiscount?: number;
+  /** 集市丹药槽 +N */
+  shopPotionSlots?: number;
+  /** 营地疗伤 +N */
+  restHeal?: number;
+}
+export interface RelicCfg {
+  id: string;
+  name: string;
+  rarity: 'N' | 'R' | 'E' | 'L' | 'Boss';
+  desc: string;
+  oneShot?: boolean;
+  effects?: RelicEffects;
+}
+export interface PotionCfg {
+  id: string;
+  name: string;
+  desc: string;
+  price: number;
+}
+
+/** 持有宝物某项效果之和（未知 id 忽略） */
+export function relicEffect(relics: readonly string[], key: keyof RelicEffects): number {
+  return relics.reduce((n, id) => n + (CONFIG.relics[id]?.effects?.[key] ?? 0), 0);
 }

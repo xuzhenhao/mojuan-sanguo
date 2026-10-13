@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R24
+name: 羽扇纶巾
+rarity: E
+desc: "回合结束剩 ≥1 令时摸 1"

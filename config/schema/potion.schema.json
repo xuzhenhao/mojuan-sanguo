@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "potion.schema.json",
+  "title": "丹药（一种一文件：potions/<ID>.yaml，PRD 12.2；#173）",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "desc",
+    "price"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^P\\d{2}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "desc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "price": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "14.2 集市基价（浮动前）"
+    }
+  }
+}

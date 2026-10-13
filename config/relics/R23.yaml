@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R23
+name: 双股剑鞘
+rarity: R
+desc: "每场首 3 回合首杀 −1 费"

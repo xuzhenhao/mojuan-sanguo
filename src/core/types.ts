@@ -108,6 +108,8 @@ export interface EnemyDef {
   abilities?: import('../data/config').Ability[];
   /** 阶段表（按顺序，只进不退） */
   phases?: EnemyPhaseDef[];
+  /** 首领登场台词（#107，仅 Boss）：line 登场墨带；phaseLine 阶段 2 切换 */
+  intro?: { line?: string; phaseLine?: string };
   /** 意图「锦囊:<id>」的参数覆盖（如张角闪电 D003 amount 2） */
   trickOverrides?: Record<string, { amount?: number }>;
 }

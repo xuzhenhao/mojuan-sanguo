@@ -1,7 +1,7 @@
 /** 候选池与价格（PRD 14.2 / 14.3 / 14.8 / 12.1）。只读 config 与 core，不改 core */
 import type { Rng } from '../../core/rng';
 import type { Rarity, Suit } from '../../core/types';
-import { CONFIG, rewardWeight, shopPrice, type CardCfg } from '../../data/config';
+import { CONFIG, relicEffect, rewardWeight, shopPrice, type CardCfg } from '../../data/config';
 import { ECONOMY, POTIONS, RELICS, type BattleKind, type Range, type RelicDef } from '../../data/economy';
 import type { Inventory } from './inventory';
 
@@ -116,7 +116,7 @@ export function jitter(rng: Rng, base: number, inv: Pick<Inventory, 'relics' | '
 }
 export function applyMods(p: number, inv: Pick<Inventory, 'relics' | 'destiny'>) {
   let k = 1;
-  if (inv.relics.includes('R09')) k -= 0.2;
+  k -= relicEffect(inv.relics, 'shopDiscount'); // 如 R09 断袖香囊
   if (inv.destiny >= 6) k += ECONOMY.destinyShopMarkup;
   return k === 1 ? p : Math.round((p * k) / ECONOMY.priceRound) * ECONOMY.priceRound;
 }
