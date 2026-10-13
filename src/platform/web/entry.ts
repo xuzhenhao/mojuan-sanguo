@@ -104,7 +104,7 @@ engine.scenes.register(
       initial: initialState(query),
       onStart(sel) {
         const seed = query.seed ? Number(query.seed) : Math.floor(platform.now() * 1000) >>> 0;
-        run.start({ ...sel, seed }, undefined, { configVersion: CONFIG_VERSION, now: Date.now() });
+        run.begin({ ...sel, seed }, platform.storage, { configVersion: CONFIG_VERSION, now: Date.now() });
         send({ type: 'start_run' });
       },
     }),
