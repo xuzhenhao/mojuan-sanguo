@@ -70,6 +70,9 @@ describe('响应弹窗：接 core 决策点，Promise 返回选择', () => {
     const geo = responseGeometry(layout, state);
     st.gesture(tap(...center(geo.cards[2].rect)));
     expect(state.selected).toBe(b); // 改选另一张闪
+    expect(st.animating()).toBe('full'); // 改选后整层重绘一次，焦点层随之移动
+    st.draw(surface(), 0);
+    expect(st.animating()).toBe(false);
     st.gesture(tap(...center(geo.cards[2].rect)));
     expect(state.selected).toBeNull(); // 再点已选 → 取消
     st.gesture(tap(...center(geo.ok)));

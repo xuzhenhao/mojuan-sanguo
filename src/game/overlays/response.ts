@@ -71,6 +71,8 @@ export interface ResponseState {
   total: number;
   /** 弹出动画 0→1（250ms） */
   intro: number;
+  /** #236：选中变化后需整层重绘一次（倒计时期间默认只做 tick 局部重绘） */
+  redraw?: boolean;
 }
 
 /** 计算可交互元素的位置 */
@@ -254,7 +256,7 @@ export function openResponse(stack: OverlayStack, req: ResponseRequest, o: Respo
     dismissOnTapOutside: false,
     scrim: () => responseScrim(st),
     // 弹出动画（250ms）整层重绘；之后倒计时只局部重绘（秒数或进度条像素变化时）
-    animating: () => (st.intro < 1 ? true : Number.isFinite(st.left) && st.left > 0 ? 'tick' : false),
+    animating: () => (st.intro < 1 || st.redraw ? true : Number.isFinite(st.left) && st.left > 0 ? 'tick' : false),
     update: (dt) => {
       const step = Math.min(dt, 100); // 卡顿/切后台回来时不一次扣光
       if (o.paused?.()) return;
@@ -268,11 +270,15 @@ export function openResponse(stack: OverlayStack, req: ResponseRequest, o: Respo
       }
     },
     tick: (s) => drawCountdown(s, responseGeometry(o.layout(), st), st),
-    draw: (s) => drawResponse(s, o.layout(), st),
+    draw: (s) => {
+      st.redraw = false;
+      drawResponse(s, o.layout(), st);
+    },
     gesture: (e: GestureEvent, h) => {
       if (e.type !== 'tap') return true; // 响应期间只接受点按，长按等一律吞掉
       const r = responseTap(o.layout(), st, e.at);
-      if (r === 'ok') h.close(st.selected);
+      if (r === 'select') st.redraw = true;
+      else if (r === 'ok') h.close(st.selected);
       else if (r === 'take') h.close(null);
       return true;
     },
