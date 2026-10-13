@@ -46,6 +46,20 @@ export interface ShareAdapter {
 export interface SubpackageLoader {
   load(name: string, onProgress?: (p: number) => void): Promise<void>;
 }
+/** 字体加载（#202）：永不抛错，失败返回 false。url 为包内相对路径，各端自行解析（H5 拼 BASE_URL，微信端映射包内文件） */
+export interface PlatformFonts {
+  load(family: string, url: string): Promise<boolean>;
+}
+/** 埋点事件（#202；字段由 game/telemetry.ts 维护） */
+export interface TelemetryEvent {
+  ev: string;
+  data: Record<string, unknown>;
+  t: number;
+}
+/** 埋点传输（#202）：telemetry.ts 只缓冲，批量交给平台发送（H5 暂为开发控制台；微信端实时日志，见 #208） */
+export interface TelemetryTransport {
+  send(batch: TelemetryEvent[]): void;
+}
 export interface ErrorReport {
   message: string;
   stack?: string;
@@ -76,6 +90,10 @@ export interface Platform {
   ads: AdsAdapter;
   share: ShareAdapter;
   loader: SubpackageLoader;
+  fonts: PlatformFonts;
+  telemetry: TelemetryTransport;
+  /** 是否减少动态（#202）：H5 读 prefers-reduced-motion；微信端为 false */
+  prefersReducedMotion(): boolean;
   reportError(e: ErrorReport): void;
   warn(msg: string, data?: unknown): void;
 }

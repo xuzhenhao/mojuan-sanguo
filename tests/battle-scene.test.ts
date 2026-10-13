@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { Engine } from '../src/engine/engine';
 import { OverlayStack } from '../src/engine/modal';
@@ -31,7 +31,7 @@ function mkScene(hooks?: BattleOverlayHooks, main?: string, sub?: string) {
   const inv: string[] = [];
   const overlays = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
   const ends: boolean[] = [];
-  const sc = new BattleScene({ now: testNow, overlays, hooks, onEnd: (w) => ends.push(w), debugDefaults: true });
+  const sc = new BattleScene({ now: fakeClock().now, overlays, hooks, onEnd: (w) => ends.push(w), debugDefaults: true });
   sc.enter({ width: 390, height: 844, invalidate: (l) => inv.push(l ?? 'all') }, { seed: 7, main, sub });
   return { sc, overlays, ends };
 }
@@ -213,7 +213,7 @@ describe('战斗场景', () => {
   });
   it('灵光一闪：正式版未接入弹层时不自动选第一个', async () => {
     const warns: string[] = [];
-    const rel = new BattleScene({ now: testNow, warn: (m) => warns.push(m) });
+    const rel = new BattleScene({ now: fakeClock().now, warn: (m) => warns.push(m) });
     rel.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
     const opts = [{ id: 'a', r: 'N', n: 'A', d: '', cat: 'sha' }] as never;
     expect(await rel.io.epiphany(rel.g.hand[0], opts, () => opts)).toBeNull();
@@ -246,7 +246,7 @@ describe('战斗场景', () => {
   it('接入 Engine（WebGL 关闭路径）可绘制', () => {
     const fp = fakePlatform({ query: { webgl: '0' } });
     const eng = new Engine(fp.p);
-    eng.scenes.register('battle', () => new BattleScene({ now: testNow, overlays: eng.overlays }));
+    eng.scenes.register('battle', () => new BattleScene({ now: fakeClock().now, overlays: eng.overlays }));
     void eng.scenes.go('battle');
     eng.frame(16);
     expect(eng.overlay).toBeNull();

@@ -39,6 +39,7 @@ import {
 } from './p4-kit';
 import { pickDeckCard } from './shop';
 import { FULL_SCRIM } from './rest';
+import { prefersReducedMotion as readReducedMotion } from '../motion';
 
 /** 事件页读写的局状态（正式局 = RunSession；直达调试 = 不落盘的临时局） */
 export interface EventRunIO {
@@ -178,7 +179,7 @@ export class EventScene implements Scene<EventParams> {
   }
   private reduced() {
     if (this.env.reducedMotion) return this.env.reducedMotion();
-    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return readReducedMotion();
   }
   update(dt: number) {
     if (this.animating()) {

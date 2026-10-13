@@ -1,4 +1,4 @@
-import { testNow } from './helpers';
+import { fakeClock } from './helpers';
 /** #118：引擎把场景绘制裁到内容框；战斗页金山影不出框 */
 import { describe, expect, it } from 'vitest';
 import { clipToContent } from '../src/engine/engine';
@@ -21,7 +21,11 @@ describe('#118 内容框裁剪', () => {
     expect(clipToContent({} as never)).toBe(false);
   });
   it('战斗页金山影全部在 0…W 内（修 x=-10…w+20 溢出）', () => {
-    const sc = new BattleScene({ now: testNow, overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
+    const sc = new BattleScene({
+      now: fakeClock().now,
+      overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }),
+      debugDefaults: true,
+    });
     sc.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
     const rs = sc.mountainRects();
     expect(rs).toHaveLength(5);
