@@ -1,6 +1,6 @@
-# 画风规范 C · 写意墨线（以参考原图为唯一基准）
+# 画风规范 C · 扁平墨线（以参考原图为唯一基准）
 
-> 状态：用户否决了 C1/C2/C3（粗剪影、面具脸）和 R1/R2/R3（太干净、太端正）。**以参考原图 `refs/lvbu-C-flat-ink.jpg` 为唯一基准**，要原图那种霸气又有点凌乱的美感。竖版变体 L1/L2/L3 待用户挑选（S1–S3 缺双长雉翎，已否决）；**选定前不批量出图**。
+> 状态：用户否决了 C1–C3（粗剪影/面具脸）、R1–R3（太干净端正）、S1–S3（缺双长雉翎）、L1–L3（泼墨厚涂偏离 Style C）。**回到最早 Style C 质感**：干净墨线 + 平涂色块。竖版变体 **F1/F2/F3** 待用户挑选；**选定前不批量出图**。
 > 槽位与尺寸以 `docs/ui/render-spec.md` §8.8.4 为准；本文与其冲突时以 render-spec 为准。
 
 ## 0. 硬规则：先列标志性特征清单
@@ -15,76 +15,74 @@ ICONIC FEATURES, must be clearly visible:
 - <特征 3> …
 ```
 
-## 1. 总风格关键词
-- **粗细不匀的墨线**，带笔锋和顿挫；**飞白、干笔擦痕**。
-- **头发、雉翎、红缨、披风被风吹乱**；**边缘泼墨、溅墨**，衣摆可散入墨点。
-- **纸底纹理看得见**（米白宣纸）。
-- **侧身、有动势**；**眉压眼、眼神凌厉**；写实的中国（东亚）面孔。
-- **用色克制：红黑金 + 大面积留白**。
+## 1. 总风格（对照参考原图 `refs/lvbu-C-flat-ink.jpg`）
+- **Clean ink linework with flat muted color blocks**（干净墨线 + 平涂色块）：线宽稳定、色块边界清晰。
+- 色板：ink black / deep red / ochre（哑金）/ cream paper；允许少量一层硬边暗部，**不用渐变、喷枪、厚涂、泼墨、飞白溅墨**。
+- 写实而有神的东亚（中国）面孔；眉压眼、眼神锐利。
+- 背景：米白纸底，无场景、无地面、无边框。
 
 | 名称 | 色值 | 用途 |
 |---|---|---|
-| 墨黑 | `#1E1A17` | 墨线、头发、甲片、泼墨 |
-| 米白纸 | `#FBF5E6` | 纸底留白（保留纸纹） |
-| 朱砂 | `#B8322A` | 披风、雉翎、红缨 |
-| 哑金 | `#C9A24A` | 冠饰、兽首纹、戟头 |
+| 墨黑 | `#1E1A17` | 描线、甲片、头发 |
+| 米白纸 | `#FBF5E6` | 背景纸底 |
+| 朱砂 / deep red | `#B8322A` | 披风、衣袍、缨穗 |
+| 哑金 / ochre | `#C9A24A` | 冠饰、兽首纹、戟头 |
 
-- 标志物（吕布）：双雉翎 + 方天画戟（月牙刃）+ 红黑披风 + 金冠。
+- 禁止：泼墨、飞白干笔擦痕、厚涂光影、3D 渲染、照片质感、文字/印章/水印/边框。
 
 ## 2. 构图规则
-- **半身竖版 256:356，脸要大**（脸宽约占画面 1/3），头部在上 1/3。
-- 兵器竖放、贴身，戟刃尽量收进画框；人物与兵器压在中央。
+- 半身竖版 **256:356**，脸要大（脸宽约占画面 1/3），头部在上 1/3。
+- 兵器竖放、贴身；人物与兵器压在中央约 40% 宽度内；**双长雉翎整根在画框内**。
 - 底部 80@2x 为渐隐区（卡框底部叠 40px 暗渐变），不放脸和戟刃。
 - 小尺寸可读：1x 主将 128×178、副将 70×98，灰度下仍能认出脸、雉翎和戟。
 
 ## 3. 固定 prompt
 **前缀（`...` 处填角色）：**
 ```
-Same art style as the reference: rough expressive ink brush linework with uneven stroke weight, dry-brush flying-white streaks, ink splashes and splatter at the edges; windswept hair, feathers, tassels and cape; brows pressed low over sharp fierce eyes; visible cream rice-paper texture; restrained palette of red, black, gold and empty paper. Chinese Three Kingdoms general ..., close bust framing, body turned three-quarters with motion, weapon held vertically close to the body. Keep the figure and the weapon within the central 40% of the image width. No text.
+Tall vertical portrait of a Chinese Three Kingdoms general ..., in the exact style of the reference: clean ink linework with flat muted color blocks (ink black, deep red, ochre), cream paper background, realistic and spirited East Asian face with sharp eyes, minimal hard-edge shading only. Figure centered within the central 40% of the image width, empty space at top. No text, no watermark.
 ```
 **负面约束：**
 ```
-no thick painterly shading, no realistic painterly rendering, no stiff upright pose, no overly clean look, no bold silhouette, no mask-like face, no western battle axe, no western knight armor, no frame, no border, no text, no letters, no seal stamps, no watermark, no signature, no logo, no scenery, no 3D render, no extra limbs, no cropped head
+no ink splash, no ink splatter, no flying-white dry brush, no thick painterly shading, no realistic painterly rendering, no bold silhouette, no mask-like face, no western battle axe, no western knight armor, no frame, no border, no text, no letters, no seal stamps, no watermark, no signature, no logo, no scenery, no 3D render, no airbrush, no gradient shading, no extra limbs, no cropped head, no weapon cut off at frame edge
 ```
 > 出图中曾出现西式骑士 + 西式战斧，已废弃；prompt 必须写明 "Chinese" 和兵器名（吕布写 "fangtian huaji"）。
 
-**推荐生成方法：** **只用参考原图 `refs/lvbu-C-flat-ink.jpg` 做参考**。工具输出横图，prompt 里必须写「主体和兵器压在中央 40% 宽度内」(within the central 40% of the image width)，否则竖裁时兵器会被裁掉。
+**推荐生成方法：** 只用参考原图 `refs/lvbu-C-flat-ink.jpg` 做参考（可附已选定的竖版立绘）。工具常输出横图，prompt 写主体和兵器压在中央 40% 宽度内。
 
 ## 4. 吕布竖版变体（待选）
-prompt 沿用 §3 前缀 + `characters/lvbu.md` 的 ICONIC FEATURES 段，再加 pose：
+prompt = §3 前缀 + `characters/lvbu.md` 的 ICONIC FEATURES 段 + pose：
 | 变体 | 参考 | pose |
 |---|---|---|
-| L1 侧身立戟 | `refs/lvbu-L1.png` | body turned three-quarters, fangtian huaji upright at his left side, two long feathers arching over both sides |
-| L2 回首睥视 | `refs/lvbu-L2.png` | glancing back over the shoulder, halberd behind him, feathers sweeping in the widest arcs |
-| L3 握戟半身 | `refs/lvbu-L3.png` | half body gripping the halberd in front at the left, beast-head pauldrons prominent |
+| F1 侧身立戟 | `refs/lvbu-F1.png` | three-quarter body, fangtian huaji upright at his side, two long pheasant feathers arching over both sides, gold beast-face chest plate |
+| F2 半身握戟 | `refs/lvbu-F2.png` | half body, fangtian huaji upright near the shoulder, striped pheasant feathers, scale armor with red cape |
+| F3 握戟半身 | `refs/lvbu-F3.png` | half body gripping the halberd across the torso, ochre pheasant feathers, gold beast-head pauldron |
 
-> 双长雉翎宽度可达画面 60–70%：竖裁时窗口宽取「两翎外缘 + 戟」的最小值，按 256:356 求高，上方补纸底（取原图纸纹平铺，接缝渐变融合），下方让身体渐隐到纸底。代价是脸变小，需验 70 尺寸。
+> 历史否决：C1–C3 粗剪影/面具；R1–R3 太干净端正；S1–S3 缺双长雉翎；L1–L3 泼墨厚涂偏离 Style C（参考图曾存 `refs/lvbu-L*.png`，已换为 F 系列）。
 
 ## 5. 三类资源模板（尺寸均为 @2x 交付）
 ### 5.1 武将 `generals_battle`
 - 主将 **256×356**；副将 **140×196**（同一原画裁胸像，脸中心 (76,64)@2x，左上 32×80 留名）。
-- 模板：`{前缀，... = "<武将名>, <标志外观/兵器/配色>"} + {选定变体 pose prompt，替换兵器与标志物}`
+- 模板：`{前缀，... = "<武将名>, <标志外观/兵器/配色>"} + ICONIC FEATURES + {选定变体 pose}`
 
 ### 5.2 敌人 `enemies_ch1`（含 Boss）
 - 前排 **176×248**（后排由前排缩 0.77，不单独出图）；Boss **216×304**（含 B1 张角·墨魇）。
 - 避让：底部 32@2x（Boss 28@2x）放体力/血条；右上 56×36 被意图牌遮挡、左上 36×36 被倒计时遮挡。
-- 模板：`Tall vertical portrait of a fictional Three Kingdoms enemy <名称/身份，如 Yellow Turban foot soldier>, <武器/标志>, ...` + 第 1 节其余前缀原文；Boss 追加 `imposing, larger presence, ink-smoke aura in ink black only`。
-- 名称/glyph 对照 render-spec §8.8.4 第 1 章敌人清单。
+- 模板：`Tall vertical portrait of a Chinese Three Kingdoms enemy <名称/身份>, <武器/标志>, clean ink linework with flat muted color blocks (ink black, deep red, ochre), cream paper background. No text.`；Boss 追加 `imposing, larger presence`。
 
 ### 5.3 卡牌插画 `cards_art`
 - **116×136**；四周 4@2x 出血，主体在中心 100×110，左上 28×56 被费用珠/花色遮挡。
-- 模板：`Small square-ish card illustration of <物件或动作，如 a sword slash / a wooden shield / a peach>, single centered object, in the exact style of the reference: fine detailed black ink line art, cream paper background, palette of red, black and gold. No frame. No text, no watermark.`
+- 模板：`Small square-ish card illustration of <物件或动作>, single centered object, clean ink linework with flat muted color blocks (ink black, deep red, ochre), cream paper background. No text, no watermark.`
 
 ## 6. 已知问题：工具输出横图
-当前出图工具输出 **16:9 横图**（实测 1280×720）。处理：
-1. prompt 保留 "figure within the central third of the width, empty space at top"。
-2. 竖裁到 256:356（720 高约 518 宽）；可不用整张高度（如去掉边框时），但比例必须保持 256:356。宽度不够时把裁切窗口往兵器一侧偏，保证戟刃和雉翎在框内。
+当前出图工具常输出 **16:9 横图**（实测 1280×720），即便 prompt 写 3:4。处理：
+1. prompt 保留 "figure within the central 40% of the image width, empty space at top"。
+2. 竖裁到 256:356（720 高约 518 宽）；宽度不够时把裁切窗口往兵器/雉翎一侧偏。
 3. 若生成了装饰边框，裁切时去掉，不进卡框。
 
 ## 7. 验收清单
 - [ ] 尺寸正确（§5），纸底 `#FBF5E6`，无文字/水印/印章/边框。
-- [ ] 墨线粗细不匀、有飞白泼墨，脸大且眼神凌厉；不端正、不过分干净，无厚涂、面具感、西式铠甲兵器。
+- [ ] **干净墨线 + 平涂色块**（ink black / deep red / ochre），无泼墨、飞白、厚涂。
 - [ ] `characters/<武将>.md` 特征清单**逐项**在 70×98 灰度图下可见（吕布：双长雉翎整根在框内、金冠、兽首铠、方天画戟、红披风）。
 - [ ] 戟刃、雉翎完整在框内；底部渐隐区无关键内容。
 - [ ] 放进 `mockups-v3/battle.html` 主将牌框后不与金屏风背景糊在一起。
-- [ ] 同批次与参考原图风格一致（线宽、甲片密度、红黑金配色）。
+- [ ] 同批次与参考原图 `lvbu-C-flat-ink.jpg` 风格一致。
