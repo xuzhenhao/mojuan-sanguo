@@ -14,8 +14,8 @@ import { initialState } from '../../game/select/model';
 import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { bindMapRun, createMapScene, mapSession } from '../../game/map';
-import { noticeText } from '../../game/run/state';
-import { showNotice } from '../../game/overlays/notice';
+import { CONFIG_VERSION, noticeText } from '../../game/run/state';
+import { NOTICE_TOP, NOTICE_TOP_DEFAULT, setNoticeTop, showNotice } from '../../game/overlays/notice';
 import { registerP4 } from '../../game/scenes/p4-register';
 import { createWebPlatform, paintPaperBackdrop, showStatusBar } from './platform';
 import { DESIGN_RECT } from '../../engine/viewport';
@@ -24,7 +24,7 @@ import { buildView, type RunOutcome } from '../../game/result/settlement';
 import { MetaStore, RunSaveSlot } from '../../game/result/store';
 import { demoOutcome, heroName, outcomeFromSave } from '../../game/result/adapter';
 import { resultBridge } from '../../game/result/bridge';
-import { resumeFlow } from '../../game/result/resume';
+import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/resume';
 import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
 import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
 
@@ -41,7 +41,10 @@ const run = new RunSession();
 // #122 PR2：本局唯一数据源 RunState，存档只写新键 mojuan.runstate.v1（旧键读到即迁移并删除）
 run.store = platform.storage;
 bindMapRun(run, platform.storage);
-const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : null));
+// 有 core Game 读战斗视图；续玩后（game 未建）由 RunState 推出（奖励 / 事件 / 营地节点都读同一份 state）
+const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : run.view));
+// toast 起点跟随当前页 HUD（不盖 HUD）
+setNoticeTop(() => NOTICE_TOP[flow.page] ?? NOTICE_TOP_DEFAULT);
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = PAGES;
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
@@ -83,7 +86,7 @@ engine.scenes.register(
       initial: initialState(query),
       onStart(sel) {
         const seed = query.seed ? Number(query.seed) : Math.floor(platform.now() * 1000) >>> 0;
-        run.start({ ...sel, seed });
+        run.start({ ...sel, seed }, undefined, { configVersion: CONFIG_VERSION });
         send({ type: 'start_run' });
       },
     }),
@@ -137,6 +140,7 @@ engine.scenes.register(
         void router.send({ type: 'battle_end', win }, win ? { kind } : undefined);
       },
       heroes: () => run.params,
+      battleNo: () => (run.active ? run.battleNo : undefined),
       build: (io, p) =>
         run.active && p.nodeId && p.nodeType && p.enemies
           ? run.buildBattle(io, { nodeId: p.nodeId, nodeType: p.nodeType, encounterName: p.encounterName ?? '', enemies: p.enemies }, false)
@@ -183,6 +187,14 @@ const seed = Number(query.seed);
 if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
 else void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined).then(checkResume);
 engine.start();
+// 调试：?toast=2 同时弹两条提示（看堆叠样式）；?toast=1 弹一条；?version=1 弹 §21.4 确认框
+if (query.toast) {
+  const n = Number(query.toast) || 1;
+  const texts = ['存档已更新，本场战斗重新开始', '已回到进入此处前', '已回到本场战斗开打前'];
+  const at = (ms: number) => setTimeout(() => texts.slice(0, n).forEach((t) => showNotice(engine.overlays, t, 600000)), ms);
+  at(800);
+}
+if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overlays, engine), 800);
 
 /** H5 启动：在点将页上检查存档，弹「继续本局 / 放弃本局」（flow.md §1，PRD 5.13） */
 async function checkResume() {
@@ -210,13 +222,17 @@ async function checkResume() {
  * 提示走通用 toast 钩子 noticeText（PR3 出正式样式）。
  */
 async function resumeRun() {
-  const r = run.load(platform.storage, { configVersion: 'dev' });
+  const r = run.load(platform.storage, { configVersion: CONFIG_VERSION });
   if (!r.ok) {
     platform.warn(`继续本局：读档失败（${r.reason}）`);
     return;
   }
-  const st = run.state;
+  let st = run.state;
   const pend = st.pendingNode;
+  const plan = resumePlan({ configChanged: r.configChanged, migration: r.migration, pendingType: pend?.type ?? null, toast: noticeText(r.notice, pend) });
+  if (plan.upgradeConfig) st = run.update((d) => void (d.configVersion = CONFIG_VERSION));
+  // §21.4：战斗中版本不一致 → 先弹「继续」确认框，点击后本场战斗从第 1 回合重开（进节点快照）；不叠 toast
+  if (plan.dialog) await showVersionDialog(engine.overlays, engine).result;
   const go = (page: Page, params?: unknown) => {
     flow.page = page;
     flow.history.push(page);
@@ -231,7 +247,10 @@ async function resumeRun() {
     await go('reward', { kind: t === 'BOSS' ? 'boss' : t === 'ELITE' ? 'elite' : 'normal' });
   } else if (pend?.type === 'SHOP') await go('shop', { kind: 'shop' });
   else if (pend?.type === 'CHEST') await go('chest', { kind: 'chest' });
-  else await go('map');
-  showNotice(engine.overlays, noticeText(r.notice, pend));
+  else if (pend?.type === 'REST') {
+    const n = st.map?.nodes.find((x) => x.id === pend.id);
+    await go('rest', { kind: 'rest', nodeId: pend.id, layer: n?.layer, fixed: n?.layer === 8 });
+  } else await go('map');
+  showNotice(engine.overlays, plan.toast);
 }
 (window as unknown as { __mojuan: unknown }).__mojuan = { engine, flow, router, run, economy, meta, slot, resultBridge };

@@ -3,7 +3,7 @@ import { seeded } from '../src/core/rng';
 import { OverlayStack } from '../src/engine/modal';
 import type { SceneContext } from '../src/engine/scene';
 import type { Surface } from '../src/engine/surfaces';
-import { demoInventory, type DemoOpts } from '../src/game/economy/session';
+import { makeTestInventory, type TestInvOpts } from './test-inventory';
 import { fakeCanvas } from './engine-fakes';
 
 export const surface = (): Surface => {
@@ -15,9 +15,9 @@ export const longpress = (x: number, y: number) => ({ type: 'longpress' as const
 export const center = (r: { x: number; y: number; w: number; h: number }) => [r.x + r.w / 2, r.y + r.h / 2] as const;
 export const flush = () => new Promise((r) => setTimeout(r, 0));
 
-export function p4env(o: DemoOpts = {}) {
+export function p4env(o: TestInvOpts = {}) {
   const overlays = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
-  const inv = demoInventory(o);
+  const inv = makeTestInventory(o);
   const rng = seeded(o.seed ?? 7);
   let done = 0;
   const ctx: SceneContext = { invalidate() {}, width: 390, height: 844 };

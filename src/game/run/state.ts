@@ -20,15 +20,16 @@ import { newEncounterState, type EncounterState } from '../../core/run/encounter
 import type { RunSave } from '../../core/run/save';
 import { emptyStats, parseStats, type RunStats } from './stats';
 
-export const RUN_STATE_VERSION = 1;
+/** v2（#122 PR3）：counters 去掉 rewardRefreshUsed（#92 已去掉 H5 奖励刷新） */
+export const RUN_STATE_VERSION = 2;
+/** 当前配置版本（PRD §21.4 configVersion）；配置结构 / 数值发版时改这里 */
+export const CONFIG_VERSION = 'dev';
 
 /** 局内随机流：战斗（core Game.rng）、经济（奖励/集市/宝箱，EconomySession.rng）、节点事件（营地淬炼 / 奇遇，PR3 接入） */
 export const RNG_STREAMS = ['battle', 'economy', 'event'] as const;
 export type RngStream = (typeof RNG_STREAMS)[number];
 
 export interface RunCounters {
-  /** H5 奖励页免费刷新已用次数（本局） */
-  rewardRefreshUsed: number;
   /** H5 集市免费刷新已用次数（本局） */
   shopRefreshUsed: number;
   /** 本局删牌服务已用次数（价格递增） */
@@ -139,7 +140,7 @@ export function createRunState(o: NewRunStateOpts): RunState {
     nextUid: o.deck.reduce((m, c) => Math.max(m, c.uid), 0) + 1,
     relics: [],
     potions: Array<string | null>(o.potionSlots).fill(null),
-    counters: { rewardRefreshUsed: 0, shopRefreshUsed: 0, removeUsed: 0 },
+    counters: { shopRefreshUsed: 0, removeUsed: 0 },
     reviveLeft: REVIVES_PER_RUN,
     relicsUsed: [],
     pendingNode: null,
@@ -180,7 +181,6 @@ export function isRunState(x: unknown): x is RunState {
     Array.isArray(s.potions) &&
     s.potions.every((p) => p === null || isStr(p)) &&
     !!s.counters &&
-    isNum(s.counters.rewardRefreshUsed) &&
     isNum(s.counters.shopRefreshUsed) &&
     isNum(s.counters.removeUsed) &&
     (s.map === null || (!!s.map && Array.isArray(s.map.nodes) && Array.isArray(s.map.visited))) &&
@@ -265,6 +265,7 @@ export function deserializeRunState(text: string | null | undefined, o: LoadOpts
       state = m.state;
       migration = { kind: m.kind };
     } else state = raw as RunState;
+    state = migrateRunState(state as unknown as Record<string, unknown>, v0 === 0 ? RUN_STATE_VERSION : v0);
   } catch {
     return { ok: false, reason: 'corrupt' };
   }
@@ -278,6 +279,26 @@ export function deserializeRunState(text: string | null | undefined, o: LoadOpts
   else if (migration?.kind === 'node_rollback') notice = 'migrate_node_rollback';
   else if (state.pendingNode) notice = 'node_restart';
   return { ok: true, state, migratedFrom: v0 === RUN_STATE_VERSION ? null : v0, rngReset: v0 === 0, configChanged, migration, notice };
+}
+
+/** 结构版本迁移表：MIGRATIONS[n] 把 vn 升到 v(n+1) */
+const MIGRATIONS: Record<number, (s: Record<string, unknown>) => Record<string, unknown>> = {
+  /** v1 → v2：丢弃 counters.rewardRefreshUsed */
+  1: (s) => {
+    const c = { ...((s.counters ?? {}) as Record<string, unknown>) };
+    delete c.rewardRefreshUsed;
+    return { ...s, counters: c, version: 2 };
+  },
+};
+/** 依次升级到 RUN_STATE_VERSION（缺迁移则抛错 → corrupt） */
+export function migrateRunState(s: Record<string, unknown>, from: number): RunState {
+  let cur = s;
+  for (let v = from; v < RUN_STATE_VERSION; v++) {
+    const m = MIGRATIONS[v];
+    if (!m) throw new Error(`缺少 RunState v${v} 迁移`);
+    cur = m(cur);
+  }
+  return cur as unknown as RunState;
 }
 
 type LegacyCore = Partial<RunSave['battleStartSnapshot'] & { reviveLeft: number; relicsUsed: string[] }> & Record<string, unknown>;
@@ -332,7 +353,7 @@ export function migrateLegacyRunSave(s: LegacySave, potionSlots = 3): { state: R
     nextUid: deck.reduce((m, c) => Math.max(m, c.uid), 0) + 1,
     relics: strs('relics'),
     potions,
-    counters: { rewardRefreshUsed: 0, shopRefreshUsed: 0, removeUsed: 0 },
+    counters: { shopRefreshUsed: 0, removeUsed: 0 },
     reviveLeft: num('reviveLeft', REVIVES_PER_RUN),
     relicsUsed: strs('relicsUsed'),
     pendingNode,
@@ -376,7 +397,13 @@ export type StoreLoad = LoadResult | { ok: false; reason: 'empty' };
  */
 export function loadRunStateFrom(store: RunStateStore, o: LoadOpts = {}): StoreLoad {
   const cur = store.get(RUN_STATE_KEY);
-  if (cur) return deserializeRunState(cur, o);
+  if (cur) {
+    const r = deserializeRunState(cur, o);
+    // 同键内结构升级（如 v1→v2）：迁移成功立即回写为当前版本（键名不变，版本写在 state 里）
+    if (r.ok && r.migratedFrom !== null) store.set(RUN_STATE_KEY, serializeRunState(r.state));
+    if (r.ok) store.remove(LEGACY_RUN_SAVE_KEY);
+    return r;
+  }
   const legacy = store.get(LEGACY_RUN_SAVE_KEY);
   if (!legacy) return { ok: false, reason: 'empty' };
   const r = deserializeRunState(legacy, o);

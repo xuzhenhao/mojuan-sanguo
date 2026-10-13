@@ -5,7 +5,7 @@ import { ECONOMY, POTIONS, RELICS } from '../src/data/economy';
 import { addPotion, potionsFull } from '../src/game/economy/inventory';
 import { cardPool, cardPrice, jitter, pickCards, rarityWeights, rollSuit } from '../src/game/economy/pools';
 import { enterReward, resolvePotion, rollReward, takeCard, takeRelic } from '../src/game/economy/reward';
-import { demoInventory } from '../src/game/economy/session';
+import { makeTestInventory } from './test-inventory';
 
 const cfg = (id: string) => CONFIG.cards[id] as { rarity: string; exclusiveHero?: string; faction?: string };
 
@@ -14,7 +14,7 @@ describe('P4 经济：数值表对齐 PRD', () => {
     expect(RELICS).toHaveLength(31);
     expect(POTIONS).toHaveLength(10);
     expect(ECONOMY.potionSlots).toBe(3);
-    expect(demoInventory().gold).toBe(60);
+    expect(makeTestInventory().gold).toBe(60);
   });
   it('精英 E/L 权重 ×1.5', () => {
     const n = rarityWeights(1, 'normal');
@@ -26,7 +26,7 @@ describe('P4 经济：数值表对齐 PRD', () => {
 
 describe('卡牌候选（14.8）', () => {
   it('专属牌只出主/副将的；三张不重复', () => {
-    const inv = demoInventory();
+    const inv = makeTestInventory();
     const pool = cardPool(inv);
     for (const c of pool) {
       const x = cfg(c.id).exclusiveHero;
@@ -39,7 +39,7 @@ describe('卡牌候选（14.8）', () => {
     }
   });
   it('Boss 至少 1 张 E+', () => {
-    const inv = demoInventory();
+    const inv = makeTestInventory();
     const rng = seeded(2);
     for (let i = 0; i < 50; i++) {
       const ids = pickCards(rng, cardPool(inv), 3, rarityWeights(1, 'normal'), true);
@@ -47,7 +47,7 @@ describe('卡牌候选（14.8）', () => {
     }
   });
   it('集市 common 行不含专属/势力牌，hero 行只含', () => {
-    const inv = demoInventory();
+    const inv = makeTestInventory();
     expect(cardPool(inv, 'common').every((c) => !cfg(c.id).exclusiveHero && !cfg(c.id).faction)).toBe(true);
     expect(cardPool(inv, 'hero').every((c) => cfg(c.id).exclusiveHero || cfg(c.id).faction)).toBe(true);
   });
@@ -65,7 +65,7 @@ describe('卡牌候选（14.8）', () => {
 describe('价格（14.2）', () => {
   it('±10% 取整到 5；T002 基价 40 同样浮动；断袖香囊 −20%', () => {
     const rng = seeded(4);
-    const inv = demoInventory();
+    const inv = makeTestInventory();
     for (let i = 0; i < 40; i++) {
       const p = jitter(rng, 60, inv);
       expect(p % 5).toBe(0);
@@ -88,7 +88,7 @@ describe('价格（14.2）', () => {
 
 describe('战斗奖励', () => {
   it('铜钱按章区间并自动入账；精英给 1 件宝物', () => {
-    const inv = demoInventory();
+    const inv = makeTestInventory();
     const o = rollReward(seeded(5), inv, 'elite');
     expect(o.gold).toBeGreaterThanOrEqual(40);
     expect(o.gold).toBeLessThanOrEqual(55);
@@ -100,7 +100,7 @@ describe('战斗奖励', () => {
   });
   it('Boss：宝物三选一只出 Boss 级，不足用 E 补', () => {
     for (let s = 1; s < 30; s++) {
-      const o = rollReward(seeded(s), demoInventory(), 'boss');
+      const o = rollReward(seeded(s), makeTestInventory(), 'boss');
       expect(o.relics).toHaveLength(3);
       const rs = o.relics.map((id) => RELICS.find((r) => r.id === id)!.rarity);
       expect(rs.every((r) => r === 'Boss' || r === 'E')).toBe(true);
@@ -108,13 +108,13 @@ describe('战斗奖励', () => {
     }
   });
   it('Boss：宝物三选一、铜钱 80', () => {
-    const o = rollReward(seeded(6), demoInventory(), 'boss');
+    const o = rollReward(seeded(6), makeTestInventory(), 'boss');
     expect(o.relics).toHaveLength(3);
     expect(o.relicPick).toBe('choose');
     expect(o.gold).toBe(80);
   });
   it('丹药栏满：进入 full；替换或放弃', () => {
-    const inv = demoInventory({ potions: 3 });
+    const inv = makeTestInventory({ potions: 3 });
     expect(potionsFull(inv)).toBe(true);
     const o = { ...rollReward(seeded(7), inv, 'normal'), potion: 'P10' };
     const st = enterReward(inv, o);
@@ -126,7 +126,7 @@ describe('战斗奖励', () => {
     expect(inv.potions[1]).toBe('P10');
   });
   it('选牌入卷一次', () => {
-    const inv = demoInventory();
+    const inv = makeTestInventory();
     const rng = seeded(8);
     const st = enterReward(inv, rollReward(rng, inv, 'normal'));
     const n = inv.deck.length;
@@ -139,7 +139,7 @@ describe('战斗奖励', () => {
 
 describe('背包', () => {
   it('addPotion：空位优先', () => {
-    const inv = demoInventory({ potions: 1 });
+    const inv = makeTestInventory({ potions: 1 });
     expect(addPotion(inv, 'P05')).toBe(true);
     expect(inv.potions[1]).toBe('P05');
   });
