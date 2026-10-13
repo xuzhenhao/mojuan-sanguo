@@ -391,10 +391,9 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
   return env.overlays.push<number>({
     id: 'deck-pick',
     kind: 'popup',
+    scrim: { color: 'rgba(5,2,1,.88)' },
     draw: (s) => {
       const c = s.ctx;
-      c.fillStyle = 'rgba(5,2,1,.88)';
-      c.fillRect(0, 0, w, h);
       label(c, title, w / 2, 110, BRUSH(24), T.gold, 'center');
       label(c, '删后至少 8 张，且至少保留 1 张杀类', w / 2, 134, SANS(12), T.paper3, 'center');
       deck.forEach((card, i) => {

@@ -274,7 +274,6 @@ export class RewardScene implements Scene<RewardParams | undefined> {
   openPotionFull() {
     if (this.env.overlays.ids().includes('potion-full')) return;
     const w = this.ctx.width;
-    const h = this.ctx.height;
     const inv = this.inv;
     const st = this.st;
     const newId = st.offer.potion!;
@@ -292,10 +291,9 @@ export class RewardScene implements Scene<RewardParams | undefined> {
         id: 'potion-full',
         kind: 'popup',
         rect: r,
+        scrim: { color: 'rgba(5,2,1,.72)' },
         draw: (s) => {
           const c = s.ctx;
-          c.fillStyle = 'rgba(5,2,1,.72)';
-          c.fillRect(0, 0, w, h);
           vgrad(c, r, 'rgba(42,20,16,.98)', 'rgba(15,7,5,.98)');
           frame3(c, r);
           label(c, '丹药已满', r.x + r.w / 2, r.y + 40, BRUSH(24), T.gold, 'center');
@@ -486,10 +484,9 @@ export function openRelicChoice(env: Env, w: number, h: number, ids: string[]) {
   return env.overlays.push<string>({
     id: 'relic-choice',
     kind: 'popup',
+    scrim: { color: 'rgba(5,2,1,.8)' },
     draw: (s) => {
       const c = s.ctx;
-      c.fillStyle = 'rgba(5,2,1,.8)';
-      c.fillRect(0, 0, w, h);
       label(c, '择 一', w / 2, 270, BRUSH(22), T.gold, 'center');
       ids.forEach((id, i) => drawRelicColumn(c, col(i), id, i === sel));
       ok.disabled = sel < 0;

@@ -5,7 +5,7 @@
  */
 import type { GestureEvent } from '../../engine/input';
 import type { OverlayStack } from '../../engine/modal';
-import type { Ctx2DLike, Rect } from '../../engine/types';
+import type { Rect } from '../../engine/types';
 import { inside, wrap } from '../overlays/theme';
 import { B, body, brush, button, center, panel } from './paint';
 import type { ResumeSummary } from './store';
@@ -36,11 +36,6 @@ export function dialogButtons(f: DialogFrame, h: number) {
   return { left: { x: r.x + 20 * k, y: by, w: bw, h: 48 * k }, right: { x: r.x + r.w - 20 * k - bw, y: by, w: bw, h: 48 * k } };
 }
 
-function mask(c: Ctx2DLike, f: DialogFrame) {
-  c.fillStyle = B.mask;
-  c.fillRect(0, 0, f.width, f.height);
-}
-
 export const RESUME_H = 420;
 export const ABANDON_H = 300;
 
@@ -51,10 +46,10 @@ export function showResume(ov: OverlayStack, f: DialogFrame, s: ResumeSummary, n
     id: 'resume',
     kind: 'popup',
     modal: true,
+    scrim: { color: B.mask },
     draw: (sf) => {
       const c = sf.ctx;
       const { k, r } = box(f, RESUME_H);
-      mask(c, f);
       panel(c, r, 0.97);
       center(c, RESUME_TITLE, r.x + r.w / 2, r.y + 56 * k, brush(30 * k), B.gold, 30 * k);
       // 主将（金框）/ 副将（银框）
@@ -110,10 +105,10 @@ export function confirmAbandon(ov: OverlayStack, f: DialogFrame) {
     id: 'abandon',
     kind: 'popup',
     modal: true,
+    scrim: { color: B.mask },
     draw: (sf) => {
       const c = sf.ctx;
       const { k, r } = box(f, ABANDON_H);
-      mask(c, f);
       panel(c, r, 0.98);
       // 「弃」字印章
       const seal = { x: r.x + r.w / 2 - 28 * k, y: r.y + 18 * k, w: 56 * k, h: 56 * k };

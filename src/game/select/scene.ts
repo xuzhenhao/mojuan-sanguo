@@ -208,6 +208,7 @@ export class SelectScene implements Scene {
       kind: 'detail',
       dismissOnTapOutside: true,
       rect,
+      scrim: { color: 'rgba(0,0,0,.55)' },
       draw: (s) => drawDetail(s.ctx as unknown as Ctx, rect, hero, lines),
     });
     return true;
@@ -463,8 +464,6 @@ export function wrapChars(s: string, n: number): string[] {
 }
 
 function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[]) {
-  c.fillStyle = 'rgba(0,0,0,.55)';
-  c.fillRect(0, 0, 4000, 4000);
   panel(c, r);
   c.fillStyle = C.gold;
   c.font = `28px ${BRUSH}`;

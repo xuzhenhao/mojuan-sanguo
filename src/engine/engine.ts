@@ -6,7 +6,7 @@ import type { Platform } from '../platform/types';
 import { Canvas2DCompositor, WebGLOverlay, type InkFx } from './compositor';
 import { GestureRecognizer, type GestureEvent } from './input';
 import { MainLoop } from './loop';
-import { OverlayStack } from './modal';
+import { OverlayStack, type Scrim } from './modal';
 import { SceneManager } from './scene';
 import { AtlasManager, BakeCache, bakeScale, CANVAS2D_ATLASES, TextureBudget, type BudgetWarning } from './memory';
 import { DEFAULT_RENDER_CONFIG, decideWebGL, effectiveDpr, parseFlag, type RenderConfig, type WebGLDecision } from './settings';
@@ -174,6 +174,19 @@ export class Engine {
     return true;
   }
 
+  /** 弹层遮罩：临时切到屏幕矩阵，按真实 W×H 铺满，再恢复设计坐标矩阵 */
+  paintScrim(s: Surface, sc: Scrim) {
+    const k = this.dpr * s.scale;
+    const ctx = s.ctx;
+    const ga = ctx.globalAlpha;
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.globalAlpha = ga * Math.max(0, Math.min(1, sc.alpha ?? 1));
+    ctx.fillStyle = sc.color;
+    ctx.fillRect(0, 0, this.viewport.width, this.viewport.height);
+    ctx.globalAlpha = ga;
+    ctx.setTransform(...layerTransform(this.viewport, k));
+  }
+
   /** 标记某层需要重绘并唤醒主循环 */
   invalidate(layer?: SurfaceName) {
     if (layer) this.surfaces[layer].dirty = true;
@@ -208,7 +221,7 @@ export class Engine {
       s.ctx.setTransform(...layerTransform(this.viewport, k));
       if (this.scenes.current) this.scenes.draw(s.name, s, dt);
       this.hooks.draw?.(s.name, s, dt);
-      if (s.name === 'main') this.overlays.draw(s, dt);
+      if (s.name === 'main') this.overlays.draw(s, dt, (sf, sc) => this.paintScrim(sf, sc));
     }
     if (anim === 'tick' && !mainFull) {
       const m = this.surfaces.main;

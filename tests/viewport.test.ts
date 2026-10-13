@@ -135,3 +135,76 @@ describe('Engine 接入视口（#111）', () => {
     expect(bd).toEqual([[465, 900]]);
   });
 });
+
+describe('弹层全屏遮罩（#111）', () => {
+  /** 记录 fillRect 时的当前矩阵，换算成屏幕 CSS px 矩形 */
+  const recorder = (f: ReturnType<typeof fakePlatform>, e: Engine) => {
+    const ctx = e.surfaces.main.ctx as unknown as Record<string, unknown>;
+    let m = [1, 0, 0, 1, 0, 0];
+    const fills: { x: number; y: number; w: number; h: number; style: unknown; alpha: number }[] = [];
+    ctx.setTransform = (...a: number[]) => (m = a);
+    ctx.fillRect = (x: number, y: number, w: number, h: number) => {
+      const d = e.dpr;
+      fills.push({
+        x: (m[0] * x + m[4]) / d,
+        y: (m[3] * y + m[5]) / d,
+        w: (m[0] * w) / d,
+        h: (m[3] * h) / d,
+        style: ctx.fillStyle,
+        alpha: ctx.globalAlpha as number,
+      });
+    };
+    void f;
+    return fills;
+  };
+
+  it('465×900：遮罩覆盖整屏（含设计框外），面板仍在设计框内', () => {
+    const f = fakePlatform({ info: () => info(465, 900) });
+    const e = new Engine(f.p);
+    const fills = recorder(f, e);
+    const panel: Rect = { x: 20, y: 300, w: 350, h: 200 };
+    e.overlays.push({
+      id: 'confirm',
+      kind: 'popup',
+      scrim: { color: 'rgba(5,2,1,.72)' },
+      draw: (s) => {
+        s.ctx.fillStyle = 'panel';
+        s.ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
+      },
+    });
+    e.frame(16);
+    const i = fills.findIndex((r) => r.style === 'rgba(5,2,1,.72)');
+    expect(i).toBeGreaterThanOrEqual(0);
+    const mask = fills[i];
+    expect(mask).toMatchObject({ x: 0, y: 0, w: 465, h: 900 });
+    // 设计框外（左右余量）被变暗
+    const vp = e.viewport;
+    expect(vp.offsetX).toBeGreaterThan(0);
+    expect(mask.x).toBeLessThan(vp.offsetX);
+    expect(mask.x + mask.w).toBeGreaterThan(vp.offsetX + 390 * vp.s);
+    // 面板在遮罩之后画，且按设计坐标缩放进框内
+    const p = fills.findIndex((r) => r.style === 'panel');
+    expect(p).toBeGreaterThan(i);
+    const tl = toScreen(vp, panel);
+    expect(fills[p].x).toBeCloseTo(tl.x);
+    expect(fills[p].y).toBeCloseTo(tl.y);
+    expect(fills[p].w).toBeCloseTo(panel.w * vp.s);
+  });
+
+  it('遮罩 alpha 随弹层声明变化；alpha=0 或无 scrim 时不画', () => {
+    const f = fakePlatform({ info: () => info(360, 640) });
+    const e = new Engine(f.p);
+    const fills = recorder(f, e);
+    let a = 0;
+    e.overlays.push({ id: 'resp', kind: 'response', scrim: () => ({ color: 'm', alpha: a }), draw: () => {} });
+    e.overlays.push({ id: 'det', kind: 'detail', draw: () => {} });
+    e.frame(16);
+    expect(fills.filter((r) => r.style === 'm')).toHaveLength(0);
+    a = 0.5;
+    e.invalidate('main');
+    e.frame(16);
+    const m = fills.filter((r) => r.style === 'm');
+    expect(m).toHaveLength(1);
+    expect(m[0]).toMatchObject({ x: 0, y: 0, w: 360, h: 640, alpha: 0.5 });
+  });
+});

@@ -379,10 +379,9 @@ export function confirm(stack: OverlayStack, w: number, h: number, spec: Confirm
     id: `confirm:${spec.title}`,
     kind: 'popup',
     rect: r,
+    scrim: { color: 'rgba(5,2,1,.72)' },
     draw: (s) => {
       const c = s.ctx;
-      c.fillStyle = 'rgba(5,2,1,.72)';
-      c.fillRect(0, 0, w, h);
       vgrad(c, r, 'rgba(42,20,16,.98)', 'rgba(15,7,5,.98)');
       frame3(c, r);
       label(c, spec.title, r.x + pw / 2, r.y + 40, BRUSH(24), T.gold, 'center');
