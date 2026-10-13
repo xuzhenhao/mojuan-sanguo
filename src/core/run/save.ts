@@ -72,7 +72,7 @@ export function resumeRun(s: RunSave, currentConfigVersion: string): ResumeResul
   };
 }
 
-// ───────── 存储读写（可注入；默认 localStorage） ─────────
+// ───────── 存储读写（必须注入，无默认存储；M2-W1 #200） ─────────
 export const RUN_SAVE_KEY = 'mojuan.run.v1';
 
 /** 最小 KV 存储接口（与 platform StorageAdapter 兼容） */
@@ -82,17 +82,12 @@ export interface RunSaveStore {
   remove(key: string): void;
 }
 
-function defaultStore(): RunSaveStore | null {
-  const ls = (globalThis as { localStorage?: Storage }).localStorage;
-  if (!ls) return null;
-  return { get: (k) => ls.getItem(k), set: (k, v) => ls.setItem(k, v), remove: (k) => ls.removeItem(k) };
-}
-let injected: RunSaveStore | null | undefined;
-/** 注入存储层（测试用内存 mock；微信端注入 wx 存储）。传 undefined 恢复默认 localStorage */
+let injected: RunSaveStore | null = null;
+/** 注入存储层（入口注入 platform.storage；测试用内存 mock；微信端注入 wx 存储）。未注入或传 null/undefined 时无存储（读返回空、写为空操作） */
 export function setRunSaveStore(s: RunSaveStore | null | undefined): void {
-  injected = s;
+  injected = s ?? null;
 }
-const store = (): RunSaveStore | null => (injected === undefined ? defaultStore() : injected);
+const store = (): RunSaveStore | null => injected;
 /** 当前存储层（地图 / 入口的 RunState 读写也走它；#122 PR2 起只写新键 mojuan.runstate.v1） */
 export const runSaveStore = store;
 
