@@ -5,6 +5,7 @@
  */
 import { CARDS } from '../../../data/cards';
 import {
+  handName,
   BEAD_D,
   DYING_EDGE_COLOR,
   DYING_EDGE_W,
@@ -868,7 +869,7 @@ export class BattleScene implements Scene<BattleParams> {
     text(ctx, RANK_CH[c.rank], x + 11, r.y + 45, { size: 11, color: red ? C.cinnabar : C.ink, font: FONT.num, align: 'center', bold: true });
     // 卡名（底部书法）
     // #141：按字数分档 20/16/13（·不计），最小 12、不省略，再不够 scaleX≥0.85；全名见长按详情
-    const nm = this.cardName(ctx, d.name, r.w);
+    const nm = this.cardName(ctx, handName(d), r.w);
     const sx = ctx as unknown as { save?(): void; restore?(): void; translate?(x: number, y: number): void; scale?(x: number, y: number): void };
     if (nm.scaleX < 1 && sx.save && sx.translate && sx.scale && sx.restore) {
       // 12px 仍放不下：以卡中线为轴横向压缩（≥0.85）

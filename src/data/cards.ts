@@ -6,7 +6,7 @@ const SLOT: Record<NonNullable<CardCfg['slot']>, Slot> = { weapon: 'weapon', arm
 
 function toDef(c: CardCfg): CardDef {
   const tags = new Set(c.tags ?? []);
-  const d: CardDef = { name: c.name, type: c.typeLabel ?? c.type, cost: c.cost, desc: c.desc };
+  const d: CardDef = { name: c.name, ...(c.shortName ? { shortName: c.shortName } : {}), type: c.typeLabel ?? c.type, cost: c.cost, desc: c.desc };
   if (tags.has('sha')) d.sha = true;
   if (tags.has('fire')) d.fire = true;
   if (tags.has('shan')) d.shan = true;

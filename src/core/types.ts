@@ -4,6 +4,8 @@ export type Slot = 'weapon' | 'armor' | 'plus' | 'minus';
 
 export interface CardDef {
   name: string;
+  /** 手牌小牌简称（可选），详情仍用 name */
+  shortName?: string;
   type: string;
   cost: number;
   desc: string;

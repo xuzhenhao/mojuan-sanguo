@@ -2,6 +2,7 @@
 # ───────── 专属·吕布：方天戟·破阵（V1） ─────────
 id: X101
 name: 方天戟·破阵
+shortName: 破阵
 type: 专属
 typeLabel: 专属·吕布·武器
 slot: weapon

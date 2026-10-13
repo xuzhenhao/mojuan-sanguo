@@ -44,6 +44,8 @@ export function nameTierPx(name: string, size: 'small' | 'large' = 'small') {
   const t = NAME_TIERS[size];
   return n <= 3 ? t[0] : n === 4 ? t[1] : t[2];
 }
+/** 手牌小牌显示名：有 shortName 用简称，否则全名（详情浮层始终全名） */
+export const handName = (d: { name: string; shortName?: string }) => d.shortName || d.name;
 export const NAME_SCALE_MIN = 0.85;
 export type NameFit = { text: string; px: number; scaleX: number; overflow: boolean };
 /**
