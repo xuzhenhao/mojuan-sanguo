@@ -78,3 +78,30 @@ describe('敌人体力 18 不溢出（360×640 / 465×780）', () => {
     }
   });
 });
+
+describe('#129 Boss 判定看节点类型', () => {
+  const mk = (nodeType?: () => string | undefined) => {
+    const sc = new BattleScene({ overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true, nodeType });
+    sc.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
+    return sc;
+  };
+  it('最后一战但节点不是 BOSS：不显示 Boss 血条', () => {
+    const sc = mk(() => 'NORMAL');
+    Object.defineProperty(sc.g, 'isLast', { get: () => true });
+    const e = { ...sc.g.en[0], hp: 5, max: 8, tier: 'Boss' };
+    expect(sc.isBoss(e)).toBe(false);
+    const card = sc.enemyRect(sc.g.en[0])!;
+    expect(sc.enemyHpRect(card, e).h).toBe(16); // 小牌，不是 h=10 血条
+  });
+  it('BOSS 节点：血条', () => {
+    const sc = mk(() => 'BOSS');
+    const e = { ...sc.g.en[0], hp: 5, max: 8 };
+    expect(sc.isBoss(e)).toBe(true);
+    expect(sc.enemyHpRect(sc.enemyRect(sc.g.en[0])!, e).h).toBe(10);
+  });
+  it('无节点（直达调试）：看敌人 tier', () => {
+    const sc = mk();
+    expect(sc.isBoss({ tier: 'Boss' })).toBe(true);
+    expect(sc.isBoss({ tier: '精英' })).toBe(false);
+  });
+});

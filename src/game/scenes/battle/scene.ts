@@ -63,6 +63,8 @@ export interface BattleDeps {
   battleNo?(): number | undefined;
   /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
   debugDefaults?: boolean;
+  /** 当前地图节点类型（'BOSS' / 'ELITE' / …）；Boss 血条判定优先看它，没有再看敌人数据 tier（#129） */
+  nodeType?(): string | undefined;
   warn?(msg: string): void;
 }
 
@@ -931,14 +933,19 @@ export class BattleScene implements Scene<BattleParams> {
     }
   }
   /** 敌人体力矩形（不出卡框；测试与绘制共用） */
-  enemyHpRect(r: Rect, e: Pick<Enemy, 'hp' | 'max'>, boss = this.g.isLast): Rect {
+  /** Boss 判定：地图节点类型优先；直达调试（无节点）退回敌人数据 tier === 'Boss' */
+  isBoss(e: Pick<Enemy, 'tier'>): boolean {
+    const t = this.deps.nodeType?.();
+    return t ? t === 'BOSS' : e.tier === 'Boss';
+  }
+  enemyHpRect(r: Rect, e: Pick<Enemy, 'hp' | 'max' | 'tier'>, boss = this.isBoss(e)): Rect {
     const v = enemyHpView(e.hp, e.max, boss);
     if (v.mode === 'bar') return { x: r.x + 6, y: r.y + r.h - 16, w: r.w - 12, h: 10 };
     const w = Math.min(r.w - 8, 8 + 8 + 4 + v.text.length * 7 + 8);
     return { x: r.x + (r.w - w) / 2, y: r.y + r.h - 20, w, h: 16 };
   }
   drawEnemyHp(ctx: Ctx2DLike, r: Rect, e: Enemy) {
-    const v = enemyHpView(e.hp, e.max, this.g.isLast);
+    const v = enemyHpView(e.hp, e.max, this.isBoss(e));
     const b = this.enemyHpRect(r, e);
     if (v.mode === 'bar') {
       rect(ctx, b, '#2A2A2A');

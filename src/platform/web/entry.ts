@@ -126,6 +126,7 @@ engine.scenes.register(
       measure: () => engine.surfaces.main.ctx,
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
+      nodeType: () => run.inNode?.type,
       warn: (m) => platform.warn(m),
       onEnd: (win) => {
         const pend = run.inNode;
