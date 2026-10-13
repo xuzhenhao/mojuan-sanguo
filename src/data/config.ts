@@ -136,7 +136,7 @@ export interface ConfigBundle {
     /** 美术资源位置（#177）：立绘在 OSS，切桶只改 baseUrl */
     /** 战斗页顶条标题模板（#216） */
     battleTitle: { normal: string; elite: string; boss: string };
-    assets: { baseUrl: string };
+    assets: { baseUrl: string; devBaseUrl: string; localBaseUrl: string };
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };
   cards: Record<string, CardCfg>;

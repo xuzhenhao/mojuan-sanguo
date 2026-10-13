@@ -53,6 +53,11 @@ describe('配置（schema）', () => {
     expect(withEdit('rules.yaml', (t) => t.replace(/baseUrl: '[^']*'/, "baseUrl: 'https://a.example/x'")).length).toBeGreaterThan(0);
     expect(withEdit('rules.yaml', (t) => t.replace(/baseUrl: '([^']*)'/, "baseUrl: '$1', extra: 1")).length).toBeGreaterThan(0);
   });
+  it('rules.assets.devBaseUrl 必须 https；localBaseUrl 必须是 / 开头结尾的站内路径；三项都必填', () => {
+    expect(withEdit('rules.yaml', (t) => t.replace(/devBaseUrl: '[^']*'/, "devBaseUrl: 'http://a.example/x/'")).length).toBeGreaterThan(0);
+    expect(withEdit('rules.yaml', (t) => t.replace(/localBaseUrl: '[^']*'/, "localBaseUrl: 'https://a.example/x/'")).length).toBeGreaterThan(0);
+    expect(withEdit('rules.yaml', (t) => t.replace(/, localBaseUrl: '[^']*'/, '')).length).toBeGreaterThan(0);
+  });
   it('敌人 portrait 可选且同样校验格式', () => {
     const f = readdirSync(join(ROOT, 'config/enemies/ch1')).find((x) => x.endsWith('.yaml'))!;
     expect(withEdit(`enemies/ch1/${f}`, (t) => t.replace(/^name: .*$/m, (m) => `${m}\nportrait: portraits/enemies/x.webp`))).toEqual([]);

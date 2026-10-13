@@ -1134,14 +1134,26 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "baseUrl"
+        "baseUrl",
+        "devBaseUrl",
+        "localBaseUrl"
       ],
       "description": "美术资源位置（#177）：立绘不打进包，放阿里云 OSS",
       "properties": {
         "baseUrl": {
           "type": "string",
           "pattern": "^https://[^\\s]+/$",
-          "description": "资源根目录 URL（https，以 / 结尾）；yaml 里的 portrait 等相对路径拼在它后面。切换测试 / 正式桶只改这一项"
+          "description": "正式构建（release）用的资源根目录 URL（https，以 / 结尾）；yaml 里的 portrait 等相对路径拼在它后面。切换测试 / 正式桶只改这一项"
+        },
+        "devBaseUrl": {
+          "type": "string",
+          "pattern": "^https://[^\\s]+/$",
+          "description": "开发构建（vite dev）默认资源根目录（https，以 / 结尾）；默认同测试 OSS，开发 / 测试默认就能看到真立绘"
+        },
+        "localBaseUrl": {
+          "type": "string",
+          "pattern": "^/[A-Za-z0-9_\\-/]*/$",
+          "description": "本地模式（仅开发构建，VITE_ASSET_LOCAL=1）：dev server 在此站内路径下提供 art/out/ 静态目录（以 / 开头和结尾）；需先跑 scripts/build-portraits.py"
         }
       }
     },

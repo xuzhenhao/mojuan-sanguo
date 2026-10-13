@@ -171,5 +171,7 @@ battleTitle:
 
 # ───────── 美术资源（#177）：立绘放阿里云 OSS，不打进包 ─────────
 # baseUrl：资源根目录（https，以 / 结尾），武将 yaml 的 portrait 相对路径拼在后面；小图档在 .webp 前插 @s。
-# 当前为测试桶；切正式桶只改这一行。
-assets: { baseUrl: 'https://test-oss.xiaobien.com/mojuan/assets/' }
+# 当前为测试桶；切正式桶只改 baseUrl。
+# devBaseUrl：开发构建（npm run dev）默认根目录，默认也指向测试 OSS。
+# localBaseUrl：仅开发构建且 VITE_ASSET_LOCAL=1 时使用，dev server 在这个站内路径下提供本地 art/out/（先跑 scripts/build-portraits.py 产出 WebP）。
+assets: { baseUrl: 'https://test-oss.xiaobien.com/mojuan/assets/', devBaseUrl: 'https://test-oss.xiaobien.com/mojuan/assets/', localBaseUrl: '/__art-out/' }

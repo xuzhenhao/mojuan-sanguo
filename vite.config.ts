@@ -1,5 +1,36 @@
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { defineConfig, type Plugin } from 'vite';
+
+/**
+ * 本地立绘（仅 vite dev 且 VITE_ASSET_LOCAL=1）：在 rules.assets.localBaseUrl 下提供 art/out/ 静态目录。
+ * 路径前缀只读生成的配置（config:build 产物），这里不写死；正式构建不挂载。
+ */
+function localAssets(): Plugin {
+  return {
+    name: 'mojuan-local-assets',
+    apply: 'serve',
+    configureServer(server) {
+      if (process.env.VITE_ASSET_LOCAL !== '1') return;
+      const cfg = JSON.parse(readFileSync(resolve(import.meta.dirname, 'src/data/generated/config.json'), 'utf8')) as {
+        rules: { assets: { localBaseUrl: string } };
+      };
+      const prefix = cfg.rules.assets.localBaseUrl;
+      const root = resolve(import.meta.dirname, 'art/out');
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url ?? '').split('?')[0];
+        if (!url.startsWith(prefix)) return next();
+        const file = resolve(root, decodeURIComponent(url.slice(prefix.length)));
+        if (!file.startsWith(root + '/') || !existsSync(file) || !statSync(file).isFile()) {
+          res.statusCode = 404;
+          return res.end();
+        }
+        res.setHeader('Content-Type', file.endsWith('.webp') ? 'image/webp' : 'application/octet-stream');
+        createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
 
 /**
  * 构建模式（engine-design §4.10）：
@@ -15,6 +46,7 @@ export default defineConfig(({ mode }) => {
   const debug = mode === 'debug';
   return {
     base: debug ? PAGES_BASE.debug : PAGES_BASE.h5,
+    plugins: [localAssets()],
     // public/（mockups）不进任何构建产物，由 pages.yml 直接拷到站点根目录 /mockups/，
     // 这样 size-check 只量 Canvas 发布包本身；本地 `npm run dev:debug` 仍可访问 /mockups/
     publicDir: debug ? 'public' : false,
