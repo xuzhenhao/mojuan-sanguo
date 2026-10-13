@@ -9,6 +9,7 @@ import type { Surface } from '../../engine/surfaces';
 import type { Ctx2DLike } from '../../engine/types';
 import { DESIGN_RECT } from '../../engine/viewport';
 import { wrap } from './theme';
+import { SELECT_LAYOUT } from '../select/layout';
 
 export const NOTICE_MS = 2500;
 export const NOTICE_FADE_MS = 180;
@@ -34,8 +35,17 @@ export const NOTICE_MAX = 2;
  * 堆叠起点（设计坐标 y）：页面顶部 HUD 下边缘往下 8dp，绝不盖 HUD。
  * 地图：HUD 底 98 → 卷轴金轴 100–112 → 120；战斗：顶条 10+26 → 44；其他无 HUD 页默认 64。
  */
-/** 点将：标题「点将」底约 110 → 118（#214 跟进：坏档提示不压标题） */
-export const NOTICE_TOP: Record<string, number> = { map: 112 + 8, battle: 36 + 8, select: 118 };
+export const NOTICE_TOP: Record<string, number> = { map: 112 + 8, battle: 36 + 8 };
+/**
+ * 底部锚定的页（#214 跟进 v2）：值 = 提示条底边 y。点将页：「出征」按钮顶边往上 12。
+ * 底部锚定时多条自下而上堆叠（最新在最下）。
+ */
+export const NOTICE_BOTTOM: Record<string, number> = { select: SELECT_LAYOUT.start.y - 12 };
+let bottomOf: () => number | null = () => null;
+/** 入口按当前页设置底部锚点（entry.ts：NOTICE_BOTTOM[flow.page] ?? null）；null = 用顶部起点 */
+export function setNoticeBottom(f: (() => number | null) | null) {
+  bottomOf = f ?? (() => null);
+}
 export const NOTICE_TOP_DEFAULT = 64;
 let topOf: () => number = () => NOTICE_TOP_DEFAULT;
 /** 入口按当前页设置起点（entry.ts：NOTICE_TOP[flow.page] ?? 默认） */
@@ -44,17 +54,19 @@ export function setNoticeTop(f: (() => number) | null) {
 }
 /** 第 slot 条的矩形（slot 0 = 最上面 = 最旧） */
 /** lines：折行后的行数（超过 maxW 时折行，不缩字号）；高度按行数增长 */
-export function noticeRect(textW: number, slot: number, W: number = DESIGN_RECT.w, lines = 1) {
+export function noticeRect(textW: number, slot: number, W: number = DESIGN_RECT.w, lines = 1, count = slot + 1) {
   const S = NOTICE_STYLE;
   const w = Math.max(S.minW, Math.min(W - S.sideMargin * 2, S.maxW, textW + S.padX * 2));
   const h = lines > 1 ? lines * S.lineH + S.padY * 2 : S.h;
-  return { x: (W - w) / 2, y: topOf() + slot * (S.h + S.gap), w, h };
+  const bottom = bottomOf();
+  const y = bottom != null ? bottom - h - Math.max(0, count - 1 - slot) * (S.h + S.gap) : topOf() + slot * (S.h + S.gap);
+  return { x: (W - w) / 2, y, w, h };
 }
 /** 胶囊内可用文字宽 */
 export const noticeTextMaxW = (W: number = DESIGN_RECT.w) => Math.min(W - NOTICE_STYLE.sideMargin * 2, NOTICE_STYLE.maxW) - NOTICE_STYLE.padX * 2;
 /** slot：堆叠序号（0 = 最上面一条） */
 /** stackW：同屏各条文字宽度的最大值（统一胶囊宽度用）；缺省按本条文字宽 */
-export type NoticeRenderer = (s: Surface, text: string, t: number, slot: number, stackW?: number) => void;
+export type NoticeRenderer = (s: Surface, text: string, t: number, slot: number, stackW?: number, count?: number) => void;
 /** 量文字宽（无 measureText 的环境按 16dp/字估） */
 export function measureNotice(c: Ctx2DLike, text: string) {
   c.font = NOTICE_FONT;
@@ -84,13 +96,13 @@ function capsule(c: Ctx2DLike, x: number, y: number, w: number, h: number) {
   } else c.fillRect(x, y, w, h);
 }
 
-export const formalNotice: NoticeRenderer = (s, text, t, slot, stackW) => {
+export const formalNotice: NoticeRenderer = (s, text, t, slot, stackW, count) => {
   const c = s.ctx;
   const S = NOTICE_STYLE;
   const W = DESIGN_RECT.w; // 弹层用 390 设计坐标（render-spec §4.0）
   const tw = Math.max(measureNotice(c, text), stackW ?? 0);
   const lines = noticeLines(c, text, W);
-  const { x, y, w, h } = noticeRect(Math.min(tw, noticeTextMaxW(W)), slot, W, lines.length);
+  const { x, y, w, h } = noticeRect(Math.min(tw, noticeTextMaxW(W)), slot, W, lines.length, count);
   const ga = c.globalAlpha;
   c.globalAlpha = ga * alphaAt(t);
   c.fillStyle = S.bg;
@@ -142,7 +154,7 @@ export function showNotice(ov: Pick<OverlayStack, 'push'>, text: string | null, 
     modal: false,
     draw: (s) => {
       widths.set(h, measureNotice(s.ctx, text));
-      renderer(s, text, t, Math.max(0, live.indexOf(h)), noticeStackWidth(ov));
+      renderer(s, text, t, Math.max(0, live.indexOf(h)), noticeStackWidth(ov), live.length);
     },
     animating: () => true,
     update(dt) {

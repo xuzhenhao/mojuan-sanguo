@@ -29,5 +29,5 @@ export function abandonRun(
 export function resumeFailure(reason: string): { text: string; clearSave: boolean } {
   if (reason === 'newer') return { text: '存档来自更新的版本，暂时无法继续本局', clearSave: false };
   if (reason === 'empty') return { text: '没有找到存档，请重新点将出征', clearSave: false };
-  return { text: '存档已损坏，无法继续本局，请重新点将出征', clearSave: true };
+  return { text: '存档已损坏，请重新点将出征', clearSave: true };
 }
