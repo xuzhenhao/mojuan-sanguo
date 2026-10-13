@@ -23,11 +23,11 @@ const judgeAs = (g: Game, suit: 'S' | 'H', rank: number) => {
 };
 
 describe('B1 配置', () => {
-  it('启用；HP 18 前排；闪标记每回合 0；阶段 2 阈值 50% + 召唤 E102 后排', () => {
+  it('启用；HP 20 前排；闪标记每回合 0；阶段 2 阈值 50% + 召唤 E102 后排', () => {
     expect(CONFIG.enemies.B1.enabled).not.toBe(false);
     const d = ENEMIES.B1;
-    expect([d.hp, d.row, d.flash]).toEqual([18, 'front', 0]);
-    expect(d.pat).toEqual([['杀', '杀'], ['锦囊:D003'], ['闪', '杀'], ['杀+', '杀']]);
+    expect([d.hp, d.row, d.flash]).toEqual([20, 'front', 0]);
+    expect(d.pat).toEqual([['杀+', '杀'], ['锦囊:D003'], ['闪', '杀+'], ['杀+', '杀', '杀']]);
     expect(d.phases).toEqual([
       {
         hpAtMost: 0.5,
@@ -53,14 +53,14 @@ describe('B1 配置', () => {
 });
 
 describe('B1 阶段切换与召唤', () => {
-  it('体力 10 不切；体力 ≤ 9 在张角回合开始切换：换意图表、步数归零、召唤 1 名后排弓手；只触发一次', async () => {
+  it('体力 11 不切；体力 ≤ 10 在张角回合开始切换：换意图表、步数归零、召唤 1 名后排弓手；只触发一次', async () => {
     const phases: EnemyPhaseEvent[] = [];
     const sums: EnemySummonEvent[] = [];
     const { g, b } = boss({ enemyPhase: (e: EnemyPhaseEvent) => phases.push(e), enemySummon: (e: EnemySummonEvent) => sums.push(e) });
-    b.hp = 10;
+    b.hp = 11;
     b.step = 2;
     expect(g.checkPhase(b)).toBe(false);
-    b.hp = 9;
+    b.hp = 10;
     expect(g.checkPhase(b)).toBe(true);
     expect(b.phase).toBe(1);
     expect(b.step).toBe(0);
@@ -77,7 +77,7 @@ describe('B1 阶段切换与召唤', () => {
     expect(g.checkPhase(b)).toBe(false); // 不会重复召唤
     expect(g.en).toHaveLength(2);
   });
-  it('被一击打到 ≤9 后：切换发生在张角自己的回合，召唤的弓手本回合不行动', async () => {
+  it('被一击打到 ≤10 后：切换发生在张角自己的回合，召唤的弓手本回合不行动', async () => {
     const { g, b } = boss();
     b.hp = 5;
     g.hand = [];

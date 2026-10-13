@@ -10,9 +10,9 @@ describe('张角 B1', () => {
     desc?: string;
     phases?: { when: string; intents: string[][] }[];
   };
-  it('启用、HP 18、每回合闪标记 0', () => {
+  it('启用、HP 20、每回合闪标记 0', () => {
     expect(b1.enabled).toBe(true);
-    expect(b1.hp).toBe(18);
+    expect(b1.hp).toBe(20);
     expect(b1.flashMarksPerTurn).toBe(0);
   });
   it('删除「全场连环」', () => expect(JSON.stringify(b1)).not.toContain('连环'));
