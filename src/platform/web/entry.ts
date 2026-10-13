@@ -25,6 +25,7 @@ import { MetaStore, RunSaveSlot } from '../../game/result/store';
 import { demoOutcome, heroName, outcomeFromSave } from '../../game/result/adapter';
 import { resultBridge } from '../../game/result/bridge';
 import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/resume';
+import { loadBrushFonts, webFontDeps } from './brush-font';
 import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
 import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
 
@@ -92,17 +93,11 @@ engine.scenes.register(
     }),
 );
 // 书法字体（霞鹜文楷 LXGW WenKai，OFL）：core 进首包，ext 异步补齐；CSS 族名仍为 Brush
-if (typeof FontFace !== 'undefined') {
-  const loadBrush = (url: string, kind: string) =>
-    new FontFace('Brush', `url(${url}) format('woff2')`)
-      .load()
-      .then((f) => {
-        document.fonts.add(f);
-        engine.invalidateAll();
-      })
-      .catch((e) => platform.warn(`书法字体 ${kind} 加载失败`, e));
-  void loadBrush(wenkaiCoreUrl, 'core').then(() => void loadBrush(wenkaiExtUrl, 'ext'));
-}
+const fontsReady = loadBrushFonts(
+  webFontDeps((m, e) => platform.warn(m, e)),
+  { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
+  () => engine.invalidateAll(),
+);
 // P3 地图（#44）：局种子取点将出征时 core 建局的种子
 engine.scenes.register('map', () =>
   createMapScene(
@@ -212,7 +207,8 @@ if (q && pages.includes(q)) {
 const seed = Number(query.seed);
 if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
 else void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined).then(checkResume);
-engine.start();
+// #142：首帧等霞鹜文楷 core 就绪（最多 FONT_GATE_TIMEOUT_MS），避免先用浏览器默认字体画字
+void fontsReady.then(() => engine.start());
 // 调试：?toast=2 同时弹两条提示（看堆叠样式）；?toast=1 弹一条；?version=1 弹 §21.4 确认框
 if (query.toast) {
   const n = Number(query.toast) || 1;
