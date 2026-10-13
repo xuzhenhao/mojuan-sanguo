@@ -47,10 +47,7 @@ export function registerP4(d: P4Deps) {
     scale: engine.bakeScale,
   };
   const kind = (['normal', 'elite', 'boss'].includes(q.reward ?? '') ? q.reward : 'normal') as BattleKind;
-  engine.scenes.register(
-    'reward',
-    () => new RewardScene({ ...env, inventory: inv, rng, done: done({ type: 'reward_done' }), defaultKind: kind }),
-  );
+  engine.scenes.register('reward', () => new RewardScene({ ...env, inventory: inv, rng, done: done({ type: 'reward_done' }), defaultKind: kind }));
   engine.scenes.register('shop', () => new ShopScene({ ...env, inventory: inv, rng, done: done({ type: 'shop_done' }) }));
   const force = q.chest === 'gold' || q.chest === 'relic' ? q.chest : undefined;
   engine.scenes.register('chest', () => new ChestScene({ ...env, inventory: inv, rng, done: done({ type: 'chest_done' }), force }));

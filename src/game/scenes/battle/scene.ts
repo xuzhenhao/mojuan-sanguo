@@ -48,7 +48,7 @@ export interface BattleDeps {
   /** 本局点将结果：地图进战斗的 params 不带主副将时用它（否则回落默认武将） */
   heroes?(): { main: string; sub: string } | null | undefined;
   /**
-   * 由 RunState 建本场 Game（#122 PR2，入口接 RunSession.buildBattle）：地图战斗节点进来时调用，
+   * 由 RunState 建本场 Game（#122 PR2，入口接 RunSession.buildBattle(io, node, false)，未开战，场景挂好后 startBattle）：
    * 返回 null（没有局 / 直达调试）则按旧逻辑用 seed + 默认体力牌组建。
    */
   build?(io: BattleIO, params: BattleParams): Game | null;
@@ -137,7 +137,8 @@ export class BattleScene implements Scene<BattleParams> {
       this.g = p.game;
       this.g.io = this.io;
     } else if (this.deps.build && (this.g = this.deps.build(this.io, p) as Game)) {
-      // RunSession.buildBattle 已 startBattle
+      this.snap = this.snapshot();
+      this.g.startBattle();
     } else {
       const hs = this.deps.heroes?.();
       this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main ?? hs?.main, sub: p.sub ?? hs?.sub });

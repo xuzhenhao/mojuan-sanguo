@@ -138,7 +138,7 @@ engine.scenes.register(
       heroes: () => run.params,
       build: (io, p) =>
         run.active && p.nodeId && p.nodeType && p.enemies
-          ? run.buildBattle(io, { nodeId: p.nodeId, nodeType: p.nodeType, encounterName: p.encounterName ?? '', enemies: p.enemies })
+          ? run.buildBattle(io, { nodeId: p.nodeId, nodeType: p.nodeType, encounterName: p.encounterName ?? '', enemies: p.enemies }, false)
           : null,
     }),
 );
@@ -219,8 +219,7 @@ async function resumeRun() {
   } else if (pend?.type === 'REWARD') {
     const t = st.map?.nodes.find((n) => `${n.id}#reward` === pend.id)?.type;
     await go('reward', { kind: t === 'BOSS' ? 'boss' : t === 'ELITE' ? 'elite' : 'normal' });
-  }
-  else if (pend?.type === 'SHOP') await go('shop', { kind: 'shop' });
+  } else if (pend?.type === 'SHOP') await go('shop', { kind: 'shop' });
   else if (pend?.type === 'CHEST') await go('chest', { kind: 'chest' });
   else await go('map');
   showNotice(engine.overlays, noticeText(r.notice, pend));

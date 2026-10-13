@@ -26,7 +26,6 @@ export function demoInventory(o: DemoOpts = {}): Inventory {
   return inv;
 }
 
-
 export class EconomySession {
   inventory: Inventory;
   rng: Rng;

@@ -232,9 +232,10 @@ export class RunSession {
   // ───────── 战斗（Game 由 RunState 建，体力 / 牌组跨场延续） ─────────
   /**
    * 用 RunState 建本场 core Game：主副将、体力、牌组（永久 uid）取自 state，随机流用 battle 流。
+   * start=false 时由调用方（战斗页，先挂好 g 再开战）调用 startBattle。
    * Game.uid 移到临时号段：战斗内衍生牌 / 敌人实例的 uid 都 ≥ TEMP_UID_BASE，不进存档。
    */
-  buildBattle(io: BattleIO, b: BattleNode): Game {
+  buildBattle(io: BattleIO, b: BattleNode, start = true): Game {
     const s = this.synced();
     const g = new Game(this.rng('battle'), io, { autoShan: false, main: s.heroMain, sub: s.heroSub });
     g.deckMaster = cloneDeck(s.deck);
@@ -244,7 +245,7 @@ export class RunSession {
     g.encounter = { name: b.encounterName, en: [...b.enemies] };
     g.battleIdx = b.nodeType === 'BOSS' ? BATTLES.length - 1 : 0;
     this.game = g;
-    g.startBattle();
+    if (start) g.startBattle();
     return g;
   }
   /**
