@@ -106,6 +106,11 @@ export interface ConfigBundle {
     };
     /** 复活（PRD §4.4.1；仅天命<5） */
     revive: { count: number; hpRatio: number; hpMin: number; armor: number };
+    /** 暂停/设置浮层（#108）：局外偏好默认值（存 mojuan.prefs.v1） */
+    settings: {
+      toggles: Record<string, { label: string; default: boolean }>;
+      choices: Record<string, { label: string; options: string[]; default: string }>;
+    };
     /** 3 战回归基线（自动对局 / bstat）专用 */
     sim: { baselineBetweenBattleHeal: number };
     /** 真实游戏 / 正式地图 */

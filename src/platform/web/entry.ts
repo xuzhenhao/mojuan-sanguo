@@ -29,6 +29,9 @@ import { MetaStore, RunSaveSlot } from '../../game/result/store';
 import { demoOutcome, heroName, outcomeFromSave } from '../../game/result/adapter';
 import { resultBridge } from '../../game/result/bridge';
 import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/resume';
+import { abandonRun, resumeFailure } from '../../game/result/abandon';
+import { pauseFlow } from '../../game/result/pause';
+import { SettingsStore } from '../../game/prefs/settings';
 import { loadBrushFonts, webFontDeps } from './brush-font';
 import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
 import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
@@ -59,6 +62,8 @@ const query = platform.launchQuery();
 // P5 结算页（#46）：离开时入账局外存档（将魂/天命解锁）并删除局内存档
 const meta = new MetaStore(platform.storage);
 const slot = new RunSaveSlot(platform.storage);
+/** 暂停/设置浮层的局外偏好（mojuan.prefs.v1，#108） */
+const settingsStore = new SettingsStore(platform.storage);
 /** 当前结算对象：放弃本局 / 战斗页设置的 outcome；都没有时用示例（?demo=win|defeat，示例不入账） */
 let abandoned: RunOutcome | null = null;
 const outcome = () => abandoned ?? resultBridge.outcome ?? demoOutcome(query.demo === 'win');
@@ -115,6 +120,7 @@ engine.scenes.register('map', () =>
     undefined,
     () => run.params?.seed,
     () => run.params,
+    () => void openPause(),
   ),
 );
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
@@ -282,9 +288,21 @@ async function checkResume() {
   }
   const r = await resumeFlow(engine.overlays, engine, s, heroName);
   if (r === 'abandon') {
-    abandoned = outcomeFromSave(s, slot.raw(), Date.now());
+    abandoned = abandonRun(s, slot.raw(), Date.now(), 1);
     void router.send({ type: 'abandon' });
   } else void resumeRun();
+}
+
+/** 入口 2（#108）：地图暂停钮 → 暂停/设置浮层；确定放弃 → 按失败进结算页（与战斗失败同口径） */
+async function openPause() {
+  if (engine.overlays.ids().includes('pause')) return;
+  const r = await pauseFlow(engine.overlays, engine, settingsStore);
+  if (r !== 'abandon' || !flow.can({ type: 'abandon' })) return;
+  if (run.active) run.save(platform.storage);
+  const s = slot.peek();
+  if (!s) return platform.warn('放弃本局：没有存档');
+  abandoned = abandonRun(s, slot.raw(), Date.now(), 2);
+  void router.send({ type: 'abandon' });
 }
 
 /**
@@ -294,7 +312,11 @@ async function checkResume() {
 async function resumeRun() {
   const r = run.load(platform.storage, { configVersion: CONFIG_VERSION });
   if (!r.ok) {
+    // 损坏 / 新版本存档：提示后留在点将页（不留空白页）；损坏档删掉，免得每次启动都弹
     platform.warn(`继续本局：读档失败（${r.reason}）`);
+    const f = resumeFailure(r.reason);
+    if (f.clearSave) slot.remove();
+    showNotice(engine.overlays, f.text);
     return;
   }
   let st = run.state;

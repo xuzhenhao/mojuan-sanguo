@@ -189,6 +189,7 @@ export function createMapScene(
   runSeed: () => number | undefined = () => undefined,
   /** 点将结果（entry 传 run.params）；刷新后无局会话时为空，沿用存档里的主副将 */
   heroes: () => HeroPick | null | undefined = () => undefined,
+  onPause?: () => void,
 ) {
   const s = mapSession(engine, 1, runSeed(), heroes());
   // HUD 主将 / 体力 / 铜钱读本局存档（营地回血后即时反映）
@@ -207,6 +208,7 @@ export function createMapScene(
     bakeScale: engine.bakeScale,
     createOffscreen: (w, h) => engine.platform.createOffscreen(w, h),
     go,
+    onPause,
     layerSpacing: MAP_CONFIG.layerSpacing,
     moveMs: MAP_CONFIG.moveMs,
     pulseMs: MAP_CONFIG.pulseMs,

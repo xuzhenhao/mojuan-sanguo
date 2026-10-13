@@ -46,7 +46,7 @@ export function showResume(ov: OverlayStack, f: DialogFrame, s: ResumeSummary, n
     id: 'resume',
     kind: 'popup',
     modal: true,
-    scrim: { color: B.mask },
+    scrim: { color: B.maskDeep },
     draw: (sf) => {
       const c = sf.ctx;
       const { k, r } = box(f, RESUME_H);
@@ -105,7 +105,7 @@ export function confirmAbandon(ov: OverlayStack, f: DialogFrame) {
     id: 'abandon',
     kind: 'popup',
     modal: true,
-    scrim: { color: B.mask },
+    scrim: { color: B.maskDeep },
     draw: (sf) => {
       const c = sf.ctx;
       const { k, r } = box(f, ABANDON_H);

@@ -55,6 +55,8 @@ export interface MapSceneDeps {
   createOffscreen?: (w: number, h: number) => Canvas2DLike;
   /** 发出流程事件并带页面参数（Router.send） */
   go: (e: FlowEvent, params: MapRouteParams) => void;
+  /** 右上暂停钮（#108）：打开暂停/设置浮层 */
+  onPause?: () => void;
   layerSpacing?: number;
   moveMs?: number;
   pulseMs?: number;
@@ -182,7 +184,11 @@ export class MapScene implements Scene {
     c.textAlign = 'left';
     c.fillText(`第${['一', '二', '三'][this.d.session.chapter - 1] ?? this.d.session.chapter}章 · 黄巾`, 16, 32);
     // 暂停：右上，位于胶囊左侧
-    this.drawRoundBtn(c, w - 130, 14, 28, 'Ⅱ');
+    // 暂停符号用矢量两竖（书法字库无 Ⅱ）
+    this.drawRoundBtn(c, w - 130, 14, 28, '');
+    c.fillStyle = GOLD;
+    c.fillRect(w - 130 + 9, 14 + 8, 3, 12);
+    c.fillRect(w - 130 + 16, 14 + 8, 3, 12);
   }
   private drawHud(c: C2D, w: number) {
     const hud = this.d.hud();
@@ -458,6 +464,10 @@ export class MapScene implements Scene {
     }
     if (e.type === 'tap') {
       if (this.moving) return true;
+      if (this.d.onPause && hitInside(this.pauseHit(), e.at)) {
+        this.d.onPause();
+        return true;
+      }
       const n = this.hitNode(e.at);
       if (!n) return false;
       this.tapNode(n);
@@ -470,6 +480,11 @@ export class MapScene implements Scene {
       return true;
     }
     return false;
+  }
+
+  /** 暂停钮热区（圆钮 28，热区扩到 44） */
+  pauseHit(): Rect {
+    return { x: this.ctx.width - 130 - 8, y: 14 - 8, w: 44, h: 44 };
   }
 
   tapNode(n: MapNode) {

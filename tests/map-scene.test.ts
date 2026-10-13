@@ -265,3 +265,16 @@ describe('路由约定', () => {
     expect(f.send({ type: 'chest_done' })).toBe('map');
   });
 });
+
+describe('#108 地图暂停钮', () => {
+  it('点右上暂停钮触发 onPause，不走节点', () => {
+    const { scene, sent } = setup();
+    let n = 0;
+    (scene as unknown as { d: MapSceneDeps }).d.onPause = () => void n++;
+    const r = scene.pauseHit();
+    expect(r.w).toBeGreaterThanOrEqual(44);
+    expect(scene.gesture({ type: 'tap', at: { x: r.x + r.w / 2, y: r.y + r.h / 2 } })).toBe(true);
+    expect(n).toBe(1);
+    expect(sent).toEqual([]);
+  });
+});
