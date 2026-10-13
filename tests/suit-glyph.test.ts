@@ -16,7 +16,7 @@ function recCtx() {
       if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => grad;
       if (k === 'measureText') return (s: string) => ({ width: s.length * 10 });
       if (k === 'fillText') return (s: string) => void texts.push(s);
-      return (..._a: unknown[]) => void paths.push(String(k));
+      return () => void paths.push(String(k));
     },
     set(o, k, v) {
       o[k] = v;
