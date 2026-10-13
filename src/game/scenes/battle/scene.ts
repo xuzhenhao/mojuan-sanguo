@@ -3,6 +3,7 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
+import { hitInside } from '../../../engine/hit';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -59,7 +60,7 @@ export interface BattleDeps {
   warn?(msg: string): void;
 }
 
-const inside = (r: Rect, p: Vec2) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
 
 export class BattleScene implements Scene<BattleParams> {
   readonly id = 'battle';

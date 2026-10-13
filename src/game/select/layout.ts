@@ -1,4 +1,5 @@
 /** 点将页布局（390 基准 dp，对照 public/mockups/v3/select.html 与 acceptance.md §3「选将」） */
+import { hitInside } from '../../engine/hit';
 import type { Rect } from '../../engine/types';
 
 export const SELECT_LAYOUT = {
@@ -41,8 +42,9 @@ export function skillSeals(mainCount: number, hasSub: boolean): { kind: 'main' |
   return out;
 }
 
+/** 命中：命中框先补足到 ≥ 44（#118），再加 pad */
 export function inside(r: Rect, p: { x: number; y: number }, pad = 0) {
-  return p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad;
+  return hitInside(r, p, pad);
 }
 
 /** 热区至少 44×44（acceptance.md §1 触控） */

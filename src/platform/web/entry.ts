@@ -178,6 +178,32 @@ if (showStatusBar(platform.launchQuery(), location.pathname))
     },
   });
 
+// 调试 ?debug=hit（#118）：描边画出所有可点区域的命中框（≥44）。只在开发构建，正式构建整段被摇树去掉
+if (import.meta.env.DEV && query.debug === 'hit') {
+  void import('../../engine/hit').then(({ hitDebug }) => {
+    hitDebug.on = true;
+    let page = flow.page;
+    engine.overlays.push({
+      id: 'debug-hit',
+      kind: 'system',
+      modal: false,
+      animating: () => true,
+      draw(s) {
+        if (page !== flow.page) {
+          page = flow.page;
+          hitDebug.rects.clear(); // 换页清空，新页重绘时 markHit 重新登记
+        }
+        const c = s.ctx as unknown as CanvasRenderingContext2D;
+        c.save?.();
+        c.strokeStyle = '#00E5FF';
+        c.lineWidth = 1;
+        for (const r of hitDebug.rects.values()) c.strokeRect?.(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+        c.restore?.();
+      },
+    });
+  });
+}
+
 // 启动页可用 ?page=map 等直接进入（截图与测试用）
 const q = query.page as Page | undefined;
 if (q && pages.includes(q)) {
