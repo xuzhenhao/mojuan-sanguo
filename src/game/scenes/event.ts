@@ -288,13 +288,13 @@ const DESC = '#d8c8a0';
 const SUIT_ZH: Record<'S' | 'H' | 'C' | 'D', string> = { S: '黑桃', H: '红桃', C: '梅花', D: '方片' };
 
 /** 结果数值色：得牌 / 上涨 = 金；体力下降 = 朱砂；无绿色 */
-function changeColor(ch: { kind: string; text: string }): string {
-  if (ch.kind === 'card+') return T.gold;
+export function changeColor(ch: { kind: string; text: string }): string {
+  if (ch.kind === 'card+') return T.goldHi;
   if (ch.kind === 'card-') return T.paper;
-  if (ch.kind === 'armor') return T.gold;
+  if (ch.kind === 'armor') return T.goldHi;
   const m = /(\d+)→(\d+)/.exec(ch.text);
   if (m && Number(m[2]) < Number(m[1])) return T.cinnHi;
-  return T.gold;
+  return T.goldHi;
 }
 
 /** 正式局读写 RunSession.state（不写盘，completeNode 写） */
