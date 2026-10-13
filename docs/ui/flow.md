@@ -187,7 +187,7 @@ flowchart TD
 ### 3.10 集市 shop（`v3/shop.html`）
 | 元素 | 状态 |
 |---|---|
-| 商品 ×7 | default / unaffordable（价签红，点击时抖动）/ sold（灰）/ long-press / 点击后弹出购买确认 |
+| 商品 ×8（5 卡 + 1 宝物 + 2 丹药；对齐 PRD §10.7） | default / unaffordable（价签红，点击时抖动）/ sold（灰）/ long-press / 点击后弹出购买确认 |
 | 删牌服务 | 打开牌组选择；用后 sold |
 | 刷新 25 | 铜钱不足时 disabled |
 | 广告刷新 | 每进店 1 次 |
@@ -195,7 +195,7 @@ flowchart TD
 - 边界：**丹药满时不能购买丹药**（价签灰，点击提示 Toast“丹药已满”，PRD 12.2）；宝物重复的不会出现在货架；刷新后已售格也会补货。
 
 ### 3.11 宝箱 chest（`v3/chest.html`，新增）
-- 70% 概率：宝物三选一（selected / long-press / 收入 / 略过）。30% 概率：铜钱加一张牌奖励，此时直接跳转奖励页的卡牌布局。
+- **75%** 概率：宝物三选一（selected / long-press / 收入 / 略过）。**25%** 概率：铜钱 50–80 + 一张牌奖励，此时直接跳转奖励页的卡牌布局。（对齐 PRD §10.8）
 - 边界：宝物池耗尽时以铜钱替代。
 
 ### 3.12 结算：大捷 result / 败北 defeat（`v3/result.html`、`v3/defeat.html`）
