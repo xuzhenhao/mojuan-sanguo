@@ -217,4 +217,3 @@ describe('#92 去掉奖励页刷新后的存档兼容', () => {
     expect(m.has(LEGACY_RUN_SAVE_KEY)).toBe(false);
   });
 });
-
