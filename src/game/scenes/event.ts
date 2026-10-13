@@ -6,6 +6,7 @@
  * - V13 剿灭 / 事件池抽空：立刻进 1 场 easy 战斗（env.battle）。
  * - 美术未到：插画区先用纸色底 + 奇遇节点「？」印占位（§6.3-10）。prefers-reduced-motion 时结果不做淡入。
  */
+import { glyphLabel } from '../overlays/glyphs';
 import type { Rng } from '../../core/rng';
 import type { CardInst } from '../../core/types';
 import type { EventCfg } from '../../data/config';
@@ -246,17 +247,19 @@ export class EventScene implements Scene<EventParams> {
       y += 24;
     }
     if (r.judge) {
-      const suit = { S: '♠', H: '♥', C: '♣', D: '♦' }[r.judge.suit];
-      label(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, SANS(14), r.judge.red ? '#ff8a73' : T.paper, 'center');
+      const suit = SUIT_ZH[r.judge.suit]; // Brush 无 ♠♥♣♦：用中文花色名
+      label(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, SANS(14), r.judge.red ? T.cinnHi : T.paper, 'center');
       y += 26;
     }
     for (const ch of r.changes) {
-      label(c, ch.text, w / 2, y + 6, SANS(15), ch.kind === 'card-' || ch.text.includes('→') ? T.paper : T.jadeHi, 'center');
+      glyphLabel(c, ch.text, w / 2, y + 6, SANS(15), 15, changeColor(ch), 'center'); // → − 画矢量（Brush 无字形）
       y += 26;
     }
     c.globalAlpha = ga;
   }
 }
+
+export const SUIT_ZH = { S: '黑桃', H: '红桃', C: '梅花', D: '方片' } as const;
 
 /** 正式局读写 RunSession.state（不写盘，completeNode 写） */
 export function eventRunOf(r: {
@@ -301,4 +304,18 @@ export function eventRunOf(r: {
         if (v.eventsSeen) d.eventsSeen = [...v.eventsSeen];
       }) as never),
   };
+}
+
+/**
+ * 结果数值色（UI 验收）：所有收益（得牌 / 数值上涨 / 铜钱增加 / 护甲）= goldHi（选项标题仍是 gold）；
+ * 下降：体力（含上限）朱砂，其余与失去的牌用纸色。
+ */
+export function changeColor(ch: { kind: string; text: string }): string {
+  if (ch.kind === 'card+' || ch.kind === 'armor') return T.goldHi;
+  if (ch.kind === 'card-') return T.paper;
+  const m = /(\d+)→(\d+)/.exec(ch.text);
+  if (!m) return T.paper;
+  const up = Number(m[2]) > Number(m[1]);
+  if (up) return T.goldHi;
+  return ch.kind === 'hp' || ch.kind === 'maxHp' ? T.cinnHi : T.paper;
 }

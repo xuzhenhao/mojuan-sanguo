@@ -14,6 +14,11 @@ export interface Scrim {
   color: string;
   /** 额外透明度（0–1，乘在 color 之上），默认 1 */
   alpha?: number;
+  /**
+   * 径向遮罩（#105 灵光一闪）：圆心按视口比例 (cx, cy)，半径按视口对角线比例 r；
+   * 色标 [offset 0–1, color]，半径外保持最后一个色标。给了 radial 时 color 只作无渐变环境的回退底色。
+   */
+  radial?: { cx: number; cy: number; r: number; stops: [number, string][] };
 }
 /** 引擎提供的全屏遮罩绘制：在画弹层面板之前调用 */
 export type ScrimPainter = (s: Surface, scrim: Scrim) => void;

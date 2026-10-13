@@ -174,3 +174,12 @@ export const icons = () => current;
 export function setIconSet(s: IconSet) {
   current = s;
 }
+
+/**
+ * 牌面花色：矢量形（Brush 霞鹜文楷子集没有 ♠♥♣♦ 字形，且只用 Brush、不加回退字体）。
+ * (cx, cy) 为中心，size 为边长；color 默认红花色朱砂、黑花色墨色。
+ */
+export function drawSuit(c: Ctx2DLike, suit: Suit, cx: number, cy: number, size: number, color?: string) {
+  const red = suit === 'H' || suit === 'D';
+  STAMP_ICONS.draw(c, `suit_${suit}` as IconId, { x: cx - size / 2, y: cy - size / 2, w: size, h: size }, color ?? (red ? C.cinnabar : C.ink));
+}
