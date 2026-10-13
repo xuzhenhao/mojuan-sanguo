@@ -4,6 +4,8 @@ export type Slot = 'weapon' | 'armor' | 'plus' | 'minus';
 
 export interface CardDef {
   name: string;
+  /** 手牌小牌简称（可选），详情仍用 name */
+  shortName?: string;
   type: string;
   cost: number;
   desc: string;
@@ -129,6 +131,10 @@ export interface Enemy extends EnemyDef {
   /** 本敌方回合不出杀（离魂）/ 杀转向友军（离间） */
   noSha?: boolean;
   redirect?: boolean;
+  /** 复活后下一个敌方回合意图替换为 [闪]（PRD 4.4 ②，#106）；该回合结束后清除 */
+  reviveFlash?: boolean;
+  /** 复活打断敌方回合时尚未出手：本步保留，只出闪那回合不消耗（PRD 4.4 ⑤，V0.5.12） */
+  reviveKeep?: boolean;
   /** 延时锦囊剩余判定次数：牌 uid → 次数 */
   delayLeft?: Record<number, number>;
   /** 当前阶段：0 = 初始意图，n = phases[n-1] */

@@ -7,6 +7,7 @@ import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
 import { FlowMachine, PAGES, viewOf, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
+import { triggerDebugRevive, wantDebugRevive } from '../../game/scenes/battle/debug-revive';
 import { BattleScene } from '../../game/scenes/battle/scene';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
@@ -28,6 +29,7 @@ import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/res
 import { loadBrushFonts, webFontDeps } from './brush-font';
 import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
 import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
+import { refitAfterBrush } from '../../game/scenes/battle/hpview';
 
 const root = document.getElementById('app')!;
 const platform = createWebPlatform(root);
@@ -93,12 +95,13 @@ engine.scenes.register(
     }),
 );
 // 书法字体（霞鹜文楷 LXGW WenKai，OFL）：core 进首包，ext 异步补齐；CSS 族名仍为 Brush
+// #142 门控 + 失败重试；#129：Brush 到位后清牌名字号/量宽缓存再重绘
 const fontsReady = loadBrushFonts(
   webFontDeps((m, e) => {
     if (import.meta.env.DEV) console.warn(m, e ?? '');
   }),
   { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
-  () => engine.invalidateAll(),
+  () => void refitAfterBrush(document.fonts, () => engine.invalidateAll()),
 );
 const framesReleased = engine.holdFramesUntil(fontsReady);
 // P3 地图（#44）：局种子取点将出征时 core 建局的种子
@@ -114,16 +117,29 @@ engine.scenes.register('map', () =>
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
 const economy = registerP4({ engine, query, safe: designSafe, send, run });
 // P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）
+let battleScene: BattleScene | null = null;
 engine.scenes.register(
   'battle',
   () =>
-    new BattleScene({
+    (battleScene = new BattleScene({
       overlays: engine.overlays,
       now: () => platform.now(),
       safe: designSafe(),
       measure: () => engine.surfaces.main.ctx,
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
+      nodeType: () => run.inNode?.type,
+      // 仅开发构建：UI 截图验收参数（#129），生产构建整段被摇掉
+      dev: import.meta.env.DEV
+        ? {
+            hp: Number(query.hp) || undefined,
+            maxHp: Number(query.maxHp) || undefined,
+            ehp: Number(query.ehp) || undefined,
+            boss: query.boss === '1',
+            longName: query.longname === '1',
+            detail: query.detail || undefined,
+          }
+        : undefined,
       warn: (m) => platform.warn(m),
       onEnd: (win) => {
         const pend = run.inNode;
@@ -143,7 +159,7 @@ engine.scenes.register(
         run.active && p.nodeId && p.nodeType && p.enemies
           ? run.buildBattle(io, { nodeId: p.nodeId, nodeType: p.nodeType, encounterName: p.encounterName ?? '', enemies: p.enemies }, false)
           : null,
-    }),
+    })),
 );
 const router = new Router(flow, engine.scenes);
 // P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
@@ -219,6 +235,10 @@ if (query.toast) {
   const at = (ms: number) => setTimeout(() => texts.slice(0, n).forEach((t) => showNotice(engine.overlays, t, 600000)), ms);
   at(800);
 }
+if (wantDebugRevive(query, import.meta.env.DEV))
+  setTimeout(() => {
+    if (battleScene?.g) void triggerDebugRevive(battleScene.g);
+  }, 1200);
 if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overlays, engine), 800);
 
 /** H5 启动：在点将页上检查存档，弹「继续本局 / 放弃本局」（flow.md §1，PRD 5.13） */

@@ -10,15 +10,17 @@ export async function mapMain(arg: (k: string, d?: string) => string | undefined
   const n = Number(arg('n', '200'));
   const seed = Number(arg('seed', '777'));
   const all = process.argv.includes('--all-heroes');
+  /** --tianming N：天命档（≥5 不复活） */
+  const tianming = Number(arg('tianming', '0'));
   const pairs: [string, string | undefined][] = all ? PAIRS : [[arg('hero', CONFIG.rules.defaultHeroes.main)!, arg('sub')]];
   const kArg = arg('k', 'both');
   const versions: [string, RewardCoef][] = [];
   if (kArg !== 'placeholder') versions.push(['k=0（不计奖励）', K0]);
   if (kArg !== '0') versions.push(['占位系数（§5）', K_PLACEHOLDER]);
-  const md: string[] = [`# 整章地图模式（sim-map-mode v0.1 最小版；每将 ${n} 局，种子基 ${seed}）`, ''];
+  const md: string[] = [`# 整章地图模式（sim-map-mode v0.1 最小版；每将 ${n} 局，种子基 ${seed}，天命 ${tianming}）`, ''];
   for (const [label, coef] of versions) {
     const rows = [];
-    for (const [main, sub] of pairs) rows.push({ main, sub, r: await mapBatch(n, seed, { main, sub }, coef) });
+    for (const [main, sub] of pairs) rows.push({ main, sub, r: await mapBatch(n, seed, { main, sub }, coef, { tianming }) });
     const mean = rows.reduce((a, x) => a + x.r.clear, 0) / rows.length;
     md.push(
       `## ${label}`,

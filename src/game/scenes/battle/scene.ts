@@ -3,6 +3,22 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
+import { CARDS } from '../../../data/cards';
+import {
+  handName,
+  BEAD_D,
+  DYING_EDGE_COLOR,
+  DYING_EDGE_W,
+  dyingEdgeAlpha,
+  dyingFading,
+  newDyingEdge,
+  prefersReducedMotion,
+  enemyHpView,
+  isDying,
+  fitNameCached,
+  heroHpView,
+} from './hpview';
+import { textWidth } from '../../overlays/theme';
 import { hitInside } from '../../../engine/hit';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
@@ -14,15 +30,24 @@ import type { Scene, SceneContext } from '../../../engine/scene';
 import type { Surface, SurfaceName } from '../../../engine/surfaces';
 import type { Ctx2DLike, Rect, Vec2 } from '../../../engine/types';
 import { CARD_H, CARD_W, clamp, hitHand, layoutHand, lockDirection, type DragMode, type HandLayout } from './hand';
-import { cardDetail, enemyDetail, LongPressDetail, skillDetail, type DetailContent } from '../../overlays/detail';
+import { cardDetail, enemyDetail, LongPressDetail, openDetail, skillDetail, type DetailContent } from '../../overlays/detail';
 import { makeRespond } from '../../overlays/response';
+import { openRevive } from '../../overlays/revive';
+import { reviveFxDone, reviveFxFrame, type ReviveFx } from './revive-fx';
+import { CONFIG } from '../../../data/config';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
+import { drawScreenBg } from './screen';
 import { judgeViewOf, type JudgeView } from './judge';
 import { diff, PresentationQueue, type Snapshot } from './present';
 import { battleSkillButtons, nextSkillStep, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
 
 /** render-spec §3.4：主将勾玉 ⌀17、敌人/小牌 ⌀11 */
+/** 紧凑式体力胶囊宽：左 8 + 勾玉 17 + 6 + 数字 + 右 10 */
+function compactHpW(v: { full: boolean; cur: number; max: number }) {
+  const numW = v.full ? 12 + String(v.max).length * 9 : String(v.cur).length * 9 + 6 + String(v.max).length * 7;
+  return 8 + BEAD_D + 6 + numW + 10;
+}
 export const BEAD_R_MAIN = 8.5;
 export const BEAD_R_ENEMY = 5.5;
 /** 后排牌间距（acceptance §3；过宽时由 enemyRect 压缩以塞进屏宽） */
@@ -31,12 +56,24 @@ export const BACK_ROW_GAP = 120;
 export type BattleMode = 'idle' | 'target' | 'redSel' | 'skillCard' | 'skillTarget' | 'discard' | 'busy' | 'over';
 export type CardState = 'normal' | 'selected' | 'legal' | 'illegal' | 'unaffordable';
 
+/** `?hp=&maxHp=&ehp=&boss=1&longname=1&detail=<牌 id>` 解析结果 */
+export interface BattleDevOverrides {
+  hp?: number;
+  maxHp?: number;
+  ehp?: number;
+  boss?: boolean;
+  longName?: boolean;
+  detail?: string;
+}
+
 export interface BattleDeps {
   overlays?: OverlayStack;
   hooks?: BattleOverlayHooks;
   /** 战斗结束（胜利大印播完后）回调：交给流程发 battle_end */
   onEnd?(win: boolean): void;
   now?(): number;
+  /** 是否减少动态（默认读 prefers-reduced-motion）：#129 濒死红边、#106 复活动画均立即切换 */
+  reducedMotion?(): boolean;
   safe?: Rect;
   /** 结束回合二次确认（1.5s） */
   confirmEnd?: boolean;
@@ -57,15 +94,26 @@ export interface BattleDeps {
   battleNo?(): number | undefined;
   /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
   debugDefaults?: boolean;
+  /** 仅开发构建（entry 用 import.meta.env.DEV 包住）：UI 截图验收用的强制状态（#129） */
+  dev?: BattleDevOverrides;
+  /** 当前地图节点类型（'BOSS' / 'ELITE' / …）；Boss 血条判定优先看它，没有再看敌人数据 tier（#129） */
+  nodeType?(): string | undefined;
   warn?(msg: string): void;
 }
 
 const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
 
+/** 意图图标：只出闪 = 「闪」（config/rules.yaml maxFlashMarks「敌人闪标记」，PRD 4.4 ②），不是护盾 */
+export function intentIcon(dmg: number, defOnly: boolean) {
+  return dmg > 0 ? '⚔' : defOnly ? '闪' : '✦';
+}
+
 export class BattleScene implements Scene<BattleParams> {
   readonly id = 'battle';
   g!: Game;
   mode: BattleMode = 'idle';
+  /** 复活后的化墨 / 意图交叉淡入（PRD 4.4.1） */
+  reviveFx: ReviveFx | null = null;
   readonly q = new PresentationQueue();
   private ctx!: SceneContext;
   private snap!: Snapshot;
@@ -89,6 +137,7 @@ export class BattleScene implements Scene<BattleParams> {
   private lp: LongPressDetail | null = null;
   private respondImpl: BattleIO['respond'] | null = null;
 
+  private dyingEdge = newDyingEdge();
   constructor(private deps: BattleDeps = {}) {
     const ov = deps.overlays;
     if (ov) {
@@ -145,9 +194,11 @@ export class BattleScene implements Scene<BattleParams> {
     } else {
       const hs = this.deps.heroes?.();
       this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main ?? hs?.main, sub: p.sub ?? hs?.sub });
+      this.g.reviveLeft = CONFIG.rules.revive.count; // 直达战斗（无 RunState）：按每局次数给，便于验收复活层
       this.snap = this.snapshot();
       this.g.startBattle();
     }
+    if (this.deps.dev && !p.game) this.applyDev(this.deps.dev);
     this.snap = this.snapshot();
     ctx.invalidate();
   }
@@ -188,6 +239,21 @@ export class BattleScene implements Scene<BattleParams> {
       if (this.deps.debugDefaults) return options[0] ?? null; // 仅调试版/测试
       this.deps.warn?.('[battle] 未接入灵光一闪弹层，本次不铭刻');
       return null;
+    },
+    revive: async (ev) => {
+      const h = this.deps.hooks?.revive;
+      if (h) return h(ev, this.overlayCtx);
+      const ov = this.deps.overlays;
+      if (!ov) return !!this.deps.debugDefaults; // 单测替身：调试默认复活，正式无弹层栈则放弃
+      return openRevive(
+        ov,
+        { hero: this.g.main.name, hp: ev.hp, armor: ev.armor, perRun: CONFIG.rules.revive.count, left: ev.left, enemies: this.g.alive().length },
+        () => this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H },
+      );
+    },
+    revived: (ev) => {
+      this.reviveFx = { start: this.fxNow(), prev: ev.prev, cancelled: new Set(ev.cancelled) };
+      this.ctx.invalidate('main');
     },
     hurt: () => {
       this.shakeT = 250;
@@ -653,7 +719,15 @@ export class BattleScene implements Scene<BattleParams> {
       const it = enemyIntent(e);
       return it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
     });
-    const before = this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || !!lethalPulse;
+    const before =
+      this.q.busy ||
+      !!this.drag ||
+      this.hintT > 0 ||
+      this.confirmT > 0 ||
+      this.shakeT > 0 ||
+      !!lethalPulse ||
+      (!!this.g && isDying(this.g.p.hp) && this.g.p.hp > 0) ||
+      dyingFading(this.dyingEdge);
     this.q.update(dt);
     if (this.hintT > 0) this.hintT -= dt;
     if (this.confirmT > 0) this.confirmT -= dt;
@@ -665,8 +739,18 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (before || this.press) this.ctx.invalidate('main');
   }
+  fxNow() {
+    return this.deps.now?.() ?? performance.now();
+  }
+  reducedMotion() {
+    return this.deps.reducedMotion?.() ?? prefersReducedMotion();
+  }
+  reviveFxActive() {
+    if (this.reviveFx && reviveFxDone(this.reviveFx, this.fxNow(), this.reducedMotion())) this.reviveFx = null;
+    return !!this.reviveFx;
+  }
   animating() {
-    return this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || (this.lp?.progress ?? 0) > 0;
+    return this.reviveFxActive() || this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || (this.lp?.progress ?? 0) > 0;
   }
 
   // ---------- 弹层上下文 ----------
@@ -781,7 +865,10 @@ export class BattleScene implements Scene<BattleParams> {
     return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
   }
 
-  /** 金山影矩形（#118 测试用）：全部在 0…W 内 */
+  /**
+   * 金山影矩形（#118 测试用）：全部在 0…W 内。
+   * #130 起屏风（screen.ts）自带描金山影，drawBg 不再画这组矩形，避免山影画两遍；保留为 #118 的出框回归基准。
+   */
   mountainRects(): Rect[] {
     const w = this.W;
     return Array.from({ length: 5 }, (_, i) => {
@@ -791,22 +878,9 @@ export class BattleScene implements Scene<BattleParams> {
     });
   }
 
+  /** 金漆屏风（#130，render-spec §8.8.1），替换原 6 层同心色块占位与矩形山影 */
   drawBg(ctx: Ctx2DLike) {
-    const w = this.W;
-    const h = this.H;
-    rect(ctx, { x: 0, y: 0, w, h }, C.lac0);
-    const steps = 6;
-    for (let i = 0; i < steps; i++) {
-      const k = i / steps;
-      rect(ctx, { x: w * k * 0.25, y: h * k * 0.2, w: w * (1 - k * 0.5), h: h * (1 - k * 0.4) }, [C.lac1, C.lac2, C.lac3, C.lac2, C.lac4, C.lac3][i]);
-    }
-    // 金山影
-    ctx.globalAlpha = 0.18;
-    // #118：山影限定在内容框内（原 x=-10…w+20 会漏到框外），首尾两块贴边截齐
-    for (const r of this.mountainRects()) rect(ctx, r, C.goldDk);
-    ctx.globalAlpha = 1;
-    frame(ctx, { x: 6, y: 6, w: w - 12, h: h - 12 }, C.goldLo, 1);
-    frame(ctx, { x: 9, y: 9, w: w - 18, h: h - 18 }, C.goldDk, 1);
+    drawScreenBg(ctx, this.W, this.H);
   }
 
   drawCard(ctx: Ctx2DLike, c: CardInst, r: Rect, st: CardState) {
@@ -833,8 +907,17 @@ export class BattleScene implements Scene<BattleParams> {
     text(ctx, SUIT_CH[c.suit], x + 11, r.y + 31, { size: 12, color: red ? C.cinnabar : C.ink, align: 'center' });
     text(ctx, RANK_CH[c.rank], x + 11, r.y + 45, { size: 11, color: red ? C.cinnabar : C.ink, font: FONT.num, align: 'center', bold: true });
     // 卡名（底部书法）
-    const nm = d.name.length > 2 ? d.name.slice(0, 4) : d.name;
-    text(ctx, nm, x + r.w / 2, r.y + r.h - 15, { size: nm.length > 2 ? 15 : 20, color: C.ink, font: FONT.brush, align: 'center' });
+    // #141：按字数分档 20/16/13（·不计），最小 12、不省略，再不够 scaleX≥0.85；全名见长按详情
+    const nm = this.cardName(ctx, handName(d), r.w);
+    const sx = ctx as unknown as { save?(): void; restore?(): void; translate?(x: number, y: number): void; scale?(x: number, y: number): void };
+    if (nm.scaleX < 1 && sx.save && sx.translate && sx.scale && sx.restore) {
+      // 12px 仍放不下：以卡中线为轴横向压缩（≥0.85）
+      sx.save();
+      sx.translate(x + r.w / 2, 0);
+      sx.scale(nm.scaleX, 1);
+      text(ctx, nm.text, 0, r.y + r.h - 15, { size: nm.px, color: C.ink, font: FONT.brush, align: 'center' });
+      sx.restore();
+    } else text(ctx, nm.text, x + r.w / 2, r.y + r.h - 15, { size: nm.px, color: C.ink, font: FONT.brush, align: 'center' });
     if (c.mods.length) {
       rect(ctx, { x: x + 3, y: r.y + r.h - 16, w: 12, h: 12 }, C.cinnabar);
       frame(ctx, { x: x + 3, y: r.y + r.h - 16, w: 12, h: 12 }, C.gold, 1);
@@ -868,15 +951,8 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, inset(r, 4), C.ink);
       ctx.globalAlpha = a0 * a;
     }
-    // 体力：≤10 用勾玉，>10 / Boss 用血条
-    const by = r.y + r.h - 18;
-    if (e.max > 10) {
-      const bw = r.w - 12;
-      rect(ctx, { x: r.x + 6, y: by, w: bw, h: 12 }, '#2A2A2A');
-      rect(ctx, { x: r.x + 6, y: by, w: (bw * Math.max(0, e.hp)) / e.max, h: 12 }, C.cinnabar);
-      frame(ctx, { x: r.x + 6, y: by, w: bw, h: 12 }, C.gold, 1);
-      text(ctx, `${Math.max(0, e.hp)}/${e.max}`, r.x + r.w / 2, by + 6, { size: 10, color: C.paper, font: FONT.num, align: 'center', bold: true });
-    } else this.beads(ctx, r.x + r.w / 2, by + 6, e.hp, e.max, BEAD_R_ENEMY);
+    // 体力（#129，§8.8.2）：一律数字。普通 / 精英底部小牌「● cur/max」；Boss 或 >10 血条
+    this.drawEnemyHp(ctx, r, e);
     // 护盾（左下）
     if (e.armor > 0) this.shield(ctx, r.x - 10, r.y + r.h - 34, e.armor, 24);
     // 意图（右上）
@@ -890,18 +966,24 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, { x: ir.x - 4, y: ir.y - 4, w: ir.w + 8, h: ir.h + 8 }, 'rgba(255,80,50,0.35)');
       ctx.globalAlpha = a0;
     }
-    rect(ctx, ir, lethal ? C.cinnabar : C.lac1);
-    frame(ctx, ir, lethal ? C.cinnGlow : C.gold, lethal ? 1.5 : 1);
-    const defOnly = it.dmg === 0 && it.acts.includes('闪');
-    const icon = it.dmg > 0 ? '⚔' : defOnly ? '盾' : '✦';
-    text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: it.dmg > 0 ? C.dmg : defOnly ? C.defIntent : C.gold, align: 'center' });
-    text(ctx, it.dmg > 0 ? String(it.dmg) : defOnly ? `${it.acts.filter((x) => x === '闪').length}` : '?', ir.x + 34, ir.y + 14, {
-      size: 16,
-      color: C.paper,
-      font: FONT.num,
-      align: 'center',
-      bold: true,
-    });
+    const fx = this.reviveFx && this.reviveFx.prev.has(e.uid) ? reviveFxFrame(this.reviveFx, e.uid, this.fxNow(), this.reducedMotion()) : null;
+    if (fx && fx.oldAlpha > 0) {
+      const old = { ...it, ...this.reviveFx!.prev.get(e.uid)! };
+      const ia = ctx.globalAlpha;
+      ctx.globalAlpha = ia * fx.oldAlpha;
+      this.drawIntent(ctx, ir, old, false);
+      if (fx.ink > 0) {
+        ctx.globalAlpha = ia * fx.oldAlpha * fx.ink;
+        rect(ctx, ir, C.ink); // 化墨
+      }
+      ctx.globalAlpha = ia;
+    }
+    {
+      const ia = ctx.globalAlpha;
+      ctx.globalAlpha = ia * (fx ? fx.newAlpha : 1);
+      this.drawIntent(ctx, ir, it, lethal);
+      ctx.globalAlpha = ia;
+    }
     // 闪标记 / 判定区
     const cr = this.countdownRect(e)!;
     circle(ctx, cr.x + 15, cr.y + 15, 14, C.lac0);
@@ -912,16 +994,126 @@ export class BattleScene implements Scene<BattleParams> {
     ctx.globalAlpha = a0;
   }
 
-  beads(ctx: Ctx2DLike, cx: number, cy: number, hp: number, max: number, r: number) {
-    if (max > 9) {
-      circle(ctx, cx - 14, cy, r, C.jade);
-      text(ctx, `×${Math.max(0, hp)}`, cx + 4, cy, { size: 12, color: C.paper, font: FONT.num, bold: true });
+  /** 意图框（图标 + 数字） */
+  drawIntent(ctx: Ctx2DLike, ir: Rect, it: ReturnType<typeof enemyIntent>, lethal: boolean) {
+    rect(ctx, ir, lethal ? C.cinnabar : C.lac1);
+    frame(ctx, ir, lethal ? C.cinnGlow : C.gold, lethal ? 1.5 : 1);
+    const defOnly = it.dmg === 0 && it.acts.includes('闪');
+    const icon = intentIcon(it.dmg, defOnly);
+    text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: it.dmg > 0 ? C.dmg : defOnly ? C.defIntent : C.gold, align: 'center' });
+    text(ctx, it.dmg > 0 ? String(it.dmg) : defOnly ? `${it.acts.filter((x) => x === '闪').length}` : '?', ir.x + 34, ir.y + 14, {
+      size: 16,
+      color: C.paper,
+      font: FONT.num,
+      align: 'center',
+      bold: true,
+    });
+  }
+
+  /**
+   * 武将体力（#129，render-spec §8.8.2）：≤6 勾玉（间距按卡内窗宽算，不出框）；>6 紧凑式 1 勾玉 + 「×N」/「cur/max」胶囊。
+   * 底部居中 y = 卡底 − 6（胶囊下沿）。
+   */
+  drawHeroHp(ctx: Ctx2DLike, card: Rect, hp: number, max: number) {
+    const cx = card.x + card.w / 2;
+    const innerW = card.w - 10 - 12; // 卡内窗（左右各 5 描边）− 12
+    const v = heroHpView(hp, max, cx, innerW);
+    if (v.mode === 'dots') {
+      const cy = card.y + card.h - 6 - BEAD_D / 2;
+      v.xs.forEach((x, i) => circle(ctx, x, cy, v.r, i < v.filled ? C.jade : '#3A3A3A'));
       return;
     }
-    const step = r * 2 + 3;
-    const x0 = cx - ((max - 1) * step) / 2;
-    for (let i = 0; i < max; i++) circle(ctx, x0 + i * step, cy, r, i < hp ? C.jade : '#3A3A3A');
+    const capH = 24;
+    const capW = compactHpW(v);
+    const cap = { x: cx - capW / 2, y: card.y + card.h - 6 - capH, w: capW, h: capH };
+    rect(ctx, cap, 'rgba(15,7,5,0.85)');
+    frame(ctx, cap, C.goldLo, 1);
+    const cy = cap.y + capH / 2;
+    const bx = cap.x + 8 + BEAD_D / 2;
+    circle(ctx, bx, cy, BEAD_D / 2, v.empty ? '#3A3A3A' : C.jade);
+    const tx = bx + BEAD_D / 2 + 6;
+    if (v.full) text(ctx, `×${v.max}`, tx, cy + 1, { size: 15, color: C.paper, font: FONT.num, bold: true });
+    else {
+      const cs = String(v.cur);
+      text(ctx, cs, tx, cy + 1, { size: 15, color: C.paper, font: FONT.num, bold: true });
+      text(ctx, `/${v.max}`, tx + cs.length * 9 + 1, cy + 2, { size: 11, color: C.paper3, font: FONT.num });
+    }
   }
+  /** 敌人体力矩形（不出卡框；测试与绘制共用） */
+  /** 开发调试：强制血量 / Boss / 最长牌名 / 打开某张牌的详情（只在开发构建传入） */
+  applyDev(d: BattleDevOverrides) {
+    const g = this.g;
+    const max = d.maxHp ?? d.hp;
+    if (max) {
+      g.p.maxHp = max;
+      g.p.hp = Math.min(d.hp ?? max, max);
+    }
+    if (d.ehp) for (const e of g.en) e.hp = e.max = d.ehp;
+    const put = (id: string) => {
+      if (!CARDS[id]) return -1;
+      const i = g.hand.findIndex((c) => c.id === id);
+      if (i >= 0) return i;
+      if (!g.hand.length) return -1;
+      g.hand[0] = { ...g.hand[0], id, mods: [] };
+      return 0;
+    };
+    if (d.longName) put(Object.entries(CARDS).sort((a, b) => b[1].name.length - a[1].name.length)[0][0]);
+    if (d.detail) {
+      const i = put(d.detail);
+      const ov = this.deps.overlays;
+      if (i >= 0 && ov && this.deps.measure) {
+        const r = this.handLayoutAt(-1).rects[i];
+        const safe = this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H };
+        if (r) openDetail(ov, cardDetail(g.hand[i]), { x: r.x + r.w / 2, y: r.y + r.h / 2 }, safe, this.deps.measure());
+      }
+    }
+  }
+  /** Boss 判定：地图节点类型优先；直达调试（无节点）退回敌人数据 tier === 'Boss' */
+  isBoss(e: Pick<Enemy, 'tier'>): boolean {
+    if (this.deps.dev?.boss) return true;
+    const t = this.deps.nodeType?.();
+    return t ? t === 'BOSS' : e.tier === 'Boss';
+  }
+  enemyHpRect(r: Rect, e: Pick<Enemy, 'hp' | 'max' | 'tier'>, boss = this.isBoss(e)): Rect {
+    const v = enemyHpView(e.hp, e.max, boss);
+    if (v.mode === 'bar') return { x: r.x + 6, y: r.y + r.h - 16, w: r.w - 12, h: 10 };
+    const w = Math.min(r.w - 8, 8 + 8 + 4 + v.text.length * 7 + 8);
+    return { x: r.x + (r.w - w) / 2, y: r.y + r.h - 20, w, h: 16 };
+  }
+  drawEnemyHp(ctx: Ctx2DLike, r: Rect, e: Enemy) {
+    const v = enemyHpView(e.hp, e.max, this.isBoss(e));
+    const b = this.enemyHpRect(r, e);
+    if (v.mode === 'bar') {
+      rect(ctx, b, '#2A2A2A');
+      rect(ctx, { ...b, w: b.w * v.ratio }, C.cinnabar);
+      rect(ctx, { ...b, h: 3, w: b.w * v.ratio }, C.cinnGlow);
+      frame(ctx, b, C.gold, 1);
+      text(ctx, v.text, b.x + b.w / 2, b.y + b.h / 2, { size: 10, color: C.paper, font: FONT.num, align: 'center', bold: true });
+      return;
+    }
+    rect(ctx, b, 'rgba(15,7,5,0.85)');
+    frame(ctx, b, C.goldLo, 1);
+    circle(ctx, b.x + 8 + 4, b.y + b.h / 2, 4, C.cinnabar);
+    text(ctx, v.text, b.x + 8 + 8 + 4, b.y + b.h / 2 + 1, { size: 12, color: C.paper, font: FONT.num, bold: true });
+  }
+  heroHpRect(card: Rect, hp: number, max: number): Rect {
+    const v = heroHpView(hp, max, card.x + card.w / 2, card.w - 22);
+    if (v.mode === 'dots') return { x: v.xs[0] - v.r, y: card.y + card.h - 6 - BEAD_D, w: v.xs[v.xs.length - 1] - v.xs[0] + BEAD_D, h: BEAD_D };
+    const capW = compactHpW(v);
+    return { x: card.x + card.w / 2 - capW / 2, y: card.y + card.h - 30, w: capW, h: 24 };
+  }
+
+  /** 卡名适配（按名字+卡宽缓存）；量宽用当前 ctx 的 Brush 字体 */
+  cardName(ctx: Ctx2DLike, name: string, cardW: number) {
+    return fitNameCached(name, cardW, (t, px) => {
+      const prev = ctx.font;
+      ctx.font = `${px}px ${FONT.brush}`;
+      const w = textWidth(ctx, t, px);
+      ctx.font = prev;
+      return w;
+    });
+  }
+
   shield(ctx: Ctx2DLike, x: number, y: number, n: number, s: number) {
     rect(ctx, { x, y, w: s, h: s + 2 }, C.azure);
     frame(ctx, { x, y, w: s, h: s + 2 }, C.azureHi, 1);
@@ -945,13 +1137,19 @@ export class BattleScene implements Scene<BattleParams> {
     }
     if (!only || only === 'main') {
       const r = { ...L.main, x: L.main.x + shake };
-      const dying = g.p.hp <= 1;
-      if (dying) rect(ctx, inset(r, -3), C.cinnabar);
+      // dying（§3.3）：朱砂 2px 外轮廓脉动，只给主将
+      const ea = dyingEdgeAlpha(this.dyingEdge, g.p.hp, this.deps.now?.() ?? performance.now(), this.deps.reducedMotion?.() ?? prefersReducedMotion());
+      if (ea > 0) {
+        const a = ctx.globalAlpha;
+        ctx.globalAlpha = a * ea;
+        frame(ctx, inset(r, -DYING_EDGE_W), DYING_EDGE_COLOR, DYING_EDGE_W); // 只描外轮廓，不动牌面
+        ctx.globalAlpha = a;
+      }
       goldFrame(ctx, r, 'gold', 4);
       rect(ctx, { x: r.x + 6, y: r.y + 6, w: r.w - 12, h: r.h - 34 }, '#3B2C22');
       text(ctx, g.main.name.slice(-1), r.x + r.w / 2 + 10, r.y + 80, { size: 64, color: 'rgba(243,235,216,0.2)', font: FONT.brush, align: 'center' });
       vtext(ctx, g.main.name, r.x + 20, r.y + 24, 26, C.paper);
-      this.beads(ctx, r.x + r.w / 2, r.y + r.h - 14, g.p.hp, g.p.maxHp, BEAD_R_MAIN);
+      this.drawHeroHp(ctx, r, g.p.hp, g.p.maxHp);
       if (g.p.armor > 0) this.shield(ctx, r.x - 14, r.y + r.h - 48, g.p.armor, 30);
       const st: string[] = [];
       if (g.p.jiu) st.push(`酒${g.p.jiu}`);
