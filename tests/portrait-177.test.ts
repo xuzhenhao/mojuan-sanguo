@@ -199,3 +199,29 @@ describe('代码里不写立绘文件名 / 域名', () => {
     for (const n of names) expect(t).not.toMatch(new RegExp(`${n}(@s)?\\.webp`));
   });
 });
+
+describe('UI 复核：名字墨带与结算软边', () => {
+  it('nameBandRect：字宽每侧 +4，上下各留 8px 淡出，并夹在立绘区内', async () => {
+    const { nameBandRect } = await import('../src/game/portrait');
+    const r = nameBandRect(50, 30, 20, 2, 21, { x: 0, y: 0, w: 200, h: 200 });
+    expect(r).toEqual({ x: 36, y: 12, w: 28, h: 20 + 21 + 16 });
+    const c = nameBandRect(10, 10, 20, 1, 21, { x: 5, y: 5, w: 100, h: 100 });
+    expect(c.x).toBe(5);
+    expect(c.y).toBe(5);
+  });
+  it('drawNameBand：中段实色，两端线性淡出到同色全透明', async () => {
+    const { drawNameBand } = await import('../src/game/portrait');
+    const stops: [number, string][] = [];
+    const fills: number[][] = [];
+    const c = {
+      fillStyle: '' as unknown,
+      drawImage: () => {},
+      fillRect: (...a: number[]) => fills.push(a),
+      createLinearGradient: () => ({ addColorStop: (o: number, s: string) => stops.push([o, s]) }),
+    };
+    drawNameBand(c, { x: 0, y: 0, w: 30, h: 60 }, 'rgba(15,7,5,.72)');
+    expect(fills[0]).toEqual([0, 8, 30, 44]);
+    expect(stops).toContainEqual([0, 'rgba(15,7,5,0)']);
+    expect(stops).toContainEqual([1, 'rgba(15,7,5,0)']);
+  });
+});

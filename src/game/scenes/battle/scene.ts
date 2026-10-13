@@ -44,7 +44,7 @@ import type { SeenBosses } from '../../prefs/seen-bosses';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
 import { drawScreenBg } from './screen';
-import { drawPortrait } from '../../portrait';
+import { drawNameBand, drawPortrait, nameBandRect } from '../../portrait';
 import { judgeViewOf, type JudgeView } from './judge';
 import { diff, PresentationQueue, type Snapshot } from './present';
 import { battleSkillButtons, nextSkillStep, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
@@ -1263,8 +1263,11 @@ export class BattleScene implements Scene<BattleParams> {
       goldFrame(ctx, r, 'silver', 3);
       rect(ctx, { x: r.x + 5, y: r.y + 5, w: r.w - 10, h: r.h - 10 }, '#3B2C22');
       // 副将立绘（#177）：小图，卡内图区 70×98（银框 3px 内），按 portraitFocus 把脸对到 (38,32)（@2x 即 (76,64)）
-      drawPortrait(ctx, inset(r, SUB_ART_INSET), g.sub.portrait, 'small', { onReady: this.repaint, focus: g.sub.portraitFocus, target: SUB_FACE_AT });
-      vtext(ctx, g.sub.name, r.x + 14, r.y + 18, 15, C.paper);
+      const subArt = inset(r, SUB_ART_INSET);
+      drawPortrait(ctx, subArt, g.sub.portrait, 'small', { onReady: this.repaint, focus: g.sub.portraitFocus, target: SUB_FACE_AT });
+      // 竖排名字墨带 + 1px 描边（#177 UI 复核）
+      drawNameBand(ctx, nameBandRect(r.x + 14, r.y + 18, 15, [...g.sub.name].length, 16, subArt), C.inkBand);
+      vtext(ctx, g.sub.name, r.x + 14, r.y + 18, 15, C.paper, C.nameStroke);
       const ready = this.skillButtons().some((b) => !b.disabled);
       if (ready) {
         circle(ctx, r.x + r.w - 6, r.y + r.h - 6, 9, C.gold);
@@ -1287,7 +1290,8 @@ export class BattleScene implements Scene<BattleParams> {
       // 主将立绘（#177）：小图 cover + 顶对齐；没图时保留原「大号淡字」占位
       if (!drawPortrait(ctx, art, g.main.portrait, 'small', { onReady: this.repaint }))
         text(ctx, g.main.name.slice(-1), r.x + r.w / 2 + 10, r.y + 80, { size: 64, color: 'rgba(243,235,216,0.2)', font: FONT.brush, align: 'center' });
-      vtext(ctx, g.main.name, r.x + 20, r.y + 24, 26, C.paper);
+      drawNameBand(ctx, nameBandRect(r.x + 20, r.y + 24, 26, [...g.main.name].length, 27, art), C.inkBand);
+      vtext(ctx, g.main.name, r.x + 20, r.y + 24, 26, C.paper, C.nameStroke);
       this.drawHeroHp(ctx, r, g.p.hp, g.p.maxHp);
       if (g.p.armor > 0) this.shield(ctx, r.x - 14, r.y + r.h - 48, g.p.armor, 30);
       const st: string[] = [];

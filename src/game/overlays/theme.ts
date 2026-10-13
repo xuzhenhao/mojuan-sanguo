@@ -10,6 +10,8 @@ export const C = {
   lacquerDeep: '#1a0806',
   gold: '#d9b46a',
   goldDeep: '#8c6a2e',
+  /** 立绘描边（同 T.goldLo，#177） */
+  goldLo: '#8a6a2a',
   paper: '#f3ebd8',
   ink: '#1a1a1a',
   cinnabar: '#c0392b',

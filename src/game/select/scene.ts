@@ -13,7 +13,7 @@ import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { Rect } from '../../engine/types';
 import { CONFIG } from '../../data/config';
 import { HEROES } from '../../data/heroes';
-import { drawPortrait, type PortraitTier } from '../portrait';
+import { drawNameBand, drawPortrait, nameBandRect, type PortraitTier } from '../portrait';
 import { gridCell, hitPad, inside, SELECT_LAYOUT as L, skillSeals } from './layout';
 import { canStart, canSwap, clearSlot, comboOf, mainSkillsOf, pickHero, roster, starterDeckSize, swap, type SelectState } from './model';
 
@@ -38,6 +38,10 @@ export const C = {
   jade: '#4f9a7c',
   jadeDk: '#1d4a3a',
   silver: '#cfd6d9',
+  /** 立绘上竖排名字的墨带（#177） */
+  inkBand: 'rgba(15,7,5,.72)',
+  /** 立绘上竖排名字的 1px 描边（#177） */
+  nameStroke: 'rgba(0,0,0,.6)',
 } as const;
 export const FACTION_COLOR: Record<string, string> = { 群: '#7a6a58', 蜀: '#3f7a4f', 魏: '#3c5a8a', 吴: '#a63d2f' };
 export const BRUSH = '"Brush"';
@@ -636,18 +640,33 @@ function heroFrame(
   roundRect(c, w, 2);
   c.clip();
   // 立绘（#177）：主/副槽大图、网格小图，cover + 顶对齐；没图（未配置 / 加载中 / 失败）画程序人形占位
-  if (!drawPortrait(c, w, h.portrait, o.tier ?? 'small', { onReady: o.onReady })) inkFigure(c, w, h.id);
+  const art = drawPortrait(c, w, h.portrait, o.tier ?? 'small', { onReady: o.onReady });
+  if (!art) inkFigure(c, w, h.id);
+  const nx = w.x + 3 + o.name / 2;
+  // 有立绘：竖排名字墨带 + 纸色字 1px 描边（#177 UI 复核）；占位时保持原墨字
+  if (art) drawNameBand(c, nameBandRect(nx, w.y + 4 + o.name / 2, o.name, [...h.name].length, o.name, w), C.inkBand);
   c.restore();
   strokeRect(c, w, '#2a1a08', 1);
   // 竖排书法名（左上）
-  c.fillStyle = C.ink;
-  c.shadowColor = C.paper2;
-  c.shadowBlur = 3;
   c.font = `${o.name}px ${BRUSH}`;
   c.textAlign = 'center';
   c.textBaseline = 'top';
-  [...h.name].forEach((ch, i) => c.fillText(ch, w.x + 3 + o.name / 2, w.y + 4 + i * o.name));
-  noShadow(c);
+  if (art) {
+    c.strokeStyle = C.nameStroke;
+    c.lineWidth = 2;
+    c.lineJoin = 'round';
+    c.fillStyle = C.paper;
+    [...h.name].forEach((ch, i) => {
+      c.strokeText(ch, nx, w.y + 4 + i * o.name);
+      c.fillText(ch, nx, w.y + 4 + i * o.name);
+    });
+  } else {
+    c.fillStyle = C.ink;
+    c.shadowColor = C.paper2;
+    c.shadowBlur = 3;
+    [...h.name].forEach((ch, i) => c.fillText(ch, nx, w.y + 4 + i * o.name));
+    noShadow(c);
+  }
   resetText(c);
   factionBadge(c, w.x + w.w - 24, w.y + 4, h.faction);
   if (o.beads) beadRow(c, w.x + w.w / 2 - (h.hp * (o.beads + 2) - 2) / 2 + o.beads / 2, w.y + w.h - 8 - o.beads / 2, h.hp, o.beads);

@@ -119,3 +119,45 @@ export function drawPortrait(
   if (clip) c.restore!();
   return true;
 }
+
+type BandCtx = DrawCtx & {
+  fillRect(x: number, y: number, w: number, h: number): void;
+  fillStyle: unknown;
+  createLinearGradient?(x0: number, y0: number, x1: number, y1: number): { addColorStop(o: number, c: string): void };
+};
+/** 竖排名字墨带两端的线性淡出长度（px，UI 复核 #177） */
+export const NAME_BAND_FADE = 8;
+/** 竖排名字墨带比字宽出的边距（每侧 px） */
+export const NAME_BAND_PAD = 4;
+const transparentOf = (rgba: string) => rgba.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgba($1,$2,$3,0)');
+
+/**
+ * 竖排名字墨带（#177 UI 复核）：立绘上竖排名字的衬底。r 为整条带（含两端各 NAME_BAND_FADE 的淡出段），
+ * 中段实色、两端线性淡出；没有 createLinearGradient 的环境只画中段。不用 shadowBlur。
+ */
+export function drawNameBand(c: BandCtx, r: Rect, color: string) {
+  const f = Math.min(NAME_BAND_FADE, r.h / 2);
+  c.fillStyle = color;
+  c.fillRect(r.x, r.y + f, r.w, r.h - 2 * f);
+  if (!c.createLinearGradient) return;
+  const clear = transparentOf(color);
+  const top = c.createLinearGradient(0, r.y, 0, r.y + f);
+  top.addColorStop(0, clear);
+  top.addColorStop(1, color);
+  c.fillStyle = top;
+  c.fillRect(r.x, r.y, r.w, f);
+  const bot = c.createLinearGradient(0, r.y + r.h - f, 0, r.y + r.h);
+  bot.addColorStop(0, color);
+  bot.addColorStop(1, clear);
+  c.fillStyle = bot;
+  c.fillRect(r.x, r.y + r.h - f, r.w, f);
+}
+
+/** 竖排名字墨带的矩形：字列中心 cx、首字中心 y0、字号 size、字数 n、行距 step；夹在 clip（立绘区）内 */
+export function nameBandRect(cx: number, y0: number, size: number, n: number, step: number, clip: Rect): Rect {
+  const x0 = Math.max(clip.x, cx - size / 2 - NAME_BAND_PAD);
+  const x1 = Math.min(clip.x + clip.w, cx + size / 2 + NAME_BAND_PAD);
+  const top = Math.max(clip.y, y0 - size / 2 - NAME_BAND_FADE);
+  const bottom = Math.min(clip.y + clip.h, y0 + (n - 1) * step + size / 2 + NAME_BAND_FADE);
+  return { x: x0, y: top, w: x1 - x0, h: bottom - top };
+}

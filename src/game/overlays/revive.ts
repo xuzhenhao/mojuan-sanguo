@@ -83,7 +83,7 @@ export function drawRevive(c: Ctx, L: ReviveLayout, info: ReviveInfo) {
   // 立绘（#177）：小图 cover + 顶对齐；没图保留名字占位
   if (!drawPortrait(c, fig, info.portrait, 'small', { onReady: info.onPortraitReady }))
     textCenter(c, info.hero, cx, fig.y + fig.h / 2, '22px "Brush"', '#a89c84', 22);
-  frame(c, fig, '#6c6258', 1);
+  frame(c, fig, C.goldLo, 1); // 立绘 1px 金描边（#177 UI 复核）
   textCenter(c, '将星未陨', cx, fig.y + fig.h + 40, '30px "Brush"', '#e0705a', 30);
   textCenter(c, `体力 +${info.hp}  护甲 +${info.armor}`, cx, fig.y + fig.h + 76, '18px sans-serif', C.paper, 18);
   textCenter(c, `敌下回合  ${Array.from({ length: info.enemies }, () => '闪+1').join(' ')}`, cx, fig.y + fig.h + 104, '13px sans-serif', '#a89c84', 13);
