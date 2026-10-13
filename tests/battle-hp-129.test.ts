@@ -131,3 +131,15 @@ describe('#129 开发调试参数 applyDev', () => {
     expect(sc.g.hand.some((c) => CARDS[c.id].name.length === L)).toBe(true);
   });
 });
+
+describe('#141 PRD §19.1.1 对照', () => {
+  it('Boss 血条只看上限：同一敌人战斗中掉血不切换显示', () => {
+    for (const max of [8, 10, 11, 18])
+      for (const boss of [false, true]) {
+        const modes = new Set(Array.from({ length: max + 1 }, (_, hp) => enemyHpView(hp, max, boss).mode));
+        expect(modes.size, `max=${max} boss=${boss}`).toBe(1);
+      }
+    expect(enemyHpView(3, 18, false).mode).toBe('bar');
+    expect(enemyHpView(10, 10, false).mode).toBe('plate');
+  });
+});
