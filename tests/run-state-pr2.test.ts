@@ -200,8 +200,8 @@ describe('#122 PR2：同 seed 换武将重建起始牌组', () => {
   });
 });
 
-describe('#92 去掉奖励页刷新后的存档兼容', () => {
-  it('Inventory 不再带 rewardRefreshUsed，RunState.counters.rewardRefreshUsed 原值透传、不写旧键', async () => {
+describe('#122 PR3 去掉 rewardRefreshUsed（存档 v2）', () => {
+  it('Inventory / RunState.counters 都不再带 rewardRefreshUsed，不写旧键', async () => {
     const { RunSession } = await import('../src/game/run');
     const { LEGACY_RUN_SAVE_KEY, RUN_STATE_KEY } = await import('../src/game/run/state');
     const m = new Map<string, string>();
@@ -213,7 +213,61 @@ describe('#92 去掉奖励页刷新后的存档兼容', () => {
     run.save(st);
     const saved = JSON.parse(m.get(RUN_STATE_KEY)!);
     const counters = (saved.state ?? saved).counters;
-    expect(counters).toEqual({ rewardRefreshUsed: 0, shopRefreshUsed: 1, removeUsed: 0 });
+    expect(counters).toEqual({ shopRefreshUsed: 1, removeUsed: 0 });
+    expect(saved.version).toBe(2);
     expect(m.has(LEGACY_RUN_SAVE_KEY)).toBe(false);
+  });
+});
+
+describe('RunState v1 → v2 迁移', () => {
+  it('v1 存档（带 rewardRefreshUsed）读档后升到 v2、丢弃该字段，其余不变', async () => {
+    const { RunSession } = await import('../src/game/run');
+    const run = new RunSession();
+    run.start({ main: 'H03', sub: 'H04', seed: 9 });
+    run.inventory.shopRefreshUsed = 1;
+    const v2 = JSON.parse(run.serialize());
+    const v1 = { ...v2, version: 1, counters: { ...v2.counters, rewardRefreshUsed: 1 } };
+    const other = new RunSession();
+    const r = other.resume(JSON.stringify(v1));
+    expect(r.ok && [r.state.version, r.state.counters, r.migratedFrom]).toEqual([2, { shopRefreshUsed: 1, removeUsed: 0 }, 1]);
+    expect(r.ok && r.state.deck).toEqual(v2.deck);
+    expect(JSON.parse(other.serialize()).counters).not.toHaveProperty('rewardRefreshUsed');
+  });
+});
+
+describe('存储键迁移到 v2（键名不变：只剩 mojuan.runstate.v1）', () => {
+  const memStore = () => {
+    const m = new Map<string, string>();
+    return { m, get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) };
+  };
+  it('新键里的 v1 存档 → 读档后回写为 v2，存储里只剩新键', async () => {
+    const { RunSession } = await import('../src/game/run');
+    const run = new RunSession();
+    run.start({ main: 'H03', sub: 'H04', seed: 11 });
+    const v1 = { ...JSON.parse(run.serialize()), version: 1 };
+    v1.counters = { ...v1.counters, rewardRefreshUsed: 2 };
+    const st = memStore();
+    st.set(RUN_STATE_KEY, JSON.stringify(v1));
+    const r = new RunSession().load(st);
+    expect(r.ok).toBe(true);
+    expect([...st.m.keys()]).toEqual([RUN_STATE_KEY]);
+    const saved = JSON.parse(st.m.get(RUN_STATE_KEY)!);
+    expect(saved.version).toBe(2);
+    expect(saved.counters).not.toHaveProperty('rewardRefreshUsed');
+    expect(st.m.has(LEGACY_RUN_SAVE_KEY)).toBe(false);
+  });
+  it('旧键 mojuan.run.v1 → 一路迁到 v2：只剩新键、version 2、旧键已删', async () => {
+    const { RunSession } = await import('../src/game/run');
+    const fs = await import('node:fs');
+    const legacy = fs.readFileSync(new URL('./fixtures/legacy-save-seed22.json', import.meta.url), 'utf8');
+    const st = memStore();
+    st.set(LEGACY_RUN_SAVE_KEY, legacy);
+    const r = new RunSession().load(st);
+    expect(r.ok && r.migratedFrom).toBe(0);
+    expect([...st.m.keys()]).toEqual([RUN_STATE_KEY]);
+    const saved = JSON.parse(st.m.get(RUN_STATE_KEY)!);
+    expect(saved.version).toBe(2);
+    expect(saved.counters).toEqual({ shopRefreshUsed: 0, removeUsed: 0 });
+    expect(st.m.has(LEGACY_RUN_SAVE_KEY)).toBe(false);
   });
 });
