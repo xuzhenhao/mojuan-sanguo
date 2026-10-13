@@ -144,3 +144,59 @@ export async function resumeFlow(ov: OverlayStack, f: DialogFrame, s: ResumeSumm
     if (await confirmAbandon(ov, f).result) return 'abandon';
   }
 }
+
+// ───────── PRD §21.4 配置版本不一致（#122 PR3，flow.md:75，mockup v3/version.html） ─────────
+/** 文案必须一字不差（flow.md:75 / PRD §21.4） */
+export const VERSION_TEXT = '游戏已更新。为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。';
+export const VERSION_H = 300;
+/** 霞鹜文楷，不回退系统字体 */
+const wk = (px: number) => `${px}px "Brush"`;
+
+/** 只有一个「继续」按钮（居中） */
+export function versionButton(f: DialogFrame): Rect {
+  const { r } = box(f, VERSION_H);
+  return { x: r.x + (r.w - 180) / 2, y: r.y + r.h - 70, w: 180, h: 48 };
+}
+export function showVersionDialog(ov: OverlayStack, f: DialogFrame) {
+  return ov.push<'continue'>({
+    id: 'version',
+    kind: 'popup',
+    modal: true,
+    scrim: { color: B.mask },
+    draw: (sf) => {
+      const c = sf.ctx;
+      const { r } = box(f, VERSION_H);
+      panel(c, r, 0.98);
+      center(c, '游戏已更新', r.x + r.w / 2, r.y + 52, wk(26), B.gold, 26);
+      c.font = wk(15);
+      c.fillStyle = B.paper;
+      wrap(c, VERSION_TEXT, r.w - 40, 15).forEach((l, i) => c.fillText?.(l, r.x + 20, r.y + 96 + i * 26));
+      button(c, versionButton(f), '继续', 'confirm');
+    },
+    gesture: (e: GestureEvent, h) => {
+      if (e.type === 'tap' && inside(versionButton(f), e.at)) h.close('continue');
+      return true;
+    },
+  });
+}
+
+export interface ResumePlanIn {
+  configChanged: boolean;
+  /** 旧档迁移回退类型（未迁移 null） */
+  migration: { kind: 'battle_rollback' | 'node_rollback' | 'none' } | null;
+  pendingType: string | null;
+  /** 原本要弹的 toast（noticeText 结果） */
+  toast: string | null;
+}
+/**
+ * 续玩提示决策（PRD §21.4 + runstate-migration.md §4）：
+ * - 配置版本不一致且存档停在战斗中（含旧档迁移的战斗回退）→ 只弹 §21.4「继续」确认框，不叠 toast；
+ * - 配置版本不一致但不在战斗中 → 静默升级（不弹框、不弹 toast）；
+ * - 版本一致 → 按原 toast。
+ * 回退点取两者更早者：deserializeRunState 已按迁移规则回退（战斗中的旧档本来就回到本场开打前 / 上一节点）。
+ */
+export function resumePlan(o: ResumePlanIn): { dialog: boolean; toast: string | null; upgradeConfig: boolean } {
+  if (!o.configChanged) return { dialog: false, toast: o.toast, upgradeConfig: false };
+  const inBattle = ['BATTLE', 'ELITE', 'BOSS'].includes(o.pendingType ?? '') || (!!o.migration && o.migration.kind !== 'none');
+  return { dialog: inBattle, toast: null, upgradeConfig: true };
+}

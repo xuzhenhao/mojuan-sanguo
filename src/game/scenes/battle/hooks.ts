@@ -106,4 +106,9 @@ export interface BattleParams {
   seed?: number;
   main?: string;
   sub?: string;
+  /** 地图战斗节点（BattleRouteParams）：有局时由 RunState 建 Game */
+  nodeId?: string;
+  nodeType?: 'BATTLE' | 'ELITE' | 'BOSS';
+  encounterName?: string;
+  enemies?: string[];
 }

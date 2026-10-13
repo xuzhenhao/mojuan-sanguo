@@ -45,6 +45,15 @@ export interface BattleDeps {
   paused?(): boolean;
   responseSeconds?: number;
   autoShan?: boolean;
+  /** 本局点将结果：地图进战斗的 params 不带主副将时用它（否则回落默认武将） */
+  heroes?(): { main: string; sub: string } | null | undefined;
+  /**
+   * 由 RunState 建本场 Game（#122 PR2，入口接 RunSession.buildBattle(io, node, false)，未开战，场景挂好后 startBattle）：
+   * 返回 null（没有局 / 直达调试）则按旧逻辑用 seed + 默认体力牌组建。
+   */
+  build?(io: BattleIO, params: BattleParams): Game | null;
+  /** 本局战斗序号（1 起，RunSession.battleNo）；不给时退回 core battleIdx + 1（直达调试） */
+  battleNo?(): number | undefined;
   /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
   debugDefaults?: boolean;
   warn?(msg: string): void;
@@ -129,8 +138,12 @@ export class BattleScene implements Scene<BattleParams> {
     if (p.game) {
       this.g = p.game;
       this.g.io = this.io;
+    } else if (this.deps.build && (this.g = this.deps.build(this.io, p) as Game)) {
+      this.snap = this.snapshot();
+      this.g.startBattle();
     } else {
-      this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main, sub: p.sub });
+      const hs = this.deps.heroes?.();
+      this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main ?? hs?.main, sub: p.sub ?? hs?.sub });
       this.snap = this.snapshot();
       this.g.startBattle();
     }
@@ -764,7 +777,7 @@ export class BattleScene implements Scene<BattleParams> {
   /** 顶条文案：全部读 core 状态，不写死（#55） */
   topBar() {
     const g = this.g;
-    return { left: `第${g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
+    return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
   }
 
   drawBg(ctx: Ctx2DLike) {

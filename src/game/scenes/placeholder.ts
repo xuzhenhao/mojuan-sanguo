@@ -8,7 +8,16 @@ import type { Scene, SceneContext } from '../../engine/scene';
 import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { FlowEvent, Page } from '../flow';
 
-export const PAGE_TITLE: Record<Page, string> = { select: '点将', map: '地图', battle: '战斗', reward: '奖励', shop: '集市', chest: '宝箱', result: '结算' };
+export const PAGE_TITLE: Record<Page, string> = {
+  select: '点将',
+  map: '地图',
+  battle: '战斗',
+  reward: '奖励',
+  shop: '集市',
+  chest: '宝箱',
+  rest: '营地',
+  result: '结算',
+};
 
 /** 每页的占位按钮：文字 + 发出的事件 */
 export const PAGE_ACTIONS: Record<Page, { label: string; event: FlowEvent }[]> = {
@@ -17,6 +26,7 @@ export const PAGE_ACTIONS: Record<Page, { label: string; event: FlowEvent }[]> =
     { label: '进入战斗', event: { type: 'enter_node', node: 'battle' } },
     { label: '进入集市', event: { type: 'enter_node', node: 'shop' } },
     { label: '进入宝箱', event: { type: 'enter_node', node: 'chest' } },
+    { label: '进入营地', event: { type: 'enter_node', node: 'rest' } },
   ],
   battle: [
     { label: '胜利（占位）', event: { type: 'battle_end', win: true } },
@@ -25,6 +35,7 @@ export const PAGE_ACTIONS: Record<Page, { label: string; event: FlowEvent }[]> =
   reward: [{ label: '收入', event: { type: 'reward_done' } }],
   shop: [{ label: '离开', event: { type: 'shop_done' } }],
   chest: [{ label: '收入', event: { type: 'chest_done' } }],
+  rest: [{ label: '离开', event: { type: 'rest_done' } }],
   result: [{ label: '再来一局', event: { type: 'result_done' } }],
 };
 

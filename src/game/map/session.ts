@@ -4,9 +4,9 @@
  */
 import { availableNodes, generateMap, getNode, moveTo, type MapConfig, type MapNode, type MapState } from '../../core/run/map';
 import { drawEncounter, groupOf, newEncounterState, type EncounterPools, type EncounterState } from '../../core/run/encounters';
-import { loadRunSave, writeRunSave, type RunSave } from '../../core/run/save';
+import type { RunSave } from '../../core/run/save';
 import { isComingSoon, routeFor } from './route';
-import { applyRestHeal, type RestConfig } from '../../core/run/rest';
+import { applyRestHeal, restRelicBonus, type RestConfig } from '../../core/run/rest';
 
 export interface HudInfo {
   hp: number;
@@ -35,6 +35,16 @@ const DEFAULT_BASE = (): RunSaveBase => ({
   battleStartSnapshot: null,
 });
 
+/** 存档层：#122 PR2 起由 RunSession 适配（map/index.ts runPersist），读写 RunState 新键 */
+export interface MapPersist {
+  load(): RunSave | null;
+  write(s: RunSave): void;
+  /** 进节点快照（RunSession.enterNode） */
+  enterNode?(n: { id: string; type: string }): void;
+  /** 节点结算完成（RunSession.completeNode） */
+  completeNode?(): void;
+}
+
 export class MapSession {
   state: MapState;
   enc: EncounterState;
@@ -44,18 +54,18 @@ export class MapSession {
     readonly cfg: MapConfig,
     readonly pools: EncounterPools,
     /** 存档写入：null = 不落盘（测试） */
-    private persist: { load(): RunSave | null; write(s: RunSave): void } | null = { load: loadRunSave, write: writeRunSave },
+    private persist: MapPersist | null = null,
     private base: () => RunSaveBase = DEFAULT_BASE,
     private now: () => number = () => Date.now(),
     private restCfg: RestConfig = { healMin: 2, healRatio: 0.3 },
   ) {
     const saved = persist?.load();
-    const ok = saved && saved.runSeed === runSeed && saved.chapter === chapter;
+    const ok = saved && saved.mapState && saved.runSeed === runSeed && saved.chapter === chapter;
     this.state = ok ? saved.mapState : generateMap(runSeed, chapter, cfg);
     this.enc = ok ? saved.encounters : newEncounterState();
   }
   /** 存档里的局种子（续玩用） */
-  static savedSeed(load: () => RunSave | null = loadRunSave): number | null {
+  static savedSeed(load: () => RunSave | null): number | null {
     return load()?.runSeed ?? null;
   }
   /** 地图状态并进 RunSave（mojuan.run.v1）：已有同局存档则只更新 mapState / encounters / nodePath */
@@ -69,10 +79,13 @@ export class MapSession {
     const same = prev && prev.runSeed === this.runSeed && prev.chapter === this.chapter;
     return (same ? prev : { ...this.base(), runSeed: this.runSeed, chapter: this.chapter }) as RunSave;
   }
-  /** 营地疗伤预览（PRD 10.6） */
-  restPreview() {
+  get restConfig(): RestConfig {
+    return this.restCfg;
+  }
+  /** 营地疗伤预览（PRD 10.6）：relics 默认取存档（宝物 R03 青囊书 +2） */
+  restPreview(relics: readonly string[] = this.head().relics ?? []) {
     const h = this.head();
-    return { ...applyRestHeal(h.hp, h.maxHp, this.restCfg), maxHp: h.maxHp };
+    return { ...applyRestHeal(h.hp, h.maxHp, this.restCfg, restRelicBonus(relics)), maxHp: h.maxHp };
   }
   get available() {
     return availableNodes(this.state);
@@ -80,20 +93,14 @@ export class MapSession {
   node(id: string): MapNode | undefined {
     return getNode(this.state, id);
   }
-  /**
-   * 营地/奇遇（页面未实现）：记为完成并前进，不路由（第 8 层固定营地之后可去 Boss）。
-   * 营地最小版：直接疗伤（不超过上限）并写存档；奇遇：直接跳过。
-   */
-  pass(id: string): { type: 'REST'; healed: number; hp: number; maxHp: number } | { type: 'EVENT' } {
+  /** 奇遇（页面未实现）：记为完成并前进，不路由。营地（#90）走 enter() → 营地页 */
+  pass(id: string): { type: 'EVENT' } {
     const n = this.node(id);
-    if (!n || (n.type !== 'REST' && n.type !== 'EVENT')) throw new Error(`pass 只用于营地/奇遇：${id}`);
+    if (!n || n.type !== 'EVENT') throw new Error(`pass 只用于奇遇：${id}`);
     this.state = moveTo(this.state, id);
-    if (n.type === 'REST') {
-      const r = this.restPreview();
-      this.save({ hp: r.hp });
-      return { type: 'REST', ...r };
-    }
     this.save();
+    this.persist?.enterNode?.({ id, type: n.type });
+    this.persist?.completeNode?.();
     return { type: 'EVENT' };
   }
   /** 走到节点：抽组包（战斗类）→ 写盘 → 返回路由事件与参数 */
@@ -111,6 +118,7 @@ export class MapSession {
     }
     this.state = moveTo(this.state, id, patch);
     this.save();
+    this.persist?.enterNode?.({ id, type: n.type });
     return routeFor(this.chapter, this.node(id)!, enc);
   }
   group(encounterId: string) {

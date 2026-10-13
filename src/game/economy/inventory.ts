@@ -3,7 +3,7 @@
  * 牌组用 core 的 CardInst（与 Game.deckMaster 同构），接入 RunSession 后直接共享 deckMaster 数组。
  */
 import type { CardInst, Suit } from '../../core/types';
-import { def, isShaPlay } from '../../core/rules';
+import { canBurn } from '../../core/run/rest';
 import { CONFIG } from '../../data/config';
 import { ECONOMY } from '../../data/economy';
 
@@ -17,8 +17,6 @@ export interface Inventory {
   sub: string;
   /** 章（1 起） */
   chapter: number;
-  /** H5 奖励页免费刷新已用次数（本局） */
-  rewardRefreshUsed: number;
   /** H5 集市免费刷新已用次数（本局） */
   shopRefreshUsed: number;
   /** 本局删牌服务已用次数（价格递增） */
@@ -37,7 +35,6 @@ export function newInventory(o: Partial<Inventory> & { deck?: CardInst[] } = {})
     main: CONFIG.rules.defaultHeroes.main,
     sub: CONFIG.rules.defaultHeroes.sub,
     chapter: 1,
-    rewardRefreshUsed: 0,
     shopRefreshUsed: 0,
     removeUsed: 0,
     destiny: 0,
@@ -76,10 +73,7 @@ export function spend(inv: Inventory, n: number): boolean {
 
 /** 删牌是否合法：删后至少 minDeck 张且至少保留 1 张杀类 */
 export function canRemove(inv: Inventory, uid: number): boolean {
-  const c = inv.deck.find((x) => x.uid === uid);
-  if (!c || inv.deck.length - 1 < ECONOMY.minDeck) return false;
-  if (isShaPlay(c) && inv.deck.filter((x) => x.uid !== uid && !!def(x)?.sha).length === 0) return false;
-  return true;
+  return canBurn(inv.deck, uid, ECONOMY.minDeck);
 }
 
 export function removeCard(inv: Inventory, uid: number): boolean {

@@ -188,12 +188,16 @@ export function pickSub(main: string): string {
   const d = CONFIG.rules.defaultHeroes;
   return d.sub !== main ? d.sub : d.main;
 }
-const resolveHeroes = (h: HeroOpts): HeroOpts => (h.preset || !h.main || h.sub ? h : { ...h, sub: pickSub(h.main) });
+export const resolveHeroes = (h: HeroOpts): HeroOpts => (h.preset || !h.main || h.sub ? h : { ...h, sub: pickSub(h.main) });
 
 export interface RunOpts extends HeroOpts {
   battleIdx: number;
   seed: number;
   hp?: number;
+  /** 覆盖体力上限（地图模式 V09 刮骨） */
+  maxHp?: number;
+  /** 开场额外护甲（地图模式奖励折算 / 收编 / 复活） */
+  armorStart?: number;
   maxTurns?: number;
   /** 传入则用 headless 表现层契约消费者校验所有 core → 表现层事件（见 io-contract.ts） */
   contract?: ContractReport;
@@ -224,10 +228,12 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   ref.g = g;
   g.battleIdx = o.battleIdx;
   if (o.encounter) g.encounter = o.encounter;
+  if (o.maxHp !== undefined) g.p.maxHp = o.maxHp;
   if (o.hp !== undefined) g.p.hp = o.hp;
   const hpStart = g.p.hp;
   const plays = { attack: 0, defense: 0, other: 0 };
   g.startBattle();
+  if (o.armorStart) g.p.armor += o.armorStart;
   const maxTurns = o.maxTurns ?? 40;
   while (!g.over && g.turn <= maxTurns) {
     if (ai === 'hero') await heroAiTurn(g, plays);

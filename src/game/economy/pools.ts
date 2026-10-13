@@ -1,7 +1,7 @@
 /** 候选池与价格（PRD 14.2 / 14.3 / 14.8 / 12.1）。只读 config 与 core，不改 core */
 import type { Rng } from '../../core/rng';
 import type { Rarity, Suit } from '../../core/types';
-import { CONFIG, type CardCfg } from '../../data/config';
+import { CONFIG, rewardWeight, shopPrice, type CardCfg } from '../../data/config';
 import { ECONOMY, POTIONS, RELICS, type BattleKind, type Range, type RelicDef } from '../../data/economy';
 import type { Inventory } from './inventory';
 
@@ -21,7 +21,7 @@ export function weighted<T>(rng: Rng, items: readonly T[], w: (t: T) => number):
   return items[items.length - 1];
 }
 
-type CardCfgX = CardCfg & { exclusiveHero?: string; faction?: string; rewardWeight?: number; suits?: string[]; shopPrice?: number };
+type CardCfgX = CardCfg & { exclusiveHero?: string; faction?: string; suits?: string[] };
 const cfg = (id: string) => CONFIG.cards[id] as CardCfgX;
 
 /** 主将势力 */
@@ -29,7 +29,7 @@ export const heroFaction = (id: string) => (CONFIG.heroes[id] as { faction?: str
 
 /**
  * 卡牌奖励池（14.8，按 6.8 过滤）：专属牌只出主/副将的；势力牌只出主将势力的（权重 ×1.5）。
- * rewardWeight（卡牌新字段，默认 1）在同稀有度内按权重抽取。
+ * 卡牌配置 rewardWeight（#70，默认 1，0 = 不进奖励池）在同稀有度内按权重抽取。
  */
 export function cardPool(inv: Pick<Inventory, 'main' | 'sub'>, kind: 'any' | 'common' | 'hero' = 'any') {
   const fac = heroFaction(inv.main);
@@ -39,8 +39,8 @@ export function cardPool(inv: Pick<Inventory, 'main' | 'sub'>, kind: 'any' | 'co
       if (c.faction) return kind !== 'common' && c.faction === fac;
       return kind !== 'hero';
     })
-    .filter((c) => (c.rewardWeight ?? 1) > 0) // rewardWeight 0 = 不进奖励池（#70 字段）
-    .map((c) => ({ id: c.id, rarity: c.rarity as Rarity, weight: (c.rewardWeight ?? 1) * (c.faction ? ECONOMY.factionMul : 1) }));
+    .filter((c) => rewardWeight(c.id) > 0)
+    .map((c) => ({ id: c.id, rarity: c.rarity as Rarity, weight: rewardWeight(c.id) * (c.faction ? ECONOMY.factionMul : 1) }));
 }
 
 /** 本场稀有度权重：章权重，精英 E/L ×1.5 */
@@ -121,18 +121,12 @@ export function applyMods(p: number, inv: Pick<Inventory, 'relics' | 'destiny'>)
   return k === 1 ? p : Math.round((p * k) / ECONOMY.priceRound) * ECONOMY.priceRound;
 }
 
-/** 稀有度基础价：读 rules.shop.cardPrice（#70），未合入前回退 ECONOMY.cardPrice */
-export function rarityPrice(r: Rarity): number {
-  const rules = CONFIG.rules as { shop?: { cardPrice?: Partial<Record<Rarity, number>> } };
-  return rules.shop?.cardPrice?.[r] ?? ECONOMY.cardPrice[r] ?? ECONOMY.cardPrice.N;
-}
-
 /**
- * 卡牌售价：卡牌配置 shopPrice（#70，T002 = 40）为定价、不浮动；否则按稀有度基础价 ±10%。
- * 过渡：#70 合入前 T002 没有 shopPrice，用 ECONOMY.fixedCardPrice 兜底；合入后删除该兜底。
+ * 卡牌售价（PRD 14.2）：基价 = 卡牌配置 shopPrice（覆盖稀有度价，T002 = 40），否则 rules.shop.cardPrice；
+ * 统一 ±10% 浮动、取整到 5（组长裁定），再叠加断袖香囊 / 天命加成。
  */
 export function cardPrice(rng: Rng, id: string, inv: Pick<Inventory, 'relics' | 'destiny'>): number {
-  const fixed = cfg(id).shopPrice ?? ECONOMY.fixedCardPrice[id];
-  if (fixed !== undefined) return applyMods(fixed, inv);
-  return jitter(rng, rarityPrice(cfg(id).rarity as Rarity), inv);
+  const base = shopPrice(id);
+  if (base === undefined) throw new Error(`卡牌 ${id} 缺少商店价（rules.shop.cardPrice）`);
+  return jitter(rng, base, inv);
 }

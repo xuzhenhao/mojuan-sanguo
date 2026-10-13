@@ -15,7 +15,6 @@ import {
   RUN_SAVE_KEY,
   setRunSaveStore,
   VERSION_DIALOG_TEXT,
-  writeRunSave,
   type RunSave,
 } from '../src/core/run/save';
 import { MAP_CONFIG, poolsOf } from '../src/data/map';
@@ -249,7 +248,7 @@ describe('配置校验：map / pools / icon 枚举', () => {
   });
 });
 
-describe('RunSave 存储读写（mojuan.run.v1）', () => {
+describe('旧 RunSave 只读（mojuan.run.v1，#122 PR2 起不再写）', () => {
   const mem = () => {
     const m = new Map<string, string>();
     return { m, get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => void m.set(k, v), remove: (k: string) => void m.delete(k) };
@@ -276,13 +275,14 @@ describe('RunSave 存储读写（mojuan.run.v1）', () => {
     timestamp: 0,
   });
   afterEach(() => setRunSaveStore(undefined));
-  it('写 / 读 / 清', () => {
+  it('读 / 清（清时新旧键一起删）', () => {
     const st = mem();
     setRunSaveStore(st);
     expect(RUN_SAVE_KEY).toBe('mojuan.run.v1');
     expect(hasRunSave()).toBe(false);
     expect(loadRunSave()).toBeNull();
-    writeRunSave(save());
+    st.set(RUN_SAVE_KEY, JSON.stringify(save()));
+    st.set('mojuan.runstate.v1', '{}');
     expect(hasRunSave()).toBe(true);
     expect(loadRunSave()).toEqual(save());
     clearRunSave();
@@ -300,7 +300,7 @@ describe('RunSave 存储读写（mojuan.run.v1）', () => {
   });
   it('无存储（node 无 localStorage）时安全', () => {
     setRunSaveStore(null);
-    expect(() => writeRunSave(save())).not.toThrow();
+    expect(() => clearRunSave()).not.toThrow();
     expect(loadRunSave()).toBeNull();
   });
 });
