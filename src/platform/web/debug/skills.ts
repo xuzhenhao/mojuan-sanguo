@@ -3,9 +3,9 @@
  * 数据来源：G.effects.activeAbilities()（当前主将 + 副将中 trigger.when === 'active' 的能力），
  * 可用性/次数来自引擎的 canActivate / remaining，需求（弃牌 / 选敌人）来自 activeNeeds。
  */
-import type { Game } from '../../core/battle';
-import { cardMatches } from '../../core/effects';
-import type { CardInst, Enemy } from '../../core/types';
+import type { Game } from '../../../core/battle';
+import { cardMatches } from '../../../core/effects';
+import type { CardInst, Enemy } from '../../../core/types';
 
 export interface SkillButton {
   id: string;

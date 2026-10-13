@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/data/config';
-import { nextSkillStep, skillButtons, skillCardOk, skillTargetOk } from '../src/platform/web/skills';
+import { nextSkillStep, skillButtons, skillCardOk, skillTargetOk } from '../src/platform/web/debug/skills';
 import { card, mkGame } from './helpers';
 
 function setup(main: string, sub: string) {

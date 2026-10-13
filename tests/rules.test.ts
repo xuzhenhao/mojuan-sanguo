@@ -41,13 +41,13 @@ describe('敌人意图（无攻击力：伤害全部来自牌）', () => {
   it('精英进化杀[锋锐] = 2 点并显示词条', () => {
     const e = enemy('E1E1');
     const i = enemyIntent(e);
-    expect(i.dmg).toBe(3);
+    expect(i.dmg).toBe(3); // 张宝第 1 意图 [杀+, 杀]（Grok Bot 批准）
     expect(i.txt).toContain('杀[锋锐]');
   });
   it('意图循环、乐不思蜀跳过伤害、备闪/咒无伤害', () => {
     let e = enemy('E1E1', { step: 1 });
-    expect(enemyIntent(e).acts).toEqual(['闪', '杀', '杀']);
-    expect(enemyIntent(e).dmg).toBe(2);
+    expect(enemyIntent(e).acts).toEqual(['闪', '杀+', '杀']);
+    expect(enemyIntent(e).dmg).toBe(3);
     e = enemy('E102', { step: 3 });
     expect(enemyIntent(e).acts).toEqual(['杀']);
     expect(enemyIntent(e, true).dmg).toBe(0);

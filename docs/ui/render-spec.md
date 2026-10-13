@@ -154,6 +154,11 @@
 | 墨角标流光 | 2.4s 循环 | lin | 常驻（低画质关） |
 | 灵光一闪触发 | 900ms | inOut | ✓ |
 | 页面切换（墨色横扫转场） | 450ms | inOut | ✓ |
+| Boss 登场（名牌加一句台词） | 2s，第 2 次起 0.8s | out | ✓ 点击跳过，阻塞输入 |
+| Boss 阶段切换 | 约 1s | inOut | ✓ |
+| 精英名牌 | 0.8s | out | ✓ |
+| 复活：取消敌方剩余出牌（化墨淡出）/ 意图刷新为闪 | 300 / 250ms | out | ✓ |
+| “手满，弃置”溢出飞入弃牌堆 + Toast | 300ms / Toast 1.5s | inOut | 不阻塞 |
 | 胜利大印落下（2→1 缩放 + 震屏 + 放射光旋转） | 600ms + 循环 20s/圈 | back | ✓ |
 | 地图可走节点脉冲 | 1.4s 循环 | inOut | 常驻 |
 | 地图移动（头像沿路径） | 500ms | inOut | ✓ |
@@ -392,7 +397,46 @@ WebGL 特效纹理合计：64KB + 256KB + 256KB + 溅点图集 256² ETC2 64KB �
 - 若 ASTC 6×6 全面可用（iOS），压缩图集再降约 55%（从 1 B/px 降到 0.445 B/px），合计约 **17MB**。
 - 中高端机（预算仍为 150MB）：DPR 3、缓存 2x 时，帧缓冲约 17MB、缓存约 5MB，合计约 37MB（压缩路径），无需另做方案。
 
-### 12.5 落地约束（追加到 §10）
+
+### 12.5 2D Canvas 路径（WebGL 关闭）
+> WebGL 不可用、或判定为低端机时启用。**不支持压缩纹理，全部按 RGBA8（4 B/px）计算。** 不设 WebGL 特效层，§11 的效果在此路径下全部不做（不再提供 2D 替代）。
+
+**分辨率分级**（相对 2x 源图的缩放）：
+| 档 | 内容 | 图集 |
+|---|---|---|
+| **2x（全清晰）** | 位图数字 2 套；意图、词条、状态图标（§14 的 32 个 id）；勾玉；虎符；花色点数；“墨”角标；按钮和牌框的**九宫格四角**；书法名（武将名、卡名、按钮字） | 单独一张 **`ui_sharp` 1024²** |
+| **1x（半分辨率）** | 背景；地图卷轴底；卡牌、敌人、奇遇插画；九宫格的**拉伸中段**；面板纹理；FX 贴图 | `ui_soft`、`fx`、`cards_art`、`enemies_chN`、`event_N` |
+| **0.75x** | 主将、副将立绘；Boss 立绘 | `generals_battle`、Boss 并入 `enemies_chN` |
+
+**运行规则**：
+1. 2D 主画布 DPR 上限为 2。
+2. 烘焙缓存按 1.5x 烘焙，LRU 上限同 §12.2。卡牌、敌人、武将牌烘焙完成后，**释放该张源插画/立绘**；需要重烘时（例如费用变化）从分包缓存重新解码。
+3. 背景**烘焙到 1x 离屏画布**（390×844）后释放源图，绘制时放大到屏幕尺寸。
+4. 场景图集（选将、敌人、奇遇、`scene_misc`）离开场景即释放。
+5. 九宫格拼接时，四角取 `ui_sharp`（2x），中段取 `ui_soft`（1x）。切线按 1x/2x 换算：2x 切线为 24px，1x 中段源图对应 12px。
+
+**内存估算（战斗峰值，RGBA8）**：
+| 类别 | 计算 | MB |
+|---|---|---|
+| 主画布（DPR 2） | 780×1688×4 | 5.02 |
+| `ui_sharp`（2x） | 1024²×4 | 4.00 |
+| `ui_soft`（1x，原 2048²@2x → 1024²） | 1024²×4 | 4.00 |
+| `fx`（1x，1024² → 512²） | 512²×4 | 1.00 |
+| `cards_art`（1x，2 张 1024² → 2 张 512²） | 2×512²×4 | 2.00 |
+| 背景离屏（1x，源图已释放） | 390×844×4 | 1.26 |
+| `generals_battle`（0.75x，1024² → 768²；烘焙后释放，按峰值计入） | 768²×4 | 2.25 |
+| `enemies_chN`（1x，2048×1024 → 1024×512，含 Boss 0.75x） | 1024×512×4 | 2.00 |
+| 烘焙缓存（1.5x，LRU） | 见 §12.2 | 2.77 |
+| 动态文本画布 | 512×256×4 | 0.50 |
+| **合计** | | **24.80** |
+| 保守系数：解码位图与 GPU 副本同时存在，×1.5 | 24.80×1.5 | **37.2** |
+| **余量（对 50MB）** | | 12.8MB（按保守值）/ 25.2MB（按估算值） |
+
+- 地图页：卷轴缓存 2.13MB（1.5x）替换战斗缓存，峰值约 23.5MB。
+- 奇遇页：插画 1x 为 346×292×4 = 0.39MB。
+- 选将页：`generals_select` 0.75x（2048×1024 → 1536×768）= 4.5MB，但没有敌人和战斗立绘（−4.25MB），峰值约 25MB。
+
+### 12.6 落地约束（追加到 §10）
 1. 低端机判定（3 年前千元 Android，或 GPU 内存探测 <2GB）：DPR 上限 2，缓存按 1.5x 烘焙，ping-pong RT 用半分辨率。
 2. 任何单张纹理 ≤2048²；禁止在运行时把立绘或背景转成 RGBA8 离屏缓存。
 3. 纹理管理器记录每张纹理的字节数，**超过 45MB 时告警**，并先淘汰 LRU 缓存，再卸载非当前场景的图集。
@@ -407,7 +451,48 @@ WebGL 特效纹理合计：64KB + 256KB + 256KB + 溅点图集 256² ETC2 64KB �
 - **刘备、曹操**：v3 稿里共用一个冠冕剪影，正式立绘需要区分。建议：刘备持双股剑、面容宽厚；曹操戴高冠、持倚天剑、配披风。
 - 每名武将的剪影轮廓（仅看黑影）都要能单独辨认，这条作为验收标准。
 
+## 14. 图标 id 对照（PRD 19.1.2）
+所有图标统一画成**印章样式**。PRD 的 `icon` id 是**配置校验枚举**：配置里写了不在表中的 id 会导致校验失败；资源名必须与 id 一一对应，缺图视为构建错误。图标资源名 = PRD 的 `icon` id，打进 `ui_sharp`（2x，每个 48×48）。mockup 里的临时符号名对照如下。
+
+| PRD id | 含义 | mockup 临时符号 / 备注 |
+|---|---|---|
+| `sha` | 杀（意图） | `i-sword` |
+| `buff` | 增益（意图） | `i-drum`（PRD 0.5.2 新增） |
+| `defend` | 防御（意图） | `i-shield` 变体，青色（PRD 0.5.2 新增） |
+| `volley` | 万箭（意图） | `i-arrow` |
+| `sharp` | 锋锐（+伤） | `i-sword` 加“+” |
+| `light` | 轻招（减费） | 新绘 |
+| `chase` | 追击 | 新绘 |
+| `pierce_range` | 穿杨 | `i-spear` |
+| `fire` | 烈焰/火属性 | `i-fire` |
+| `double` | 双响 | `i-swords` |
+| `break_armor` | 破甲 | 新绘（碎盾） |
+| `unblockable` | 无影 | `i-dodge` 加 ✕ |
+| `echo` / `recoil` / `chain_dodge` | 余韵 / 反震 / 连环闪 | 新绘（`i-dodge` 变体） |
+| `heal_plus` / `regen_armor` / `wine_plus` | 厚味 / 回春 / 仙酿 | `i-peach`、`i-shield`、`i-wine` 变体 |
+| `cost_down` / `ink_draw` / `no_nullify` / `extra_draw` / `aoe_plus` / `ling` | 精研 / 余墨 / 难消 / 扩写 / 播迁 / 天启 | 新绘 |
+| `sturdy` / `range_plus` / `equip_draw` / `calm` | 坚固 / 贯虹 / 化境 / 静心 | 新绘 |
+| `armor` | 护甲 | `i-shield` |
+| `flash_mark` | 闪标记（含复活后的闪意图） | `i-dodge` |
+| `chain` | 连环 | 新绘 |
+| `lebu` / `bingliang` / `lightning` | 乐不思蜀 / 兵粮寸断 / 闪电 | `i-scroll` 变体 / 新绘 |
+| `wine` | 酒 | `i-wine` |
+| `curse` | 咒 | 新绘 |
+| `quota` | 被动免伤配额「☯ N」 | 新绘，带数字槽 |
+| `immune_trick` | 帷幕 | 新绘 |
+
+不在 PRD 表中的 **UI 专用图标**（导航与资源，不进配置）：`ui_coin` 铜钱、`ui_soul` 将魂、`ui_tally` 虎符、`ui_deck` 牌堆、`ui_book` 兵书、`ui_gourd` 丹药、`ui_relic_*` 宝物、`ui_node_{battle,elite,event,rest,shop,chest,boss}` 地图节点、`ui_gear` 设置、`ui_ad` 视频、`ui_refresh` 刷新、`ui_trash` 删牌、`ui_hourglass` 时限。（增益、防御意图已改用 PRD 枚举 `buff`、`defend`，不再使用 UI 专用图标。）
+
 ---
 ## 附：已废弃内容
 - **方案 A（墨卷长轴）**：宣纸舞台背景、剪影站立敌人、砚台军令、扇形手牌、红心体力，**全部作废**。原 A 的 SVG 晕染滤镜不再需要烘焙。
 - v1 四版（`docs/ui/battle-mockups/`、`public/mockups/a–d.html`）只作反面参照。
+
+## 15. ui_sharp 首版资源（图标 + 位图数字）
+- 源：`art/src/icons/<id>.svg`（印章样式，56×56@2x，内容 48×48，四周 4px 为烘焙阴影）；数字字形用 `art/src/fonts/DejaVuSerif-Bold.ttf`（仅构建期，Georgia Bold 风格替身）。`art/tools/gen-icon-svgs.mjs` 是首版 SVG 的生成器，可直接改 SVG。
+- 构建：`npm run atlas:build`（加 `-- --sheets <dir>` 输出预览 `icons-sheet.png`/`digits-sheet.png`）。产物：
+  - `public/assets/atlases/ui_sharp.png` + `.json`：1024² RGBA8（4.00MB 内存，与 §12.5 一致），已用 1024×370，余下空间留给勾玉、虎符、花色、“墨”角标、九宫格四角、书法名。
+  - `public/assets/fonts/num_w.json`（白字黑描边）、`num_gold.json`（金字）：BMFont JSON 风格，字形在 ui_sharp 内；顶层 = L 档（68px@2x，用于 num-xl/l/m 15–34dp），`small` = S 档（28px@2x，用于 num-s ≤14dp）。数字等宽（`tabularDigits`），`xadvance` 已扣除描边叠压；字符 `0-9 + - − / % × x : .`。
+- 印章分类：意图 = 实心色方印（sha/volley 朱砂、defend 青、buff 金褐）；词条 = 漆底金边方印；状态 = 漆底圆印；地图节点 = 色底金边圆章；UI 导航/资源 = 无印框金色图形加墨描边。图标已带颜色，**不要再 tint**（伤害红/治疗绿的 tint 只用于数字）。
+- 绘制：`src/engine/atlas.ts` 的 `drawIcon(ctx, img, atlas, id, x, y, 24)`（内容区坐标，自动外扩阴影）、`drawNumber/measureNumber`（自动按字号选档）。`tests/ui-atlas.test.ts` 校验 §14 每个 id 都有帧。
+- `ui_relic_*` 首版只出通用 `ui_relic`（玉佩），具体宝物图标待宝物表定稿。

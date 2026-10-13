@@ -1,7 +1,11 @@
-# 《墨卷三国》底层架构与引擎设计（草案 v0.4）
+# 《墨卷三国》底层架构与引擎设计（草案 v0.7）
 
 > 状态：已评审；关键取舍均已拍板（第 8 节）。仅文档，不含代码改动。
 > 硬约束：**同一份 TypeScript 同时产出 H5 与微信小游戏**；**不使用游戏引擎**，以 Canvas 2D 绘制为主。
+> v0.7 变更（#60）：纹理内存按 render-spec §12.5（#51）落地 2D 路径分辨率分级（2x 锐利 / 1x 半尺寸 / 0.75x 立绘）、1.5x 烘焙、烘焙后释放源图、背景离屏 1x、半尺寸开关（默认开，`?half=0` 关）；复算后战斗稳态 WebGL 关 29.99MB / 开 31.88MB，见 §4.7.1。#71 改为满载口径判定：关 30.44 / 开 32.33MB（×1.5 = 45.7 / 48.5），峰值 32.69 / 34.58MB；手牌 LRU 上限 12→10。
+>
+> v0.6 变更（P0，#32）：新增 §4.13 场景与页面流程框架；纹理内存对齐 render-spec §12（战斗峰值 22.4MB 压缩 / 35.7MB 无压缩；45MB 告警；1.5x 烘焙；LRU 上限；按场景加载图集；无 mipmap；特效 7 个 shader，纹理 0.63MB）；Pages 同时部署 DOM 可玩版（根目录）和 Canvas 新版（`/next/`），P5（#46）对调。
+> v0.5 变更（P0，#32）：【已决定 2026-10-12】WebGL 改为**可选叠加层**：关闭时由 3 块 2D 画布**直接合成到上屏 2D 画布**，画面完整可玩，只是没有特效。开关：配置 + URL `?webgl=0|1`。自动降级延后到微信上线前。纹理内存预算 **≤50MB**（§4.7.1），取代 106MB 的假设；与 render-spec 的冲突待对齐。
 > v0.4 变更：【已决定 2026-10-12】原第 8 节 9 项待拍板全部定案（见第 8 节）；新增 4.12 WebGL 水墨层（只走 WebGL，降级以后再做）；**先做 H5、以 H5 验收**，微信只保留接口。
 > v0.3 变更：【已决定 2026-10-12】战斗页采用 **B 金漆屏风**，**单一皮肤、不做可切换皮肤**；render-spec 已随 PR #20 合入 main。
 > v0.2 变更：①【已决定】战斗逻辑采用同步结算 + 事件流；②「战斗页表现需求」按 `docs/ui/render-spec.md`（已合入 main）重写，渲染分层与之对齐；③参考链接已逐条在线核验。
@@ -13,7 +17,7 @@
 
 1. **【已决定 2026-10-12，用户拍板】逻辑纯净、表现订阅**：`src/core` 改为“同步结算 + 产出事件流（BattleEvent[]）”，不再 `await io.sleep()`；表现层用**动画队列**消费事件。玩家输入只在明确的“决策点（Decision）”处挂起。这是可回放、可快进、可自动跑测、可双端复用的前提。用户明确：不考虑重构成本，优先正确性、性能与长期可扩展性，因此不再保留 async+sleep 方案。
 2. **结算栈**：在现有 `Effects.emit` 之上引入显式 `ResolutionStack`（参考三国杀“结算/响应窗口”与杀戮尖塔 ActionManager 队列），解决嵌套响应（闪、无懈、判定改判）的顺序问题。
-3. **自研轻量渲染层**：场景树承载 render-spec 的 16 个逻辑层（z0–z15）；物理上只用 3 块画布（背景离屏 / 环境动效离屏 30fps / 上屏合成）；对象级“烘焙位图 + 每帧贴图合成”，静止时降帧到 0–10fps；脏矩形作为后备优化。
+3. **自研轻量渲染层**：场景树承载 render-spec 的 16 个逻辑层（z0–z15）；物理上用 3 块 2D 离屏画布（背景 / 环境动效 30fps / 主画面），直接 2D 合成到上屏画布，另有可选的 WebGL 特效叠加画布；对象级“烘焙位图 + 每帧贴图合成”，静止时降帧到 0–10fps；脏矩形作为后备优化。
 4. **平台适配层**仅一个接口 `Platform`，`web/` 与 `wechat/` 各实现一份；业务代码不得直接访问 `window`/`document`/`wx`。
 5. **Vite 双目标构建**：`vite build --mode h5` 与 `--mode wechat`（library/iife 输出 + 生成 `game.js`/`game.json`/分包目录）。主包 ≤4MB 目标 ≤2.5MB。
 6. **存档 = 种子 + 版本 + 决策日志 + 快照**，带迁移链；多路 RNG 流保证确定性回放。
@@ -217,7 +221,7 @@ export interface Renderer {
   readonly design: { width: 390; height: 844 };
   readonly safe: Rect;           // 设计坐标系下的安全区
   readonly capsule: Rect | null; // 微信胶囊禁区（H5 为 null）
-  /** 物理画布：bg（离屏，章节/尺寸变化才重建）、ambient（离屏，30fps）、main（上屏，合成 z2–z15） */
+  /** 2D 离屏画布：bg（章节/尺寸变化才重建）、ambient（半分辨率，30fps）、main（z2–z15）；由 Canvas2DCompositor 直接合成到上屏 2D 画布 */
   surfaces: { bg: Layer; ambient: Layer; main: Layer };
   /** 逻辑层 z0–z15，见 4.5 */
   layer(z: number): Node;
@@ -238,7 +242,7 @@ export interface TextStyle { font: string; size: number; color: string; stroke?:
 - **高 DPR**：与 render-spec 对齐，渲染缓冲 = 逻辑 × min(dpr, 3)，低端设备**自动降低 DPR**（2 或 1.5）【已决定】；`ctx.setTransform(scale…)` 统一处理；资源按 2x 出图，3x 屏线性过滤。
 - **适配**：设计基准 **390×844 dp** 竖屏（锁竖屏），等宽缩放 `scale = screenW/390`，多出或缺少的高度由战场区弹性吸收；背景层 cover 铺满物理屏，其余层只放在安全区内；`safeArea` 来自 `wx.getWindowInfo()` / CSS `env(safe-area-inset-*)`，胶囊用 `wx.getMenuButtonBoundingClientRect()` 生成禁区；布局提供 `anchor: 'safe-top' | 'safe-bottom' | 'capsule-left'`。
 - **文字**（按 render-spec 4.1）分三类：①书法字（马善政楷书，OFL）按用到的字做子集（约 300 字、60–90KB），H5 用 FontFace、微信用 `wx.loadFont`，常用的卡名、武将名、按钮**预渲染进图集**，避免首帧闪烁；②数字用**位图字体**（`BitmapText`，2 套）；③说明文字用系统无衬线字体，不打包。所有 `Text` 节点都离屏缓存。
-- 上屏画布为 WebGL 合成器，场景仍用 2D 离屏绘制，水墨特效走 WebGL，见 4.12【已决定】。
+- 上屏画布是 **2D**，三块离屏画布直接 drawImage 合成；WebGL 只是**可选的特效叠加画布**（独立画布，叠在上方），见 4.12【已决定】。
 
 ### 4.3 UI 组件、布局、命中测试与手势（需求 3）
 
@@ -420,13 +424,13 @@ export interface PresentationQueue {
 1. **滤镜和混合**：
    - **WebGL 路径**（render-spec §11 的 13 项，清单待对齐）：由 shader 实现，UI 提供参数和噪声/笔刷贴图，不需要序列帧；同屏特效实例 ≤8；全屏特效 pass 同时 ≤2；纹理放 `fx_webgl` 分包（约 0.7MB）；特效不承载关键信息，也不阻塞。
    - **2D 场景层**（卡牌、敌人、UI）：仍不能用 `ctx.filter`、`shadowBlur`、SVG 滤镜；去饱和、阴影、发光要预烘焙；只允许 `globalAlpha`、tint 和 `source-over / lighter / multiply / destination-in / destination-out`。
-   - 本期不设计 2D 降级，降级以后再做。
+   - WebGL 是可选叠加层：关闭（`?webgl=0`、配置关闭或设备不支持）时 2D 画面完整可玩，只是没有这些特效；**不做 2D 替代特效**。自动降级延后到微信上线前。
 2. **字体**：书法字体只用一种（马善政楷书，OFL），按用到的字做子集，≤90KB；固定文案优先烘焙进图集。数字只用位图字体（最多 2 套）。说明文字用系统无衬线字体。不使用其他可商用风险字体。
 3. **包体**：微信主包 ≤4MB（硬限），工程目标 ≤2.5MB，其中首包资源 ≤1.2MB（render-spec 现为约 1.1MB；WebGL 纹理约 0.7MB 放独立分包）。总包按 20MB 保守计算（官方另一处写 30MB）。独立分包 ≤4MB。其余资源走分包或 CDN。
 4. **DPR 和分辨率**：设计基准 390×844 dp，DPR 上限 3，资源按 2x 出图；低端设备自动降到 2 或 1.5【已决定】。
 5. **图集**：单张 ≤2048×2048，按场景分组，资源尺寸尽量用 2 的幂或便于装箱的尺寸。牌框用九宫格并标注切线。
 6. **性能**：低端安卓稳定 60fps；每帧 drawImage ≤300 次、粒子 ≤300 个；同屏全屏半透明遮罩 ≤2 层；静止时 0fps，常驻循环动效要少。
-7. **内存**：render-spec §10 估算总纹理约 106MB（WebGL 屏幕纹理/FBO 约 26MB 计入其中）；纹理 ≤150MB（低端档 ≤100MB），战斗缓存约 12MB@dpr2（卡 10、敌 6、徽章 30）；立绘和敌人按章节加载、离开时释放。
+7. **内存**：纹理总计 **≤50MB**，超过 45MB 告警，按 render-spec §12 落地（见 §4.7.1）：战斗峰值 22.4MB（压缩）/ 35.7MB（无压缩）；缓存低端 1.5x、LRU 上限、只缓存在屏对象；图集按场景加载；无 mipmap。WebGL 关闭时 2D 路径的 RGBA8 解码问题待对齐（§4.7.1 第 2 条），战斗缓存约 12MB@dpr2（卡 10、敌 6、徽章 30）；立绘和敌人按章节加载、离开时释放。
 8. **动画时间轴**：每项动画必须标明时长（1x），以及是否受倍速影响（1x/1.5x/2x）、能否跳过、是否阻塞。跳过时直接对齐终态，所以动画不能带逻辑副作用。常驻循环和倒计时按真实时间运行，不受倍速影响。画质低档会关闭环境动效、流光和粒子，中档粒子减半，设计时不能依赖这些效果传达信息。
 
 ### 4.6 性能预算（需求 5）
@@ -436,7 +440,7 @@ export interface PresentationQueue {
 | 帧率 | 本期以 **H5 中端设备 60fps** 验收；预算按约 3 年前、千元左右的安卓机（约骁龙 680 / Helio G85 档，见 render-spec §11）制定，**低端真机验收延后**，真机待定 | `wx.getDeviceBenchmarkInfo` / `benchmarkLevel` 分档【来源】https://developers.weixin.qq.com/minigame/dev/api/base/system/wx.getDeviceBenchmarkInfo.html |
 | 单帧 | 逻辑 ≤1ms（仅输入时），渲染 ≤8ms，余量给 GC/系统 | |
 | 每帧 drawImage | ≤300；粒子 ≤300；离屏层 ≤6 张 | 【推测】经验值，需基准 |
-| 内存 | JS 堆 ≤80MB，纹理 ≤150MB（低端档 ≤100MB）；战斗内对象缓存约 12MB@dpr2（卡 10、敌 6、徽章 30，见 render-spec 第 5 节） | 图集最大 2048×2048；切换战斗或章节时释放 |
+| 内存 | JS 堆 ≤80MB，**纹理 ≤50MB，45MB 告警**（§4.7.1 / render-spec §12；P0 已实现记账、LRU 和按场景图集）；战斗内对象缓存约 12MB@dpr2（卡 10、敌 6、徽章 30，见 render-spec 第 5 节） | 图集最大 2048×2048；切换战斗或章节时释放 |
 | GC | 热路径零分配：对象池（粒子、Tween、Rect、事件） | |
 | 包体 | 主包 ≤4MB（硬限）、目标 ≤2.5MB（代码 ≤0.8MB + render-spec 首包资源约 1.1MB + 余量）；总包（主包+分包）≤30MB；普通分包不限大小，独立分包 ≤4MB | 【来源】已核验 https://developers.weixin.qq.com/minigame/dev/guide/base-ability/subPackage/useSubPackage.html ；另一页 https://developers.weixin.qq.com/minigame/dev/guide/framework/code-package.html 写的是“总包 20M（开通虚拟支付后 30M）”，两页口径不一致，CI 按 20MB 保守检查 |
 | 首屏 | 主包只含：引擎 + 逻辑 + 主菜单/第一战必需资源；其余放分包或 CDN | |
@@ -466,6 +470,81 @@ export interface AssetManager {
 
 - 文件名带内容哈希，CDN 永久缓存；微信端下载到 `wx.env.USER_DATA_PATH` 本地缓存（注意 200MB 用户目录上限，做 LRU）【来源】https://developers.weixin.qq.com/minigame/dev/guide/base-ability/file-system.html
 - CDN 域名需在微信后台配置 downloadFile 合法域名。
+
+#### 4.7.1 纹理内存预算：≤50MB（【已决定 2026-10-12】，对齐 render-spec §12）
+
+> **权威数字来自 render-spec §12**（PR #33，已合并）。下表照抄其战斗峰值估算；引擎侧补充的部分标【引擎补充，§12 未覆盖】。
+> 规则：预算 50MB，**超过 45MB 告警**，并依次①按 LRU 淘汰烘焙缓存、②卸载非当前场景的图集；**禁用 mipmap**；单张纹理 ≤2048²；1MB = 1024² B。
+> 代码：`src/engine/memory.ts`（`TextureBudget` / `BakeCache` / `AtlasManager` / `pickFormat`），测试见 `tests/engine-memory.test.ts`，用例覆盖 §12 的 11MB / 24MB 图集和 2.77MB 缓存数字。
+
+**战斗峰值（低端机，DPR 上限 2）**——render-spec §12.4：
+
+| 类别 | ETC2/ASTC 路径 | 无压缩（RGBA4444/RGB565） | 计算 |
+|---|---|---|---|
+| 帧缓冲 | 7.53 | 7.53 | 主画布 780×1688×4 = 5.02 + 特效半分辨率 RT ×2 = 2.51 |
+| ui_common 2048² | 4.00 | 8.00 | 常驻 |
+| fx 1024² | 1.00 | 2.00 | 常驻 |
+| cards_art 2×1024² | 2.00 | 4.00 | 常驻 |
+| bg_lacquer 1024×2048（不透明） | 1.00 | 4.00 | 常驻 |
+| generals_battle 1024² | 1.00 | 2.00 | 开局加载、局终释放 |
+| enemies_chN 2048×1024 | 2.00 | 4.00 | 按章加载、换章释放 |
+| WebGL 特效纹理 | 0.63 | 0.90 | 7 个 shader（§12.1） |
+| 烘焙缓存（LRU 上限满载） | 2.77 | 2.77 | §12.2，RGBA8，低端 1.5x |
+| 系统字体动态文本画布 512×256 | 0.50 | 0.50 | |
+| **合计** | **22.43MB** | **35.70MB** | 余量 27.6MB / 14.3MB |
+
+**烘焙缓存 LRU 上限**（§12.2，代码 `BAKE_LRU_CAPS`）：手牌 10（#71 起，与 PRD 手牌硬上限一致；render-spec 原为 12）、大牌 4、敌人 6、武将 2 套（主+副 = 4 张）、徽章 40、详情 1、地图卷轴 1（与战斗互斥）。只缓存在屏对象；对象离屏时 `drop`，离开场景时 `clearScene`。低端机按 **1.5x** 烘焙（`bakeScale`），中高端 2x。
+
+**图集按场景加载**（§12.3，代码 `SPEC_ATLASES` + `AtlasManager.enterScene/leaveScene`，引用计数，卸载时回调 `deleteTexture`）：常驻 ui_common / fx / cards_art×2 / bg_lacquer；generals_battle 在局内各场景；generals_select 只在选将页；enemies_chN 只在战斗。格式选择优先 ASTC 6×6，其次 ETC2，最后 4444/565，**不回退到 RGBA8**（`pickFormat`）。
+
+**【已决定 2026-10-12，#51 / #60】2D 路径分辨率分级（render-spec §12.5）**——本引擎主画面始终是 2D（WebGL 只是叠加层），浏览器把图片解码成 RGBA8，因此按下面的分级记账（代码 `CANVAS2D_ATLASES` / `TIER_SCALE` / `AtlasManager.size`）：
+
+| 分级 | 缩放（相对 2x 源图） | 内容 | 图集 |
+|---|---|---|---|
+| `sharp` | 1（2x 全清晰） | 位图数字、意图/词条/状态图标、勾玉、虎符、花色点数、墨角标、九宫格四角（24px 切线）、书法卡名 | ui_sharp 1024²（独立，≤1024²） |
+| `soft` | 0.5（1x 半尺寸） | 背景、地图底、卡牌/敌人/事件插画、九宫格拉伸中段（12px 切线）、面板纹理、特效贴图 | ui_soft、fx、cards_art×2、bg_lacquer、enemies_chN、map_base、event、scene_misc |
+| `portrait` | 0.75 | 主副将、Boss 立绘，按章加载 | generals_battle 768²、generals_select 1536×768 |
+
+规则：
+1. 2D 路径 DPR 上限 2（`maxDpr`）。
+2. 半尺寸开启时烘焙缓存一律 **1.5x**（`bakeScale(lowEnd, dpr, halfSize)`），LRU 上限照旧；`releaseAfterBake` 的图集（generals_battle、bg_lacquer、map_base）烘焙后释放源图（`BakeCache` 的 `source` 钩子 → `AtlasManager.markBaked`），重烘时 `ensure` 重新解码。
+3. 背景离屏按 **1x 逻辑分辨率**（390×844），烘焙进离屏后释放 bg 原图，合成时放大到上屏。
+4. 离开场景时释放非战斗场景图集（`leaveScene` 引用计数归零即卸载）。
+5. 半尺寸开关 `RenderConfig.halfSizeAssets`，**默认开**；URL `?half=0` 关闭（仅用于对照/调试，关闭后超预算）。
+6. 三块 2D 离屏仍直接合成上屏（不改合成结构）；如需再省，去掉 main 离屏可再省 5.02MB（未做）。
+
+**复算：战斗页（390×844 @2x，RGBA8；测试 `tests/engine-memory-2d.test.ts` 用真实 `Engine` 跑出）**
+
+> 【#71，UI 对齐】口径：**预算判定一律用满载口径**——手牌 10（PRD 硬上限）、敌人 5（前 3 + 后 2，精英/Boss 常满编），各烘焙 LRU 上限打满（render-spec §12.2，手牌上限 #71 起改为 10：手牌 10、敌人 6、武将 2 套、徽章 40、详情 1）。**典型组合**（手牌 7、敌人 5、大牌 1、武将 2、徽章 40）只用于稳态展示。代码 `BATTLE_BAKE_FULL` / `BATTLE_BAKE_TYPICAL`（`src/engine/budget-plan.ts`）。
+
+| 类别 | WebGL 关 | WebGL 开 | 计算 |
+|---|---|---|---|
+| 上屏画布 | 5.02 | 5.02 | 780×1688×4 |
+| main 离屏 | 5.02 | 5.02 | 780×1688×4 |
+| bg 离屏（1x） | 1.26 | 1.26 | 390×844×4 |
+| ambient 离屏（半分辨率） | 1.26 | 1.26 | 390×844×4 |
+| WebGL 叠加画布（半分辨率） | — | 1.26 | 390×844×4 |
+| ui_sharp 1024² | 4.00 | 4.00 | sharp 2x |
+| ui_soft 1024² | 4.00 | 4.00 | 2048² 源 × 0.5 |
+| fx 512² | 1.00 | 1.00 | |
+| cards_art 2×512² | 2.00 | 2.00 | |
+| bg_lacquer 512×1024 | 已释放（峰值 2.00） | 已释放 | 烘焙进 bg 离屏后释放 |
+| generals_battle 768² | 已释放（峰值 2.25） | 已释放 | 0.75x，烘焙后释放 |
+| enemies_ch1 1024×512 | 2.00 | 2.00 | |
+| WebGL 特效纹理 | — | 0.63 | 7 个 shader（压缩） |
+| 烘焙缓存（1.5x）典型 | 1.62 | 1.62 | 手牌 7 + 大牌 1 + 敌人 5 + 武将 2 + 徽章 40 |
+| 烘焙缓存（1.5x）**满载** | 2.38 | 2.38 | LRU 打满：手牌 10 + 敌人 6 + 武将 2 套 + 徽章 40 + 详情 1（render-spec 按手牌 12、KB 取整估 2.77） |
+| 文字缓存 | 0.50 | 0.50 | |
+| 稳态合计（典型，仅展示） | 29.67MB | 31.56MB | ×1.5 = 44.5 / 47.3 |
+| **满载合计（预算判定）** | **30.44MB** | **32.33MB** | **×1.5 = 45.7 / 48.5，≤50** |
+| **满载峰值**（立绘源图烘焙前） | **32.69MB** | **34.58MB** | <45MB 告警线 |
+| 对照：`?half=0` | 64.82MB | — | 超 45MB，触发回收后仍超标 |
+
+注意：WebGL 开路径满载 ×1.5 = 48.5MB，余量仅 1.5MB；新增常驻纹理需先在此表记账。
+
+其他页面：选将页 generals_select 1536×768 = 4.5MB，地图页 map_base 烘焙后释放，均低于战斗页。
+
+本节取代 v0.5 的自拟分配表（screen 17.5 / ui 11 / cards 5.5 / portraits 6 / fx 8 / reserve 2），旧表不再使用。
 
 ### 4.8 存档、版本迁移、确定性与回放（需求 7）
 
@@ -505,6 +584,15 @@ export interface ErrorReport { message: string; stack?: string; version: string;
 - 错误上报：`wx.onError` / `window.onerror` + `unhandledrejection`；附种子与最近输入，可在 sim 中复现。
 
 ### 4.10 构建工具链（需求 9）
+
+> **部署（v0.7，P5 #46 对调入口后）**：GitHub Pages 一次部署产出：
+> - 根目录 = **Canvas 版**（引擎 + B 金漆屏风页面流程，默认入口）：https://xuzhenhao.github.io/mojuan-sanguo/
+> - `/debug/` = **DOM 调试版**（原可玩原型，测试用）：https://xuzhenhao.github.io/mojuan-sanguo/debug/
+> - `/next/` = 跳转页（`scripts/next-redirect.html`），保留查询参数跳到根目录，避免旧链接 404
+> - `/mockups/` = 设计稿（`public/` 直接拷到站点根目录，**不进任何构建产物**）
+>
+> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/debug/`）→ 组装 `_site/`：`dist/` 放根目录，`dist-debug/` 放 `debug/`（`debug.html` 改名为 `index.html`），再放 `next/` 跳转页和 `public/`。CI 同样跑 size-check 和 build:debug。base 定义在 `vite.config.ts` 的 `PAGES_BASE`，有测试（`tests/result.test.ts`）。
+> v0.6 时为根目录 DOM 版 + `/next/` Canvas 版（#36）。
 
 ```mermaid
 flowchart LR
@@ -547,26 +635,58 @@ export interface ResolutionStack {
 
 ---
 
+### 4.13 场景切换与页面流程框架（P0，#32）
+
+B 金漆屏风 H5 完整流程的 6 个页面（点将、战斗、地图、奖励、集市、结算）都依赖这套框架。各页面实现 `Scene` 接口后注册即可，相互之间不需要协调。
+
+```mermaid
+flowchart LR
+  core["src/core Game（只读）"] -- viewOf --> FM["FlowMachine<br/>select→map→battle/shop→reward→…→result"]
+  FM --> RT["Router"] --> SM["SceneManager<br/>enter/exit/pause/resume + 转场"]
+  SM -- enterScene/leaveScene --> AM["AtlasManager（场景图集）"]
+  SM -- clearScene --> BC["BakeCache（场景缓存）"]
+  SM -- transitionFx --> GL["WebGLOverlay（可选）"]
+  IN["手势"] --> OS["OverlayStack 弹层栈"] --> SM
+```
+
+- **`src/engine/scene.ts` · SceneManager**
+  - `register(id, factory)` 注册场景，`go(id, params, transition)` 切换。
+  - 生命周期：`exit` 旧场景 → `BakeCache.clearScene(旧)` → `AtlasManager.enterScene(新)`（释放旧场景独有的图集）→ `enter` 新场景。`pause/resume` 由应用切后台或前台、以及带 `pausesScene` 的弹层触发。
+  - 转场：`Transition{durationMs, fx?, mask?}`，在中点交换场景，转场期间屏蔽输入。`INK_TRANSITION`（450ms）在 WebGL 开启时产出 `ink_transition` 特效；关闭时只直接切换，不做 2D 替代特效。
+- **`src/engine/modal.ts` · OverlayStack**：弹窗、长按详情、响应窗口、toast、系统层共用。
+  - `push(spec) → {close(result), result: Promise}`；输入先交给栈顶。`modal` 层吞掉下层输入（toast 默认不吞）。
+  - `dismissOnTapOutside`：详情浮层点外部关闭；响应窗口不能点外部关闭，结果通过 Promise 返回。
+  - 逻辑 z 按 render-spec §7.1：响应 12、详情/弹窗 14、系统 15。
+- **`src/game/flow.ts` · FlowMachine**：页面状态机，非法事件抛错。由 core 局状态驱动：`viewOf(game)` 只读 `over / isLast / battleIdx / p.hp`；`sync()` 在 core 报告战斗结束时自动转到奖励或结算；`battle_end` 与 core 状态矛盾时拒绝。**不修改 src/core 和 config/**。
+- **`src/game/router.ts` · Router**：把页面变化映射到场景切换（默认用泼墨转场）。
+- **`src/game/scenes/placeholder.ts`**：6 个占位页面，带按钮推进流程、长按弹详情浮层；正式页面替换对应 id 即可。发布入口支持 `?page=map` 等参数直接进入某页（截图和测试用）。
+- **P5 结算与放弃本局（#46）**：`FlowMachine` 增加 `abandon`（点将 / 地图 / 战斗 / 奖励 / 集市 → 结算，PRD 5.13）和 `result_done.to`（`'map'` = 再来一局，默认 `'select'` = 返回点将，PRD 14.5）。结算页 `src/game/result/scene.ts`；启动续玩弹窗与放弃二次确认 `src/game/result/resume.ts` 只用 `OverlayStack.push`，设置浮层可复用 `confirmAbandon`。**离开结算页时**才入账局外存档（`mojuan.meta.v1`）并删除局内存档（`mojuan.run.v1`）。其他页面通过 `src/game/result/bridge.ts` 接入（`outcome` / `restart` / `resume`）。
+- 测试：`tests/engine-scene.test.ts`、`tests/flow.test.ts`、`tests/result.test.ts`。
+
 ### 4.12 WebGL 水墨增强层（【已决定 2026-10-12】）
 
-> 决定：水墨特效**只走 WebGL**。本期不设计 Canvas2D 降级，render-spec §11 里的“Canvas 2D 回退”列本期不实现。**降级以后再做。**
-> 规格来源：`docs/ui/render-spec.md` 的 §11（13 项特效）、§10（硬约束与动画阻塞表）、§7/§8（战斗页与外围页面），出自 PR #29（分支 feat/ui-v3-b-spec，**未合并**，合并后复核）。清单以 UI 设计助手最终确认为准，**待对齐**。
-> 目标平台：先做 **H5**，以 H5 验收；微信小游戏只保留接口，本期不实现、不验收。
+> 决定（v0.5 修订）：WebGL 是**可选叠加层**。开启时提供 render-spec §11 的水墨特效；关闭时 2D 主画面**完整可玩**，只是没有特效。**不做 2D 替代特效**，render-spec §11 的“Canvas 2D 回退”列不实现。按设备或帧率**自动降级延后到微信上线前**。
+> 规格来源：`docs/ui/render-spec.md` 的 §11（13 项特效）经 **§12.1 精简为 7 个 shader**（ink-hit、transition、dissolve、epiphany、mask-reveal、post、card-shimmer；#10 水波涟漪删除；#3 纸纹烘进背景；#6 并入 #1；#2 并入 #5；#11 并入 #9；#12 和 #13 合成后处理），特效纹理约 **0.63MB**；另见 §10、§7/§8。下表按原编号保留，以便追溯。清单以 UI 设计助手最终确认为准，**待对齐**。
+> 目标平台：先做 H5，以 H5 验收；微信只保留接口。
 
-#### 4.12.1 与 3 块画布的组合
-render-spec §11 给了两种做法：“WebGL 叠加画布”，或“把 2D 画布作纹理输入做合成 pass”。本文选**后者**：
-- **上屏画布是 WebGL，充当合成器**。bg（z0）、ambient（z1）、main（z2–z15）三块仍是 **2D 离屏画布**，由 4.2 的场景树绘制，作为纹理输入。
-- 理由：①微信小游戏只有一块上屏画布，叠加方案无法移植；②晕染渗边、墨溶解这类效果需要读取 2D 画面本身，用纹理输入最自然，又**不需要回读**；③H5 上叠两块画布会多一次浏览器合成，并有透明度混合的问题。
-- 每帧合成顺序：
-  1. bg 纹理 + **#3 宣纸纹理/光照**、**#12 烛光呼吸**（作为 bg 合成 pass 的 uniform，不增加全屏 pass）；
-  2. ambient 纹理；
-  3. main 纹理；**#2 晕染渗边、#5 墨溶解** 在敌人牌包围盒内用 scissor 做局部 pass；
-  4. 局部特效（scissor 或小四边形）：#1 墨晕、#6 朱砂溅、#7 金箔流光、#10 水波涟漪；
-  5. 全屏特效（同一时刻最多 2 个，对齐 §11 预算）：#4 泼墨转场、#8 灵光一闪·墨聚、#13 受伤墨染屏边、#9 书法逐笔、#11 卷轴展开。#9 和 #11 只在局部区域运行时算局部特效。
-- 纹理上传只在**对应 2D 画布被标脏时**进行（`texImage2D(canvas)`）：bg 在切章节或页面时上传，ambient 30fps，main 在有变化的帧上传。
-- **禁止回读**：不用 `readPixels`、`toDataURL`、`getImageData`，也不把 WebGL 画布 `drawImage` 回 2D。数据只朝一个方向流动：2D → 纹理 → 屏幕。
-- 命中测试与 GL 无关，仍走 4.3 的场景树坐标。逻辑不依赖任何特效（§11：特效不承载关键信息）。
-- 微信侧（只留接口）：首个 `wx.createCanvas()` 是上屏画布，一块画布只能取一种上下文。离屏 2D 画布能否作纹理源、性能如何，标【推测】，接入时验证。
+#### 4.12.1 与 3 块画布的组合（v0.5：2D 直接合成 + 可选 WebGL 叠加）
+```mermaid
+flowchart LR
+  BG["bg 离屏 2D"] --> C2["Canvas2DCompositor<br/>drawImage ×3"]
+  AM["ambient 离屏 2D（半分辨率）"] --> C2
+  MN["main 离屏 2D"] --> C2
+  C2 --> S["上屏 2D 画布（接收触控）"]
+  FX["InkFx 实例（表现队列）"] --> GL["WebGLOverlay（可选）<br/>独立透明画布，pointer-events:none"]
+  MN -. "仅 #2/#5 需要：texImage2D 上传（不回读）" .-> GL
+  S --- GL
+```
+- **始终存在**：上屏画布是 **2D**。`Canvas2DCompositor` 每帧按 bg → ambient → main 顺序 drawImage（只要有层脏就重新合成）。WebGL 关闭时这是唯一路径。
+- **可选**：`WebGLOverlay` 是叠在上屏画布之上的**独立透明画布**，只画水墨特效，不接收输入（命中测试只走 2D 场景树），分辨率为屏幕的一半（render-spec §12.4 特效 RT 半分辨率）。
+- **开关**：`RenderConfig.webgl`（默认开，构建变量 `VITE_WEBGL=0` 可默认关闭）＜ URL/启动参数 `?webgl=0|1`；设备不支持时关闭（`reason: 'unsupported'`）。实现见 `src/engine/settings.ts`，测试见 `tests/engine-render.test.ts`。
+- **为什么从“WebGL 合成器”改为“叠加层”**：WebGL 必须可选、关闭时也要完整可玩，所以主画面不能依赖 GL。代价是 #2 晕染渗边、#5 墨溶解需要读取主画面，要把 main 上传成纹理（`texImage2D(canvas)`，GPU 内部拷贝，不回读）；其余 11 项只需要特效贴图。
+- **禁止回读**：不使用 `readPixels`、`toDataURL`、`getImageData`。
+- **微信侧（只留接口）**：小游戏只有一块上屏画布，叠加方案无法直接移植；接入时改为“上屏 WebGL 合成 2D 纹理”或关闭特效。标【推测】，接入微信时单独评估（这也是自动降级要和微信上线一起做的原因）。
+- 上下文丢失：叠加层直接停止绘制，2D 画面不受影响。
 
 #### 4.12.2 首批 13 项特效（对齐 render-spec §11，待对齐）
 | # | 特效 | 所在层 | 触发 / 时长 | 类别 | 纹理 |
@@ -608,16 +728,16 @@ export interface GLCompositor {
 #### 4.12.3 性能预算（H5，以中端设备为基准；低端真机验收延后）
 | 项 | 预算 |
 |---|---|
-| 全屏 pass | 基础合成 1 个，加上 ≤2 个全屏特效 pass（对齐 §11，和 §10 的“全屏覆盖层 ≤2”分开计） |
+| 全屏 pass | 叠加层没有基础合成 pass；全屏特效 pass 同时 ≤2 个（对齐 §11，和 §10 的“全屏覆盖层 ≤2”分开计） |
 | 局部 pass | 同屏 ≤8 个特效实例，均用 scissor 或小四边形 |
 | GPU 时间/帧 | ≤4ms（中端设备）；单个全屏 pass ≤1.2ms，单个局部特效 ≤0.3ms【推测目标，P3 实测】 |
-| shader | ≤10 个 program（13 项特效合并同类），启动时编译，运行时不再编译；只用 `mediump`，只需 WebGL1 |
-| GL 纹理内存 | 3 块屏幕纹理 + 1–2 个 FBO：dpr2 下约 5×(780×1688×4B)≈26MB；特效贴图解码后约 4MB。这部分要计入 §10 估算的约 106MB 总纹理 |
+| shader | **7 个 program**（render-spec §12.1），启动时编译，运行时不再编译；只用 `mediump`，只需 WebGL1 |
+| GL 纹理内存 | 叠加画布半分辨率约 1.26MB + 特效纹理 0.63MB（§12.1）+ 需要时的 main 纹理（#2/#5，按包围盒局部上传）；无 mipmap |
 | 上传带宽 | main 全屏每帧约 5MB，只在脏帧上传；必要时把 main 按“战场 / 手牌”拆成两块纹理分别标脏 |
 | 空闲 | 静止时停帧；只有循环特效（#7、#12）时按小区域低频刷新（§10“空闲不重绘”的例外） |
 
 #### 4.12.4 包体影响（对齐 render-spec §9/§11）
-- WebGL 特效纹理合计约 **0.7MB**（压缩后），放在独立的 **`fx_webgl` 分包**；首包只放共享噪声，如果首屏就要转场，再加墨扫笔触。
+- WebGL 特效纹理合计约 **0.63MB**（render-spec §12.1：噪声 R8 64KB + 笔触 EAC 256KB + 笔顺 SDF 256KB + 溅点 ETC2 64KB），放在独立的 **`fx_webgl` 分包**；首包只放共享噪声，如果首屏就要转场，再加墨扫笔触。
 - render-spec §9（B 定稿）的资源合计约 **2.5MB**，首包约 **1.1MB**（ui_common、fx、字体、共享背景、第一章敌人）。fx_webgl 的 0.7MB 不在这 2.5MB 里【以 render-spec 为准，待对齐】。
 - shader 源码约 10–15KB，GL 合成器代码约 10–20KB【推测】。
 - 原来为 2D 路径准备的墨晕序列帧、墨扫贴图等“回退资源”**本期不打包**。
@@ -627,11 +747,11 @@ export interface GLCompositor {
 | 决策 | 选择 | 备选 | 理由 |
 |---|---|---|---|
 | 引擎 | 自研轻量 Canvas2D 场景 + WebGL 合成/特效 | PixiJS（WebGL，有微信适配）/ Cocos Creator | 硬约束不用引擎；卡牌游戏绘制量小，自研可控、包小（目标引擎层 <60KB gz）；风险是开发量 |
-| 渲染策略 | 16 个逻辑层（场景树）+ 3 块物理画布 + 对象级烘焙缓存 + 静止降帧 | 每个逻辑层一块画布 / 全局脏矩形 | 显存可控；与 render-spec 一致；脏矩形留作后备 |
+| 渲染策略 | 16 个逻辑层（场景树）+ 3 块 2D 离屏直接合成 + 可选 WebGL 叠加 + 对象级烘焙缓存 + 静止降帧 | 每个逻辑层一块画布 / 全局脏矩形 | 显存可控；与 render-spec 一致；脏矩形留作后备 |
 | 逻辑执行 | **【已决定】** 同步结算 + 事件流 + Decision 挂起 | （已否决）async/await + sleep / StS 式动作带时长 | 可回放、可倍速、可跳过、可无头测试；用户已拍板 |
 | 结算顺序 | 显式栈 | 依赖 JS 调用栈 | 可存档中途状态、可调试 |
 | 文字 | 书法子集字体 + 图集预渲染、数字位图字体、说明用系统字体 | 全量位图字库 | 中文字量大 |
-| 水墨特效 | **【已决定】WebGL shader**（只走 WebGL） | 序列帧 + 2D 混合模式 | 效果更好、资源更少；降级以后再做 |
+| 水墨特效 | **【已决定】可选 WebGL 叠加层**；关闭时没有特效，不做 2D 替代 | WebGL 上屏合成器（v0.4）/ 2D 替代特效 | 主画面不依赖 GL，任何设备都能玩；特效部分资源更少 |
 | UI 布局 | 自研简化锚点/flex | Yoga 布局引擎（wasm） | 包体与复杂度 |
 | 双端构建 | Vite 多 mode | webpack / 独立 rollup 脚本 | 已在用 Vite |
 
@@ -647,9 +767,11 @@ export interface GLCompositor {
 | 热更新配置与存档不兼容 | 中 | configVersion + 新局生效 + 迁移测试 |
 | InnerAudioContext 实例数与 iOS 静音模式 | 低-中 | 音效池；`obeyMuteSwitch` 选项 |
 | render-spec 后续修订 | 低 | 已合入 main；规格改动时同步更新 4.5 |
-| 只走 WebGL、没有降级：不支持 WebGL 或上下文丢失的设备无法正常显示 | 中 | 已接受（降级以后再做）；上下文丢失时暂停并重建，每次结算自动存档保证可恢复 |
+| WebGL 关闭或不支持时没有水墨特效 | 低 | 已接受；特效不承载关键信息（render-spec §11）；自动降级与微信上线一起做 |
 | 每帧上传 2D 画布纹理的带宽开销 | 中 | 只传脏画布；必要时把 main 分块；H5 性能基准先在中端设备上做 |
-| **纹理内存约 106MB（render-spec §10 估算），对千元安卓偏高** | 高 | 低端优化**延后到后续阶段**（低档 dpr 限 2、背景用 1x 版可降到约 80MB；main 纹理分块；按章节释放）；本期以 H5 中端设备验收 |
+| 纹理内存（原 106MB，已由 render-spec §12 降到战斗峰值 22.4MB / 35.7MB） | 低（原为高） | 已对齐 50MB 预算；45MB 告警 + LRU + 场景卸载已在 P0 实现 |
+| WebGL 关闭时 2D 路径无法使用压缩纹理，按 RGBA8 估算约 68MB | 中 | 待对齐（§4.7.1 第 2 条）；P0 告警可以发现 |
+| 叠加层模式无法直接移植到微信（只有一块上屏画布） | 中 | 接入微信时单独评估：上屏 WebGL 合成或关闭特效 |
 | 低端真机验收延后，性能问题可能晚暴露 | 中 | 预算按约 3 年前、千元左右的安卓机制定；H5 阶段用 Chrome CPU 4× 降速模拟 |
 | 微信只留接口、未实测，后续接入可能有差异 | 中 | 平台接口集中、禁止业务直连平台 API；接入时单独立项 |
 | 参考资料中多处为推测 | 低 | 已标注，不影响本项目设计决策 |
@@ -660,13 +782,13 @@ export interface GLCompositor {
 
 | 阶段 | 内容 | 产出 / 验收 |
 |---|---|---|
-| P0 地基（约 1 周） | `Platform` 接口 + **web 实现**；wechat 只放接口桩；Vite 多 mode（h5 / debug；wechat 目标只留配置占位）；CI 加 size-check 和分层 ESLint 约束；DOM 版移到 debug 构建 | H5 能跑出空白 WebGL 合成画布（3 块 2D 纹理输入）+ 触控回显；发布包不含 DOM 版 |
+| P0 地基（约 1 周，#32） | `Platform` 接口 + web 实现 + wechat 接口占位；引擎骨架：主循环（空闲停帧）、3 块 2D 离屏 + **2D 直接合成**、**可选 WebGL 叠加层**（开关：配置 + `?webgl=0|1`）、手势（单指/点按/420ms 长按/8dp 拖拽）、**纹理内存记账（50MB 预算 / 45MB 告警、LRU 烘焙缓存、按场景加载图集）**；**场景管理 + 弹层栈 + 页面流程状态机 + 6 个占位页面**；Pages：DOM 可玩版（根目录）+ Canvas 新版（/next/），P5 #46 对调；Vite h5/debug 两种模式（DOM 版只在 debug）；ESLint 分层；size-check 与 CI | H5 发布入口能跑 Canvas 骨架 + 触控回显；`?webgl=0` 路径有测试；发布包不含 DOM 版 |
 | P1 逻辑重构（已决定，2–3 周，最高优先） | ①先建黄金回放和 autoplay 基线；②RngStreams；③BattleEvent + 结构化日志；④ResolutionStack，ATOMS 全部改同步，judge/respond/epiphany 改成栈帧 + Decision；⑤删除 `BattleIO.sleep/update` 和所有 `await`；⑥`BattleLogic.submit` 成为唯一入口 | core 内零 Promise、零平台依赖；回放哈希一致 |
-| P2 渲染与输入（1–2 周，可与 P1 并行） | 场景树 + 16 个逻辑层、3 块 2D 离屏 + **WebGL 合成器**、对象烘焙缓存、降帧、图集、字体、安全区、命中测试、手势、自动降 DPR | H5 中端设备 60fps；Chrome CPU 4× 降速下可用 |
+| P2 渲染与输入（1–2 周，可与 P1 并行） | 场景树 + 16 个逻辑层（画在 3 块 2D 离屏上）、对象烘焙缓存、降帧、图集、字体、安全区、命中测试、手势、自动降 DPR | H5 中端设备 60fps；Chrome CPU 4× 降速下可用 |
 | P3 表现队列与水墨（2 周） | Tween/Timeline/粒子；B 方向全部动画剧本；倍速/跳过；**WebGL 13 项特效**（render-spec §11，待对齐）+ `fx_webgl` 分包；画质分档 | GPU ≤4ms/帧；战斗可完整演出、可跳过 |
 | P4 存档与资源（1 周） | 每次结算后自动存档、迁移；资源管线、CDN 缓存 | 刷新页面后恢复到最近一次结算后 |
 | P5 运营能力（1 周） | 配置热更新（下局生效）、H5 每局免费刷新 1 次、埋点/错误上报（字段对齐微信）、分享种子 | **H5 验收** |
-| 延后 | 低端设备纹理内存优化、微信小游戏实现与分包、CI 预览上传（加密 secret，合并后上传，缺 secret 跳过）、低端真机验收、WebGL 降级 | 另行立项 |
+| 延后 | 按设备/帧率自动关闭 WebGL、微信小游戏实现与分包、CI 预览上传（加密 secret，合并后上传，缺 secret 跳过）、低端真机验收、WebGL 降级 | 另行立项 |
 
 ## 8. 已定的取舍（原「需要用户拍板的取舍」，2026-10-12 全部定案）
 
@@ -674,7 +796,7 @@ export interface GLCompositor {
 
 | # | 议题 | 决定（2026-10-12） | 见 |
 |---|---|---|---|
-| 1 | WebGL 水墨 | 采用，**只走 WebGL，降级以后再做**；首批按 render-spec §11 的 13 项（PR #29），清单**待对齐** | 4.12 |
+| 1 | WebGL 水墨 | 采用，作为**可选叠加层**（v0.5 修订；v0.6 起按 render-spec §12.1 精简为 7 个 shader、纹理 0.63MB）：关闭时 2D 完整可玩，没有特效，不做 2D 替代；开关为配置 + `?webgl=0`；自动降级延后到微信上线前；首批按 render-spec §11 的 13 项（PR #29），清单**待对齐** | 4.12 |
 | 2 | 防 SL | 每次结算后自动存档 | 4.8 |
 | 3 | 热更新与进行中的局 | 当前局继续用旧配置，下一局生效 | 4.8、4.9 |
 | 4 | H5 看广告刷新 | 每局免费 1 次 | 4.1 |

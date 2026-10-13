@@ -4,7 +4,7 @@
 id: H02
 name: 貂蝉
 faction: 群
-hp: 7
+hp: 8
 role: 控场延时：用判定封敌人出杀，手牌循环
 unlock: 初始（全部免费）
 roster: true

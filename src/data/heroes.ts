@@ -3,10 +3,12 @@ import { CONFIG, atomAmount, type Ability } from './config';
 
 /** 武将：来自 config/heroes/*.yaml（V1：H01–H08 开局 8 将 + H09 关羽保留） */
 const skill = (a: Ability) => ({ name: a.name, desc: a.desc });
+/** 同名技能（一个技能拆成多条能力实现，如陆逊·谦逊 = 免咒 + 每回合 +1 军令）只展示一次，取第一条的描述（#58） */
+const skills = (as: Ability[]) => as.filter((a, i) => as.findIndex((b) => b.name === a.name) === i).map(skill);
 export const HEROES: Record<string, HeroDef> = Object.fromEntries(
   Object.values(CONFIG.heroes).map((h) => [
     h.id,
-    { id: h.id, name: h.name, faction: h.faction, hp: h.hp, mainSkills: h.mainSkills.map(skill), subSkill: skill(h.subSkill) },
+    { id: h.id, name: h.name, faction: h.faction, hp: h.hp, mainSkills: skills(h.mainSkills), subSkill: skill(h.subSkill) },
   ]),
 );
 

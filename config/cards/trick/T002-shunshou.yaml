@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=../../schema/card.schema.json
+# ───────── 锦囊：顺手牵羊 ─────────
+# design-v1.md 9.5 第 1 条定稿：三选一改为自动二选一；「令其下一意图少 1 杀」删除。
+# 三条 ability 都在 play 时按顺序结算，条件在结算前一次性求值（去掉闪标记后不会再去护甲）。
+id: T002
+name: 顺手牵羊
+type: 锦囊
+tags: [trick]
+cost: 1
+rarity: N
+# design-v1.md 11.2：不进任何起始牌组；进通用奖励池，N 档等权；商店价 40
+rewardWeight: 1
+shopPrice: 40
+target: any
+desc: 无视距离。弃置一名敌人 1 枚闪标记；若其没有闪标记，改为弃置其至多 3 点护甲。然后你摸 1 张牌。
+abilities:
+  - id: shunshou_mark
+    name: 顺手牵羊
+    desc: 目标有闪标记时，弃置其 1 枚闪标记。
+    trigger: { when: play }
+    if:
+      - { type: target_flash_marks_at_least, value: 1 }
+    do:
+      - { do: remove_flash_mark, target: chosen, amount: 1 }
+  - id: shunshou_armor
+    name: 顺手牵羊
+    desc: 目标没有闪标记时，弃置其至多 3 点护甲。
+    trigger: { when: play }
+    if:
+      - { type: target_flash_marks_at_least, value: 1, negate: true }
+    do:
+      - { do: remove_armor, target: chosen, amount: 3 }
+  - id: shunshou_draw
+    name: 顺手牵羊
+    desc: 摸 1 张牌。
+    trigger: { when: play }
+    do:
+      - { do: draw, target: self, amount: 1 }

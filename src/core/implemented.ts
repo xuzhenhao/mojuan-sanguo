@@ -9,6 +9,7 @@ export const IMPLEMENTED = {
     'turn_end',
     'enemy_turn_start',
     'targeted_by_sha',
+    'targeted_by_trick',
     'deal_damage',
     'damaged',
     'kill',
@@ -28,6 +29,7 @@ export const IMPLEMENTED = {
     'discard',
     'gain_ling',
     'negate_sha',
+    'negate_trick',
     'judge',
     'apply_status',
     'modify',
@@ -56,6 +58,7 @@ export const IMPLEMENTED = {
     'turn_is',
     'has_skill',
     'alive_enemies_at_least',
+    'target_flash_marks_at_least',
   ],
   statuses: ['jiu', 'aogu', 'yiyong', 'lebu', 'no_sha', 'yice', 'xieling', 'empty_draw', 'lian_shan', 'shandian'],
   stats: [

@@ -17,7 +17,7 @@ const isDefCard = (c: CardInst) => !!(def(c).shan || def(c).tao || def(c).slot =
 
 /** 策略画像：全部由技能配置推导 */
 export interface Profile {
-  /** 手牌打空有收益（连营 / 连营·辅 / 连营策）→ 故意打空 */
+  /** 手牌打空 / 打少有收益（连营 / 连营·辅 / 连营策）→ 故意打空 */
   emptyHand: boolean;
   /** 受伤摸牌（天策 / 奸雄 / 天妒 / 遗策）→ 血量健康时不出闪，换牌 */
   takeHits: boolean;
@@ -31,7 +31,12 @@ export function profileOf(g: Game): Profile {
   const srcs = g.effects.playerSources().map((s) => s.ab);
   const has = (f: (a: Ability) => boolean) => srcs.some(f);
   return {
-    emptyHand: has((a) => a.trigger.when === 'hand_empty' && abAtoms(a).includes('draw')),
+    // 打空摸牌（hand_empty → draw），或回合结束手牌少时补牌（turn_end + hand_count_at_most → draw，#23 后的连营）
+    emptyHand: has(
+      (a) =>
+        abAtoms(a).includes('draw') &&
+        (a.trigger.when === 'hand_empty' || (a.trigger.when === 'turn_end' && (a.if ?? []).some((c) => c.type === 'hand_count_at_most'))),
+    ),
     takeHits: has((a) => a.trigger.when === 'damaged' && abAtoms(a).includes('draw')),
     reserveLing: Math.max(
       0,
@@ -221,6 +226,16 @@ export function heroRespond(g: Game, n: number, legal: (c: CardInst) => boolean)
     if (hitDraw && n === 1 && afterHp >= p.maxHp - 2 && afterHp - left > 2) return null;
   }
   return cands.find((c) => def(c).shan) ?? cands[0];
+}
+
+/**
+ * 无懈可击决策点：敌方锦囊（当前只有妖咒：随机弃 1 张手牌）。
+ * 手里只剩无懈本身时，被咒弃掉的也只会是它，打出没有收益 → 不出；否则打出。
+ */
+export function heroWuxie(g: Game, legal: (c: CardInst) => boolean): CardInst | null {
+  const w = g.hand.find(legal);
+  if (!w) return null;
+  return g.hand.length <= 1 ? null : w;
 }
 
 /** 回合末弃牌：连营流优先留可打出的牌；其余按价值 */

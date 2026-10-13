@@ -1,9 +1,12 @@
+/** DOM 调试版入口：只在 `vite build --mode debug` 中构建，不进发布包（size-check 用下面的标记校验）。 */
+export const DEBUG_DOM_BUILD_MARKER = '__MOJUAN_DEBUG_DOM__';
+console.info(DEBUG_DOM_BUILD_MARKER);
 import './style.css';
-import { Game, type BattleIO } from '../../core/battle';
-import { seeded } from '../../core/rng';
-import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../core/rules';
-import { BATTLES } from '../../data/enemies';
-import type { AffixDef, CardInst } from '../../core/types';
+import { Game, type BattleIO } from '../../../core/battle';
+import { seeded } from '../../../core/rng';
+import { def, enemyIntent, handLimit, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
+import { BATTLES } from '../../../data/enemies';
+import type { AffixDef, CardInst } from '../../../core/types';
 import { nextSkillStep, skillButtons, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
@@ -26,9 +29,9 @@ const io: BattleIO = {
   log: () => renderLog(),
   update: () => render(),
   sleep,
-  async showJudge(reason, c) {
+  async showJudge({ reason, card: j }) {
     const js = $('#judgeShow');
-    js.innerHTML = `判定·${reason}<br><span style="font-size:30px;color:${isRed(c) ? '#A63D2F' : '#1A1A1A'}">${SUIT_CH[c.suit]}${RANK_CH[c.rank]}</span> ${def(c).name}`;
+    js.innerHTML = `判定·${reason}<br><span style="font-size:30px;color:${j.color === 'red' ? '#A63D2F' : '#1A1A1A'}">${SUIT_CH[j.suit]}${RANK_CH[j.rank]}</span> ${j.name}`;
     js.classList.remove('hidden');
     render();
     await sleep(900);
