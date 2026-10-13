@@ -7,10 +7,13 @@
 import type { Game } from '../../core/battle';
 import { CARDS } from '../../data/cards';
 import { HEROES } from '../../data/heroes';
+import { CONFIG } from '../../data/config';
 import { emptyStats, mergeStats, parseStats } from '../run/stats';
 import { SETTLEMENT_CONFIG, type ResultCard, type RunOutcome, type RunStats } from './settlement';
 import type { ResumeSummary } from './store';
 
+/** 复活「已使用」只按 reviveLeft 实际值判断（PRD 4.4.1：reviveLeft < 每局次数），不能用胜负推断（#106） */
+export const reviveUsedOf = (reviveLeft: unknown) => typeof reviveLeft === 'number' && reviveLeft < CONFIG.rules.revive.count;
 export const heroName = (id: string) => HEROES[id]?.name ?? id;
 export const CHAPTER_NAME: Record<number, string> = { 1: '黄巾', 2: '讨董', 3: '赤壁' };
 
@@ -29,7 +32,7 @@ export function outcomeFromSave(s: ResumeSummary, raw: unknown, now: number): Ru
     durationMs: s.startedAt ? Math.max(0, now - s.startedAt) : 0,
     tianming: s.tianming,
     chaptersCleared: 0,
-    reviveUsed: typeof r.reviveLeft === 'number' ? r.reviveLeft <= 0 : false,
+    reviveUsed: reviveUsedOf(r.reviveLeft),
     stats: parseStats(r.stats),
     deck: Array.isArray(r.deck) ? r.deck.map(cardOf) : [],
     relics: Array.isArray(r.relics) ? r.relics.map(String) : [],
@@ -45,7 +48,10 @@ function cardOf(c: unknown): ResultCard {
 
 /** 战斗结束（整局胜/负）：从 core Game 只读 */
 export function outcomeFromGame(
-  g: Pick<Game, 'p' | 'main' | 'sub' | 'deckMaster' | 'battleIdx' | 'epiCount' | 'turn' | 'isLast' | 'affixName'> & { en?: { hp: number; name?: string }[] },
+  g: Pick<Game, 'p' | 'main' | 'sub' | 'deckMaster' | 'battleIdx' | 'epiCount' | 'turn' | 'isLast' | 'affixName'> & {
+    reviveLeft?: number;
+    en?: { hp: number; name?: string }[];
+  },
   o: { runSeed: number; startedAt: number; now: number; tianming?: number; gold?: number; stats?: Partial<RunStats> },
 ): RunOutcome {
   const win = g.p.hp > 0 && g.isLast;
@@ -66,7 +72,7 @@ export function outcomeFromGame(
     durationMs: Math.max(0, o.now - o.startedAt),
     tianming: o.tianming ?? 0,
     chaptersCleared: win ? SETTLEMENT_CONFIG.lastChapter : 0,
-    reviveUsed: false,
+    reviveUsed: reviveUsedOf(g.reviveLeft),
     stats,
     deck: g.deckMaster.map((c) => ({ id: c.id, name: CARDS[c.id]?.name ?? c.id, affixes: c.mods.map((m) => g.affixName(m)) })),
     relics: [],
@@ -76,7 +82,7 @@ export function outcomeFromGame(
 }
 
 /** 截图 / 测试用示例（?page=result&demo=win|defeat） */
-export function demoOutcome(win: boolean): RunOutcome {
+export function demoOutcome(win: boolean, reviveLeft: number = CONFIG.rules.revive.count): RunOutcome {
   return {
     win,
     abandoned: false,
@@ -89,7 +95,7 @@ export function demoOutcome(win: boolean): RunOutcome {
     durationMs: win ? 31 * 60_000 + 12_000 : 17 * 60_000 + 40_000,
     tianming: win ? 1 : 0,
     chaptersCleared: win ? 1 : 0,
-    reviveUsed: !win,
+    reviveUsed: reviveUsedOf(reviveLeft),
     stats: win
       ? { battlesWon: 7, elitesKilled: 2, bossKilled: 1, turns: 41, dmgDealt: 214, dmgTaken: 38, maxTurnLoss: 6, epiphanies: 3 }
       : { battlesWon: 4, elitesKilled: 1, bossKilled: 0, turns: 26, dmgDealt: 103, dmgTaken: 41, maxTurnLoss: 7, epiphanies: 1 },
