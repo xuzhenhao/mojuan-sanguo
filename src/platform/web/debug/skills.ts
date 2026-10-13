@@ -26,11 +26,11 @@ export function skillButtons(g: Game, locked = false): SkillButton[] {
     const need = g.activeNeeds(id);
     const remaining = g.effects.remaining(s);
     const usable = g.canActivate(id);
-    const noTarget = need.target && g.alive().length === 0;
+    const noTarget = need.target && g.legalTargets(id).length === 0;
     let reason = '';
     if (remaining <= 0) reason = '次数已用完';
-    else if (!usable) reason = need.card ? '没有可弃置的牌' : '条件未满足';
     else if (noTarget) reason = '没有可选目标';
+    else if (!usable) reason = need.card ? '没有可弃置的牌' : '条件未满足';
     return {
       id,
       name: s.ab.name ?? id,
@@ -51,8 +51,8 @@ export function skillCardOk(g: Game, id: string, c: CardInst) {
 }
 
 /** 该主动技可选的敌人目标 */
-export function skillTargetOk(g: Game, _id: string, e: Enemy) {
-  return g.alive().includes(e);
+export function skillTargetOk(g: Game, id: string, e: Enemy) {
+  return g.isLegalTarget(id, e);
 }
 
 export interface SkillPick {
