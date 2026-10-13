@@ -243,7 +243,7 @@ export class EventScene implements Scene<EventParams> {
     frame3(c, r, T.goldMid);
     label(c, o.text, r.x + 14, r.y + (o.hint ? 28 : 40), BRUSH(22), T.gold);
     // 副文案 ≥13px，色与情景文案（#d8c8a0）同亮
-    if (o.hint) label(c, o.hint, r.x + 14, r.y + 52, SANS(13), DESC, 'left');
+    if (o.hint) glyphLabel(c, o.hint, r.x + 14, r.y + 52, BRUSH(13), 13, DESC, 'left');
     c.globalAlpha = ga;
     if (why) label(c, why, r.x + r.w - 12, r.y + 38, SANS(13), T.dmg, 'right');
   }
@@ -266,16 +266,16 @@ export class EventScene implements Scene<EventParams> {
     frame3(c, box, T.goldHi);
     let y = box.y + 36;
     for (const ln of lines) {
-      label(c, ln, w / 2, y, BRUSH(18), T.goldHi, 'center');
+      glyphLabel(c, ln, w / 2, y, BRUSH(18), 18, T.goldHi, 'center');
       y += 24;
     }
     if (r.judge) {
       const suit = SUIT_ZH[r.judge.suit]; // Brush 无 ♠♥♣♦：用中文花色名
-      label(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, SANS(14), r.judge.red ? T.cinnHi : T.paper, 'center');
+      glyphLabel(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, BRUSH(14), 14, r.judge.red ? T.cinnHi : T.paper, 'center');
       y += 26;
     }
     for (const ch of r.changes) {
-      glyphLabel(c, ch.text, w / 2, y + 6, SANS(15), 15, changeColor(ch), 'center'); // → − 画矢量（Brush 无字形）
+      glyphLabel(c, ch.text, w / 2, y + 6, BRUSH(15), 15, changeColor(ch), 'center'); // → − 画矢量（Brush 无字形）
       y += 26;
     }
     c.globalAlpha = ga;

@@ -17,3 +17,14 @@ describe('event changeColor', () => {
     expect(changeColor({ kind: 'card-', text: '- 闪' })).toBe(T.paper);
   });
 });
+
+describe('event result page glyphs (#169)', () => {
+  it('no text arrow/minus or SANS in result drawing', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../src/game/scenes/event.ts', import.meta.url), 'utf8');
+    const body = src.slice(src.indexOf('private drawResult'), src.indexOf('/** 情景 / 选项副文案色'));
+    expect(body).not.toMatch(/SANS\(/);
+    expect(body).not.toMatch(/[^y]label\(/);
+    expect(body).toMatch(/glyphLabel\(c, ch\.text/);
+  });
+});
