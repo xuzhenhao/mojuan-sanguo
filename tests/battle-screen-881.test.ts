@@ -1,3 +1,4 @@
+import { testNow } from './helpers';
 /** #146 / render-spec §8.8.1：屏风格纹与月（几何、范围、图层顺序），以及 #139 合并后山影只画一遍 */
 import { describe, expect, it } from 'vitest';
 import { BattleScene } from '../src/game/scenes/battle/scene';
@@ -184,7 +185,7 @@ describe('§8.8.1 绘制', () => {
 
 describe('#139 × #130 合并：山影只画一遍', () => {
   it('BattleScene bg 层不再画 mountainRects 矩形，只有屏风的一次山影 fill', () => {
-    const sc = new BattleScene({ debugDefaults: true });
+    const sc = new BattleScene({ now: testNow, debugDefaults: true });
     sc.enter({ width: 390, height: 844, invalidate() {} } as never, { seed: 7 });
     const { c, calls } = ctxRec();
     sc.draw('bg', { ctx: c } as never);

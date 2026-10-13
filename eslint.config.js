@@ -43,6 +43,14 @@ export default tseslint.config(
     },
   },
   {
+    // M2-W2 #201：两端共用启动流程不得依赖具体平台实现
+    files: ['src/game/boot.ts'],
+    rules: {
+      ...layer([{ group: ['**/platform/web/**', '**/platform/wechat/**'], message: 'game/boot.ts 只能依赖 platform/types（#201）' }]),
+      'no-restricted-globals': ['error', ...PLATFORM_GLOBALS, 'location'],
+    },
+  },
+  {
     files: ['src/platform/web/**/*.ts'],
     ignores: ['src/platform/web/debug/**'],
     rules: layer([{ group: ['**/debug/**'], message: '发布入口不得引用 DOM 调试版' }]),

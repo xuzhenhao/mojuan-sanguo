@@ -23,3 +23,6 @@ export function mkGame(over: Partial<BattleIO> = {}, seed = 1, heroes: { main?: 
 }
 let u = 1000;
 export const card = (id: string, suit: CardInst['suit'] = 'S', rank = 7, mods: string[] = []): CardInst => ({ uid: ++u, id, suit, rank, mods });
+
+/** #201：BattleScene.deps.now 已改必填，单测统一注入此时钟（行为同改动前的 performance.now 回退） */
+export const testNow = (): number => performance.now();
