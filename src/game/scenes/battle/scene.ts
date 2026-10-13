@@ -18,6 +18,7 @@ import { cardDetail, enemyDetail, LongPressDetail, skillDetail, type DetailConte
 import { makeRespond } from '../../overlays/response';
 import type { BattleElement, ElementState, BattleHit, BattleOverlayContext, BattleOverlayHooks, BattleParams, ResponseRequest } from './hooks';
 import { arrow, button, C, circle, FONT, frame, goldFrame, inset, panel, rect, ring, text, vtext } from './paint';
+import { drawScreenBg } from './screen';
 import { judgeViewOf, type JudgeView } from './judge';
 import { diff, PresentationQueue, type Snapshot } from './present';
 import { battleSkillButtons, nextSkillStep, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
@@ -781,7 +782,10 @@ export class BattleScene implements Scene<BattleParams> {
     return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
   }
 
-  /** 金山影矩形（#118 测试用）：全部在 0…W 内 */
+  /**
+   * 金山影矩形（#118 测试用）：全部在 0…W 内。
+   * #130 起屏风（screen.ts）自带描金山影，drawBg 不再画这组矩形，避免山影画两遍；保留为 #118 的出框回归基准。
+   */
   mountainRects(): Rect[] {
     const w = this.W;
     return Array.from({ length: 5 }, (_, i) => {
@@ -791,22 +795,9 @@ export class BattleScene implements Scene<BattleParams> {
     });
   }
 
+  /** 金漆屏风（#130，render-spec §8.8.1），替换原 6 层同心色块占位与矩形山影 */
   drawBg(ctx: Ctx2DLike) {
-    const w = this.W;
-    const h = this.H;
-    rect(ctx, { x: 0, y: 0, w, h }, C.lac0);
-    const steps = 6;
-    for (let i = 0; i < steps; i++) {
-      const k = i / steps;
-      rect(ctx, { x: w * k * 0.25, y: h * k * 0.2, w: w * (1 - k * 0.5), h: h * (1 - k * 0.4) }, [C.lac1, C.lac2, C.lac3, C.lac2, C.lac4, C.lac3][i]);
-    }
-    // 金山影
-    ctx.globalAlpha = 0.18;
-    // #118：山影限定在内容框内（原 x=-10…w+20 会漏到框外），首尾两块贴边截齐
-    for (const r of this.mountainRects()) rect(ctx, r, C.goldDk);
-    ctx.globalAlpha = 1;
-    frame(ctx, { x: 6, y: 6, w: w - 12, h: h - 12 }, C.goldLo, 1);
-    frame(ctx, { x: 9, y: 9, w: w - 18, h: h - 18 }, C.goldDk, 1);
+    drawScreenBg(ctx, this.W, this.H);
   }
 
   drawCard(ctx: Ctx2DLike, c: CardInst, r: Rect, st: CardState) {
