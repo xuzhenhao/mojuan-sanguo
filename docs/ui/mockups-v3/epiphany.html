@@ -13,6 +13,21 @@
 .m.L{box-shadow:0 0 0 1.5px #9ad4b8,0 0 14px rgba(154,212,184,.4),0 10px 24px #000}
 .cnt{position:absolute;right:20px;top:64px;z-index:3;font-size:13px;color:var(--gold);display:flex;align-items:center;gap:4px}
 .bar{background:transparent;box-shadow:none}.bar .btn.ok{margin-left:auto}
+.bar .btn.dis{filter:grayscale(.85) brightness(.6);pointer-events:none}
+.adb{display:none}body.wx .adb{display:inline-flex}
+.old{display:none;position:absolute;left:18px;right:18px;top:282px;z-index:2}
+.old .lb{font-size:12px;color:var(--gold);margin-bottom:6px;text-align:center}
+.old .row{display:flex;gap:10px}
+.o{flex:1;height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;cursor:pointer;opacity:.85}
+.o .gm{width:11px;height:11px;transform:rotate(45deg);box-shadow:0 0 0 1px #000;flex:none}
+.o b{font-family:Brush;font-weight:normal;font-size:20px;color:var(--paper)}.o .ef{font-size:14px;margin-left:auto;display:flex;align-items:center;gap:3px}.o .ef svg{width:16px;height:16px}
+.o.tgt{opacity:1;box-shadow:0 0 0 2px var(--cinn-glow),0 0 16px rgba(255,107,85,.55),0 8px 18px #000}
+.o.tgt b{text-decoration:line-through;text-decoration-color:var(--cinn-glow)}
+.o.tgt::after{content:"替";position:absolute;margin:-40px 0 0 -18px;width:20px;height:20px;line-height:20px;text-align:center;font-family:Brush;font-size:14px;color:var(--paper);background:var(--cinnabar);border-radius:2px;box-shadow:0 0 0 1px var(--paper)}
+.o{position:relative}
+.hn{position:absolute;left:0;right:0;bottom:92px;text-align:center;font-size:12px;color:#a89c84;z-index:2}
+body.full .old{display:block}body.full .mods{top:362px}body.full .m{height:68px}
+.vf{display:none}body.full .vf{display:inline-flex}body.full .hn.vf{display:block}body.full .vd{display:none}
 </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
  <filter id="brush" x="-10%" y="-10%" width="120%" height="120%">
@@ -150,7 +165,12 @@
  <div class="m panel sel"><span class="gm" style="background:var(--gold)"></span><b>双响</b><span class="ef"><svg style="fill:#ff8a73"><use href="#i-swords"/></svg><span class="num">+1</span><span style="font-size:13px;color:#a89c84">目标</span></span></div>
  <div class="m panel L"><span class="gm" style="background:#9ad4b8;box-shadow:0 0 6px #9ad4b8"></span><b>无影</b><span class="ef"><svg style="fill:var(--azure-hi)"><use href="#i-dodge"/></svg><span class="num" style="color:#ff8a73">✕</span></span></div>
 </div>
-<div class="bar"><div class="btn sec sm"><svg><use href="#i-ad"/></svg><svg><use href="#i-refresh"/></svg></div><div class="btn ok sm">铭刻</div></div>
+<div class="old"><div class="lb">已有 2 条词条 · 选择要替换的一条</div><div class="row">
+ <div class="o panel"><span class="gm" style="background:#dfe5e8"></span><b>迅击</b><span class="ef"><svg style="fill:var(--azure-hi)"><use href="#i-dodge"/></svg><span class="num">+1</span></span></div>
+ <div class="o panel tgt"><span class="gm" style="background:var(--gold)"></span><b>破甲</b><span class="ef"><svg style="fill:#ff8a73"><use href="#i-armor"/></svg><span class="num">−1</span></span></div>
+</div></div>
+<div class="hn vd">词条不足 2 条，必须铭刻一条</div><div class="hn vf">先选新词条，再选替换哪条；或放弃本次灵光</div>
+<div class="bar"><div class="btn sec sm adb" title="仅微信版：广告刷新，每次灵光 1 次"><svg><use href="#i-ad"/></svg><svg><use href="#i-refresh"/></svg></div><div class="btn sec sm vf" id="giveup">放弃</div><div class="btn ok sm vd" id="ink">铭刻</div><div class="btn ok sm vf" id="rep">替换</div></div>
 </div><script>const use=(id,cls='')=>`<svg class="${cls}"><use href="#${id}"/></svg>`;
 const red=s=>s=='♥'||s=='♦';
 const card=(c,cls='')=>`<div class="card ${c.k} ${c.r||'N'} ${c.mo?'moc':''} ${cls}"><div class="in"><div class="art">${use(c.i)}</div><div class="cn">${c.n}</div></div><span class="c num">${c.c}</span><span class="su ${red(c.s)?'r':''}">${c.s}<br><span class="num">${c.p}</span></span><span class="rar"></span>${c.mo?'<span class="mo"><span>墨</span></span>':''}</div>`;
@@ -159,4 +179,11 @@ const HEROES=[{n:'吕布',f:'qun',fa:'群',hp:9,s:'boss'},{n:'貂蝉',f:'qun',fa
 function longpress(el,fn){let t;el.addEventListener('pointerdown',()=>{t=setTimeout(fn,420)});['pointerup','pointerleave'].forEach(v=>el.addEventListener(v,()=>clearTimeout(t)));}
 
 cc.innerHTML=card({n:'杀',c:1,s:'♠',p:'A',k:'atk',i:'i-sword',r:'N',mo:1},'big');
-document.querySelectorAll('.m').forEach(o=>o.onclick=()=>{document.querySelectorAll('.m').forEach(x=>x.classList.remove('sel'));o.classList.add('sel')});</script></body></html>
+/* 状态：默认 H5·词条<2（必须选一）；#full 满 2 条（替换/放弃）；#wx 微信版显示广告刷新；可组合 #full-wx。0 条候选时不弹层，无画面。 */
+const H=location.hash;if(H.includes('full'))document.body.classList.add('full');if(H.includes('wx'))document.body.classList.add('wx');
+const full=document.body.classList.contains('full');
+if(full){cc.innerHTML=card({n:'杀',c:1,s:'♠',p:'A',k:'atk',i:'i-sword',r:'R',mo:1},'big');}
+const sync=()=>{const m=!!document.querySelector('.m.sel'),t=!!document.querySelector('.o.tgt');ink.classList.toggle('dis',!m);rep.classList.toggle('dis',!(m&&t));};
+document.querySelectorAll('.m').forEach(o=>o.onclick=()=>{document.querySelectorAll('.m').forEach(x=>x.classList.remove('sel'));o.classList.add('sel');sync()});
+document.querySelectorAll('.o').forEach(o=>o.onclick=()=>{document.querySelectorAll('.o').forEach(x=>x.classList.remove('tgt'));o.classList.add('tgt');sync()});
+sync();</script></body></html>
