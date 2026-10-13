@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P09
+name: 清心散
+desc: "清除减益和延时"
+price: 30 # 14.2 集市基价（浮动前）

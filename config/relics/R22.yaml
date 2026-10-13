@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R22
+name: 血诏
+rarity: E
+desc: "体力上限 +1"

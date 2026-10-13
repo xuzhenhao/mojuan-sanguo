@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R19
+name: 反间书
+rarity: R
+desc: "无懈结算后摸 1"

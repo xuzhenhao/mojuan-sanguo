@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R21
+name: 黄巾符
+rarity: N
+desc: "第 1 章敌 HP −1"

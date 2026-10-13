@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R01
+name: 墨灵笔
+rarity: R
+desc: "灵光 +5%"

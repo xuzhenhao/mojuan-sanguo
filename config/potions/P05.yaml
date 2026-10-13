@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/potion.schema.json
+id: P05
+name: 透视粉
+desc: "显示下下个意图"
+price: 30 # 14.2 集市基价（浮动前）

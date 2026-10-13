@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=../schema/relic.schema.json
+id: R08
+name: 铜雀台瓦
+rarity: E
+desc: "手牌上限 +2"
