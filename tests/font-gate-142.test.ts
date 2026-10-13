@@ -52,7 +52,8 @@ describe('#142 霞鹜文楷加载门控', () => {
   });
   it('entry 首帧挂在字体门控后；调试页也加载 Brush', () => {
     const entry = readFileSync(join(__dirname, '../src/platform/web/entry.ts'), 'utf8');
-    expect(entry).toMatch(/fontsReady\.then\(\(\) => engine\.start\(\)\)/);
+    expect(entry).toMatch(/engine\.holdFramesUntil\(fontsReady\)/);
+    expect(entry).toMatch(/framesReleased\.then\(\(\) => engine\.start\(\)\)/);
     expect(entry).not.toMatch(/^engine\.start\(\);/m);
     const dbg = readFileSync(join(__dirname, '../src/platform/web/debug/main.ts'), 'utf8');
     expect(dbg).toMatch(/loadBrushFonts\(/);

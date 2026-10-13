@@ -98,6 +98,7 @@ const fontsReady = loadBrushFonts(
   { core: wenkaiCoreUrl, ext: wenkaiExtUrl },
   () => engine.invalidateAll(),
 );
+const framesReleased = engine.holdFramesUntil(fontsReady);
 // P3 地图（#44）：局种子取点将出征时 core 建局的种子
 engine.scenes.register('map', () =>
   createMapScene(
@@ -208,7 +209,7 @@ const seed = Number(query.seed);
 if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
 else void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined).then(checkResume);
 // #142：首帧等霞鹜文楷 core 就绪（最多 FONT_GATE_TIMEOUT_MS），避免先用浏览器默认字体画字
-void fontsReady.then(() => engine.start());
+void framesReleased.then(() => engine.start());
 // 调试：?toast=2 同时弹两条提示（看堆叠样式）；?toast=1 弹一条；?version=1 弹 §21.4 确认框
 if (query.toast) {
   const n = Number(query.toast) || 1;
