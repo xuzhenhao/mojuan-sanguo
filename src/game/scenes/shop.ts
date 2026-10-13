@@ -14,6 +14,7 @@ import type { Scene, SceneContext } from '../../engine/scene';
 import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { Rect, Vec2 } from '../../engine/types';
 import { inside } from '../overlays/theme';
+import { drawInlineIcon, ICON_ADV } from '../overlays/glyphs';
 import { cardDetail, LongPressDetail, type DetailContent } from '../overlays/detail';
 import { canRemove, type Inventory } from '../economy/inventory';
 import { relicDef } from '../economy/pools';
@@ -425,7 +426,8 @@ export function pickDeckCard(env: Env, w: number, h: number, inv: Inventory, tit
         paintCard(c, card);
         g.restore?.();
         c.globalAlpha = ga;
-        if (card.mods.length) label(c, '◆'.repeat(card.mods.length), r.x + r.w - 4, r.y + r.h - 4, SANS(10), T.gold, 'right');
+        // ◆ 词条标记画矢量（右对齐，逐个向左排）
+        for (let k = 0; k < card.mods.length; k++) drawInlineIcon(c, 'gem', r.x + r.w - 4 - 10 * ICON_ADV * (k + 0.5), r.y + r.h - 4, 10, T.gold, T.ink);
         const tg = ok(card) ? o.tag?.(card) : null;
         if (tg) {
           c.fillStyle = T.gold;

@@ -34,6 +34,7 @@ import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { Rect } from '../../engine/types';
 import type { Inventory } from '../economy/inventory';
 import { inside, wrap } from '../overlays/theme';
+import { drawInlineIcon } from '../overlays/glyphs';
 import type { RestRouteParams } from '../map/route';
 import {
   BAR_H,
@@ -336,7 +337,9 @@ export class RestScene implements Scene<RestParams> {
     const cx = r.x + r.w / 2;
     const color = a === 'heal' ? T.jadeHi : a === 'temper' ? T.gold : T.dmg;
     circle(c, cx, y + 51, 33, T.lac1, a === 'burn' && this.env.wx ? T.goldLo : T.gold, 2);
-    label(c, a === 'heal' ? '♥' : a === 'temper' ? '火' : '焚', cx, y + 63, BRUSH(30), color, 'center');
+    // ♥ 画矢量（Brush 无字形，系统字体可能出彩色 emoji）
+    if (a === 'heal') drawInlineIcon(c, 'suit_H', cx, y + 63, 30, T.cinnHi, T.ink);
+    else label(c, a === 'temper' ? '火' : '焚', cx, y + 63, BRUSH(30), color, 'center');
     label(c, a === 'heal' ? '疗伤' : a === 'temper' ? '淬炼' : '焚稿', cx, y + 124, BRUSH(26), T.gold, 'center');
     const v = a === 'heal' ? `+${this.healAmount()}` : a === 'temper' ? '+词条' : '−1';
     label(c, v, cx, y + 156, a === 'temper' ? BRUSH(16) : SANS(15), color, 'center');

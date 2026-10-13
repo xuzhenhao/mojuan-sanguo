@@ -5,7 +5,7 @@
  */
 import { battleTitle, enemyShortName, titleName } from './title';
 import { openEpiphany } from '../../overlays/epiphany';
-import { drawVecGlyph } from '../../overlays/glyphs';
+import { drawInlineIcon, drawVecGlyph } from '../../overlays/glyphs';
 import { EPIPHANY } from '../../../data/affixes';
 import { CARDS } from '../../../data/cards';
 import {
@@ -1078,7 +1078,10 @@ export class BattleScene implements Scene<BattleParams> {
     frame(ctx, ir, lethal ? C.cinnGlow : C.gold, lethal ? 1.5 : 1);
     const defOnly = it.dmg === 0 && it.acts.includes('闪');
     const icon = intentIcon(it.dmg, defOnly);
-    text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: it.dmg > 0 ? C.dmg : defOnly ? C.defIntent : C.gold, align: 'center' });
+    // ⚔ / ✦ 画矢量（系统字符在 iOS 可能渲染成彩色 emoji）；中线对齐 → 基线 = 中线 + 0.4 × 字号
+    if (icon === '⚔') drawInlineIcon(ctx, 'sword', ir.x + 13, ir.y + 14 + 15 * 0.4, 15, C.cinnHi, C.ink);
+    else if (icon === '✦') drawInlineIcon(ctx, 'spark', ir.x + 13, ir.y + 14 + 15 * 0.4, 15, C.gold, C.ink);
+    else text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: C.defIntent, align: 'center' });
     text(ctx, it.dmg > 0 ? String(it.dmg) : defOnly ? `${it.acts.filter((x) => x === '闪').length}` : '?', ir.x + 34, ir.y + 14, {
       size: 16,
       color: C.paper,
