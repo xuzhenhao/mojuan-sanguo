@@ -14,6 +14,35 @@
 .adb{position:absolute;margin-top:150px;font-size:12px;display:flex;align-items:center;gap:3px;color:var(--gold)}.adb svg{width:16px;height:16px;fill:var(--gold)}
 .bar .btn{margin-left:auto}.adb{display:none}body.wx .adb{display:flex}body.wx #burn{opacity:.7}body.wx #burn .orb{box-shadow:0 0 0 2px var(--gold-lo),0 0 0 5px var(--lac-3)}
 .hint{display:none;position:absolute;left:246px;top:566px;width:132px;padding:8px;font-size:11px;line-height:1.4;color:var(--paper);z-index:5}body.wx .hint{display:block}.hint::before{content:"";position:absolute;left:50%;top:-7px;border:7px solid transparent;border-bottom-color:var(--gold-lo);border-top:0;margin-left:-7px}
+
+/* ---- 营地子状态（#burn #temper #confirm #replace #result #done；render-spec §8.7） ---- */
+.scrim{position:absolute;inset:-2000px;background:rgba(5,2,1,.88);z-index:0}.scrim.l{background:rgba(5,2,1,.72)}
+.st{position:absolute;left:0;top:0;width:390px;height:844px;z-index:21;display:none}
+.st h2{position:absolute;left:0;right:0;top:92px;margin:0;text-align:center;font-family:Brush;font-weight:normal;font-size:24px;color:var(--gold);text-shadow:0 2px 6px #000}
+.st .sub{position:absolute;left:0;right:0;top:126px;text-align:center;font-size:12px;color:var(--paper-3)}
+.grid{position:absolute;left:19px;top:150px;width:352px;display:grid;grid-template-columns:repeat(5,64px);gap:8px}
+.grid .card{width:64px;height:92px;padding:3px}.grid .card .cn{font-size:16px}.grid .card .su{top:24px;font-size:10px;line-height:10px}.grid .card .c{display:none}
+.grid .card.off{opacity:.35;filter:grayscale(.6)}
+.grid .tag{position:absolute;right:-4px;top:-6px;z-index:4;padding:1px 4px;font-size:10px;line-height:14px;color:var(--ink);background:linear-gradient(var(--gold-hi),var(--gold-mid));border-radius:2px;box-shadow:0 0 0 1px #2a1a08}
+.grid .gems{position:absolute;right:4px;bottom:22px;z-index:4;font-size:9px;color:var(--gold);text-shadow:0 1px 1px #000}
+.st .cancel{position:absolute;left:145px;top:716px;width:100px}
+.dlg{position:absolute;z-index:1;left:35px;width:320px;padding:22px 24px 20px;box-sizing:border-box;text-align:center}
+.dlg h3{margin:0 0 14px;font-family:Brush;font-weight:normal;font-size:24px;color:var(--gold)}
+.dlg .pv{display:flex;justify-content:center;margin-bottom:14px}
+.dlg .af{font-family:Brush;font-size:20px;color:var(--gold-hi)}.dlg .af small{font-family:sans-serif;font-size:11px;color:var(--paper-3);margin-left:6px}
+.dlg .ad{font-size:13px;line-height:1.5;color:var(--paper);margin:6px 0 16px}
+.dlg .row{display:flex;gap:12px;justify-content:center}.dlg .row .btn{flex:1;padding:0}
+.dlg .rep{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}.dlg .rep .btn{font-size:17px}.dlg .rep .btn.on{box-shadow:0 0 0 2px var(--gold-hi),0 0 14px 4px rgba(233,200,119,.6),0 6px 12px #000}
+.dlg .note{font-size:11px;color:var(--paper-3);margin-top:10px}
+.res{position:absolute;z-index:1;left:0;right:0;top:230px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.res .halo{position:absolute;top:-70px;width:320px;height:320px;background:radial-gradient(circle,rgba(244,220,154,.55),rgba(233,200,119,.18) 40%,transparent 65%);animation:pulse 1.6s ease-in-out infinite}
+.res .card{animation:float 2.2s ease-in-out infinite;box-shadow:0 0 22px 6px rgba(233,200,119,.7),0 10px 20px #000}
+.res .ln{font-family:Brush;font-size:22px;color:var(--gold);text-shadow:0 2px 6px #000;z-index:1}.res .tip{font-size:12px;color:var(--paper-3);z-index:1}
+@keyframes float{50%{transform:translateY(-8px)}}@keyframes pulse{50%{opacity:.6}}
+body.burn #s-grid,body.temper #s-grid,body.confirm #s-confirm,body.replace #s-replace,body.result #s-result{display:block}
+body.done .op{opacity:.4;filter:grayscale(.7);pointer-events:none;box-shadow:none;transform:none}body.done .op.did{opacity:1;filter:none}
+body.done #okb{opacity:.4;filter:grayscale(.8)}
+body.done .donel{display:block}.donel{display:none;position:absolute;left:24px;right:24px;top:584px;height:44px;line-height:44px;text-align:center;font-size:14px;color:var(--paper)}
 </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
  <filter id="brush" x="-10%" y="-10%" width="120%" height="120%">
@@ -156,7 +185,9 @@
  <div class="op panel" id="burn"><div class="orb"><svg style="fill:#ff8a73"><use href="#i-trash"/></svg></div><b>焚稿</b><span class="v"><svg style="fill:#ff8a73"><use href="#i-deck"/></svg><span class="num">−1</span></span><span class="adb wx"><svg><use href="#i-ad"/></svg>解锁</span></div>
 </div>
 <div class="hint panel">看一段视频即可获得，不看也不影响进度</div>
-<div class="bar"><div class="ico"><svg><use href="#i-deck"/></svg></div><span class="num" style="font-size:14px">14</span><div class="btn ok sm">确定</div></div>
+<div class="bar"><div class="ico"><svg><use href="#i-deck"/></svg></div><span class="num" style="font-size:14px">14</span><div class="btn sec sm" id="leave">离开</div><div class="btn ok sm" id="okb" style="margin-left:0">确定</div></div>
+<div class="donel panel">「杀」已淬炼：锋锐（下次出杀伤害 +1）</div>
+<div id="sub"></div>
 </div><script>const use=(id,cls='')=>`<svg class="${cls}"><use href="#${id}"/></svg>`;
 const red=s=>s=='♥'||s=='♦';
 const card=(c,cls='')=>`<div class="card ${c.k} ${c.r||'N'} ${c.mo?'moc':''} ${cls}"><div class="in"><div class="art">${use(c.i)}</div><div class="cn">${c.n}</div></div><span class="c num">${c.c}</span><span class="su ${red(c.s)?'r':''}">${c.s}<br><span class="num">${c.p}</span></span><span class="rar"></span>${c.mo?'<span class="mo"><span>墨</span></span>':''}</div>`;
@@ -165,4 +196,23 @@ const HEROES=[{n:'吕布',f:'qun',fa:'群',hp:9,s:'boss'},{n:'貂蝉',f:'qun',fa
 function longpress(el,fn){let t;el.addEventListener('pointerdown',()=>{t=setTimeout(fn,420)});['pointerup','pointerleave'].forEach(v=>el.addEventListener(v,()=>clearTimeout(t)));}
 
 document.querySelector('.hp').innerHTML=Array.from({length:8},(_,k)=>`<i class="bead ${k<4?'':k<6?'p':'e'}"></i>`).join('');
-document.querySelectorAll('.op').forEach(o=>o.onclick=()=>{document.querySelectorAll('.op').forEach(x=>x.classList.remove('sel'));o.classList.add('sel')});if(location.hash=='#wx')document.body.classList.add('wx');</script></body></html>
+document.querySelectorAll('.op').forEach(o=>o.onclick=()=>{document.querySelectorAll('.op').forEach(x=>x.classList.remove('sel'));o.classList.add('sel')});if(location.hash=='#wx')document.body.classList.add('wx');
+
+/* 营地子状态：grid 与焚稿共用；满 2 条可替换，池空才置灰 */
+const DECK=[{k:'atk',i:'i-spear',n:'杀',s:'♠',p:7,c:1,m:2},{k:'atk',i:'i-spear',n:'杀',s:'♣',p:8,c:1},{k:'atk',i:'i-spear',n:'杀',s:'♥',p:10,c:1,m:1},{k:'def',i:'i-dodge',n:'闪',s:'♥',p:2,c:0},{k:'def',i:'i-dodge',n:'闪',s:'♦',p:2,c:0,m:2},{k:'def',i:'i-dodge',n:'闪',s:'♣',p:2,c:0},{k:'heal',i:'i-peach',n:'桃',s:'♥',p:3,c:1},{k:'skill',i:'i-scroll',n:'无中',s:'♥',p:7,c:1,x:1},{k:'skill',i:'i-scroll',n:'以逸',s:'♦',p:4,c:1,x:1},{k:'atk',i:'i-spear',n:'冲阵',s:'♠',p:5,c:1},{k:'skill',i:'i-scroll',n:'义勇',s:'♣',p:6,c:1},{k:'skill',i:'i-wine',n:'酒',s:'♣',p:9,c:0}];
+const H=location.hash.slice(1),sub=document.getElementById('sub'),scr=c=>`<div class="scrim ${c||''}"></div>`;
+const temper=H!='burn';
+sub.innerHTML=`<div class="st" id="s-grid">${scr()}<div style="position:relative;z-index:1"><h2>${temper?'淬炼·择一':'焚稿·删一张牌'}</h2><div class="sub">${temper?'随机获得 1 条 N/R 词条 · 每张牌最多 2 条（满 2 条可替换）':'删后至少 8 张，且至少保留 1 张杀类'}</div>
+<div class="grid">${DECK.map(c=>{const off=temper&&c.x;const full=temper&&c.m==2;return `<div style="position:relative">${card({...c,r:'N'},off?'off':'')}${c.m?`<span class="gems">${'◆'.repeat(c.m)}</span>`:''}${full?'<span class="tag">可替换</span>':''}</div>`}).join('')}</div>
+<div class="btn sec sm cancel">取消</div></div></div>
+<div class="st" id="s-confirm">${scr('l')}<div class="dlg panel" style="top:250px"><h3>淬炼</h3><div class="pv">${card({k:'atk',i:'i-spear',n:'杀',s:'♣',p:8,c:1,r:'N'},'big')}</div>
+<div class="af">锋锐<small>N</small></div><div class="ad">下次打出此杀，伤害 +1</div><div class="row"><div class="btn">淬炼</div><div class="btn sec">再想想</div></div></div></div>
+<div class="st" id="s-replace">${scr('l')}<div class="dlg panel" style="top:170px"><h3>淬炼 · 替换</h3><div class="pv">${card({k:'atk',i:'i-spear',n:'杀',s:'♠',p:7,c:1,r:'N'},'big')}</div>
+<div class="af">新词条：烈刃<small>R</small></div><div class="ad">此杀不可被闪抵消一次<br><span style="color:var(--paper-3);font-size:12px">此牌已有 2 条词条，选择要替换的一条</span></div>
+<div class="rep"><div class="btn sec on">替换「锋锐」<span style="font-size:12px;font-family:sans-serif">伤害 +1</span></div><div class="btn sec">替换「连环」<span style="font-size:12px;font-family:sans-serif">命中后摸 1</span></div></div>
+<div class="row"><div class="btn">淬炼</div><div class="btn sec">放弃</div></div><div class="note">放弃也算本次营地已行动</div></div></div>
+<div class="st" id="s-result">${scr('l')}<div class="res"><div class="halo"></div>${card({k:'atk',i:'i-spear',n:'杀',s:'♣',p:8,c:1,r:'N'},'big')}<div class="ln">已淬炼：锋锐</div><div class="tip">点击任意处关闭</div></div></div>`;
+if(H)document.body.classList.add(H);
+if(H=='done'){document.querySelectorAll('.op').forEach((o,k)=>{o.classList.remove('sel');if(k==1)o.classList.add('did')});}
+document.getElementById('s-result').onclick=()=>{location.hash='done';location.reload()};
+</script></body></html>
