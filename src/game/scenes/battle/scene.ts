@@ -45,6 +45,8 @@ export interface BattleDeps {
   paused?(): boolean;
   responseSeconds?: number;
   autoShan?: boolean;
+  /** 本局点将结果：地图进战斗的 params 不带主副将时用它（否则回落默认武将） */
+  heroes?(): { main: string; sub: string } | null | undefined;
   /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
   debugDefaults?: boolean;
   warn?(msg: string): void;
@@ -130,7 +132,8 @@ export class BattleScene implements Scene<BattleParams> {
       this.g = p.game;
       this.g.io = this.io;
     } else {
-      this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main, sub: p.sub });
+      const hs = this.deps.heroes?.();
+      this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main ?? hs?.main, sub: p.sub ?? hs?.sub });
       this.snap = this.snapshot();
       this.g.startBattle();
     }

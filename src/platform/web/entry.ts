@@ -101,6 +101,7 @@ engine.scenes.register('map', () =>
     (e, p) => void router.send(e, p),
     undefined,
     () => run.params?.seed,
+    () => run.params,
   ),
 );
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
@@ -118,6 +119,7 @@ engine.scenes.register(
       debugDefaults: import.meta.env.MODE === 'debug',
       warn: (m) => platform.warn(m),
       onEnd: (win) => send({ type: 'battle_end', win }),
+      heroes: () => run.params,
     }),
 );
 const router = new Router(flow, engine.scenes);
