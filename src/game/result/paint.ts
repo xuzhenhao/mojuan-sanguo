@@ -1,4 +1,5 @@
 /** 结算页与续玩弹窗共用的 B 金漆屏风绘制件（render-spec §1 色板、§3.8 按钮、§3.9 面板） */
+import { markHit } from '../../engine/hit';
 import type { Ctx2DLike, Rect } from '../../engine/types';
 import { ext, frame, textWidth } from '../overlays/theme';
 
@@ -44,6 +45,7 @@ export function panel(c: Ctx2DLike, r: Rect, alpha = 0.94) {
 
 /** 按钮（render-spec §3.8：高 44，热区 ≥44） */
 export function button(c: Ctx2DLike, r: Rect, label: string, kind: BtnKind, disabled = false) {
+  markHit(r);
   c.globalAlpha = disabled ? 0.45 : 1;
   c.fillStyle = BTN_FILL[kind];
   c.fillRect(r.x, r.y, r.w, r.h);

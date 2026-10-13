@@ -3,6 +3,7 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
+import { hitInside } from '../../../engine/hit';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -60,7 +61,7 @@ export interface BattleDeps {
   warn?(msg: string): void;
 }
 
-const inside = (r: Rect, p: Vec2) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
 
 export class BattleScene implements Scene<BattleParams> {
   readonly id = 'battle';
@@ -781,7 +782,20 @@ export class BattleScene implements Scene<BattleParams> {
     return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
   }
 
-  /** 金漆屏风（#130，render-spec §8.8.1），替换原 6 层同心色块占位 */
+  /**
+   * 金山影矩形（#118 测试用）：全部在 0…W 内。
+   * #130 起屏风（screen.ts）自带描金山影，drawBg 不再画这组矩形，避免山影画两遍；保留为 #118 的出框回归基准。
+   */
+  mountainRects(): Rect[] {
+    const w = this.W;
+    return Array.from({ length: 5 }, (_, i) => {
+      const x0 = Math.max(0, i * (w / 5) - 10);
+      const x1 = Math.min(w, i * (w / 5) + w / 5 + 20);
+      return { x: x0, y: 150 + (i % 2) * 30, w: x1 - x0, h: 220 };
+    });
+  }
+
+  /** 金漆屏风（#130，render-spec §8.8.1），替换原 6 层同心色块占位与矩形山影 */
   drawBg(ctx: Ctx2DLike) {
     drawScreenBg(ctx, this.W, this.H);
   }
