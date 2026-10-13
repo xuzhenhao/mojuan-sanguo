@@ -160,3 +160,42 @@ describe('#122 PR2：战斗中途刷新回到开打前快照（地图 → 战斗
     expect(store.writes).not.toContain(LEGACY_RUN_SAVE_KEY);
   });
 });
+
+describe('#122 PR2：战斗失败「结束本局」', () => {
+  it('失败（游戏代码尚无复活机制）：存档标记 ended，pendingNode 清空；刷新读档不再重进战斗', () => {
+    const run = mapRun();
+    run.store = store;
+    run.start({ main: 'H03', sub: 'H04', seed: 41 });
+    const s = mapSession(fakeEngine(), 1, 41, { main: 'H03', sub: 'H04' });
+    const id = s.available.find((x) => s.node(x)!.type === 'BATTLE')!;
+    s.enter(id);
+    const g = run.buildBattle(NULL_IO, node(id));
+    g.p.hp = 0;
+    run.settleBattle(false);
+    run.endRun(store);
+    const saved = JSON.parse(store.m.get(RUN_STATE_KEY)!);
+    expect(saved.ended).toEqual({ reason: 'defeat', nodeId: id });
+    expect([saved.pendingNode, saved.hp]).toEqual([null, 0]);
+    const run2 = new RunSession();
+    const r = run2.load(store);
+    expect(r.ok && r.notice).toBe(null); // 不提示「已回到本场战斗开打前」
+    expect(run2.ended).toEqual({ reason: 'defeat', nodeId: id });
+    expect(run2.inNode).toBeNull();
+  });
+});
+
+describe('#122 PR2：同 seed 换武将重建起始牌组', () => {
+  it('赵云+刘备 → 吕布+陆逊：牌组 = 吕布起始牌，uid 不复用', async () => {
+    const { starterDeck } = await import('../src/data/cards');
+    const a = mapSession(fakeEngine(), 1, 51, { main: 'H03', sub: 'H04' });
+    a.save();
+    const old = mapRun().state.deck.map((c) => c.uid);
+    mapSession(fakeEngine(), 1, 51, { main: 'H01', sub: 'H08' });
+    const st = mapRun().state;
+    expect([st.heroMain, st.heroSub]).toEqual(['H01', 'H08']);
+    expect(st.deck.map((c) => [c.id, c.suit, c.rank])).toEqual(starterDeck('H01').map(([id, suit, rank]) => [id, suit, rank]));
+    expect(starterDeck('H01')).not.toEqual(starterDeck('H03'));
+    expect(st.deck.some((c) => old.includes(c.uid))).toBe(false);
+    expect(JSON.parse(store.m.get(RUN_STATE_KEY)!).deck).toHaveLength(starterDeck('H01').length);
+  });
+});

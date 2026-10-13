@@ -11,7 +11,8 @@ import { MapScene } from './scene';
 import { MapSession, type HudInfo, type MapPersist } from './session';
 import { runSaveStore, type RunSave } from '../../core/run/save';
 import { RunSession } from '../run';
-import type { RunState, RunStateStore } from '../run/state';
+import { allocCardUid, type RunState, type RunStateStore } from '../run/state';
+import { starterDeck } from '../../data/cards';
 
 let session: MapSession | null = null;
 
@@ -85,8 +86,11 @@ export function runPersist(): MapPersist {
         d.map = v.mapState;
         d.encounters = v.encounters;
         d.chapter = v.chapter;
+        const changed = (!!v.heroMain && v.heroMain !== d.heroMain) || (!!v.heroSub && v.heroSub !== d.heroSub);
         if (v.heroMain) d.heroMain = v.heroMain;
         if (v.heroSub) d.heroSub = v.heroSub;
+        // 同 seed 换武将：牌组按新主将重建起始牌（新 uid 取 nextUid），不沿用旧武将的牌
+        if (changed && !fresh) d.deck = starterDeck(d.heroMain).map(([id, suit, rank]) => ({ uid: allocCardUid(d), id, suit, rank, mods: [] }));
         d.hp = v.hp;
         d.maxHp = v.maxHp;
         if (!fresh) d.gold = v.gold;
