@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V14
+title: 铜雀演出
+art: event/v14
+desc: 台上舞袖翻飞，一曲终了，满座无声。
+chapters: [1]
+enabled: true
+options:
+  - text: 观赏
+    hint: 貂蝉在队得专属牌，否则得 40 铜钱
+    resultSuccess: "貂蝉若有所思，获得「{card}」。"
+    resultFail: 打赏如雨，你也分得 40 铜钱。
+    outcomes:
+      - { type: branch, if: { type: hero_is, hero: H02 }, then: [{ type: add_card, pool: { hero: H02 } }], else: [{ type: gold, value: 40 }] }

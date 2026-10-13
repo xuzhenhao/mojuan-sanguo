@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V19
+title: 驿站
+art: event/v19
+desc: 驿卒迎上前来：「将军赶路辛苦，歇一晚吧。」
+chapters: [1]
+enabled: true
+options:
+  - { text: 歇一晚, hint: 免费回 2 体力, result: 回复 2 点体力。, requires: [{ type: hp_below_max }], outcomes: [{ type: heal, value: 2 }] }
+  - { text: 包上房, hint: 花 60 铜钱回满, result: 体力回满。, requires: [{ type: gold_at_least, value: 60 }, { type: hp_below_max }], outcomes: [{ type: gold, value: -60 }, { type: heal, value: full }] }
+  - { text: 离开, result: 你没有停留。, outcomes: [{ type: leave }] }

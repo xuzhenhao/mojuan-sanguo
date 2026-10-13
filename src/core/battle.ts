@@ -333,6 +333,8 @@ export class Game {
   }
 
   // ---------- 流程 ----------
+  /** 本场开场额外护甲（V13 收编，#91）：battle_start 之后叠加，开场护甲总上限 4（PRD 开场护甲规则） */
+  startArmorBonus = 0;
   startBattle() {
     this.draw = shuffle(this.rng, this.deckMaster.slice());
     this.discard = [];
@@ -349,6 +351,7 @@ export class Game {
     this.en = this.battle.en.map((id) => this.spawnEnemy(id));
     this.log(`—— 第${this.battleIdx + 1}战：${this.battle.name} ——`);
     this.effects.emitSync('battle_start', this.effects.playerSources());
+    if (this.startArmorBonus > 0) this.p.armor = Math.min(this.p.armor + this.startArmorBonus, Math.max(this.p.armor, 4));
     this.playerTurn();
   }
   playerTurn() {

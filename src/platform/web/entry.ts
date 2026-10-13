@@ -18,6 +18,8 @@ import { bindMapRun, createMapScene, mapSession } from '../../game/map';
 import { CONFIG_VERSION, noticeText } from '../../game/run/state';
 import { NOTICE_TOP, NOTICE_TOP_DEFAULT, setNoticeTop, showNotice } from '../../game/overlays/notice';
 import { registerP4 } from '../../game/scenes/p4-register';
+import { drawEventEasy } from '../../game/event/logic';
+import { poolsOf } from '../../data/map';
 import { createWebPlatform, paintPaperBackdrop, showStatusBar } from './platform';
 import { DESIGN_RECT } from '../../engine/viewport';
 import { ResultScene } from '../../game/result/scene';
@@ -115,7 +117,24 @@ engine.scenes.register('map', () =>
   ),
 );
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
-const economy = registerP4({ engine, query, safe: designSafe, send, run });
+const economy = registerP4({ engine, query, safe: designSafe, send, run, eventBattle });
+/**
+ * 奇遇进战斗（#91 V13 剿灭 / 事件池抽空）：easy 池独立抽组包写到该奇遇节点，倍率进 RunState，
+ * 以 BATTLE 类型重新进节点（新快照：刷新重打同一组包），再路由战斗页。
+ */
+function eventBattle(goldMult: number) {
+  const pend = run.inNode;
+  if (!run.active || !pend) return send({ type: 'event_battle' });
+  const st = run.state;
+  const { encounterId, group } = drawEventEasy(st.runSeed, st.chapter, pend.id, poolsOf(st.chapter));
+  run.update((d) => {
+    const n = d.map?.nodes.find((x) => x.id === pend.id);
+    if (n) n.encounterId = encounterId;
+    if (goldMult > 1) d.eventGoldMult = goldMult;
+  });
+  run.enterNode({ id: pend.id, type: 'BATTLE' }, platform.storage);
+  void router.send({ type: 'event_battle' }, { nodeId: pend.id, nodeType: 'BATTLE', encounterName: group.name, enemies: group.enemies });
+}
 // P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）
 let battleScene: BattleScene | null = null;
 engine.scenes.register(
@@ -292,6 +311,7 @@ async function resumeRun() {
     await go('reward', { kind: t === 'BOSS' ? 'boss' : t === 'ELITE' ? 'elite' : 'normal' });
   } else if (pend?.type === 'SHOP') await go('shop', { kind: 'shop' });
   else if (pend?.type === 'CHEST') await go('chest', { kind: 'chest' });
+  else if (pend?.type === 'EVENT') await go('event', { kind: 'event', nodeId: pend.id });
   else if (pend?.type === 'REST') {
     const n = st.map?.nodes.find((x) => x.id === pend.id);
     await go('rest', { kind: 'rest', nodeId: pend.id, layer: n?.layer, fixed: n?.layer === 8 });

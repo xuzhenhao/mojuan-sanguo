@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V09
+title: 华佗诊所
+art: event/v09
+desc: 草堂药香扑鼻，一位老者正在磨刀：「刮骨，敢否？」
+chapters: [1]
+enabled: true
+options:
+  - { text: 刮骨疗毒, hint: 体力上限 −1，再回满, result: 体力上限 −1，体力回满。, requires: [{ type: max_hp_at_least, value: 2 }], outcomes: [{ type: max_hp, value: -1 }, { type: heal, value: full }] }
+  - { text: 抓药, hint: 花 40 铜钱回 3 体力, result: 回复 3 点体力。, requires: [{ type: gold_at_least, value: 40 }, { type: hp_below_max }], outcomes: [{ type: gold, value: -40 }, { type: heal, value: 3 }] }
+  - { text: 离开, result: 你没有停留。, outcomes: [{ type: leave }] }

@@ -15,6 +15,7 @@ export interface Built {
   enemies: Record<string, any>;
   encounters: Record<string, any>;
   decks: Record<string, any>;
+  events: Record<string, any>;
 }
 
 const ICONS: string[] = iconSchema.enum;
@@ -26,6 +27,7 @@ const SCHEMA_OF: Record<string, string> = {
   enemies: 'enemy',
   encounters: 'encounter',
   decks: 'deck',
+  events: 'event',
 };
 const AFFIX_ORDER = ['sha', 'shan', 'tao', 'jiu', 'trick', 'equip'];
 
@@ -59,7 +61,7 @@ export function loadConfig(root: string): { config: Built; errors: string[] } {
     }
   };
 
-  const config: Built = { rules: {}, cards: {}, affixes: [], heroes: {}, enemies: {}, encounters: {}, decks: {} };
+  const config: Built = { rules: {}, cards: {}, affixes: [], heroes: {}, enemies: {}, encounters: {}, decks: {}, events: {} };
   const rulesFile = join(root, 'rules.yaml');
   config.rules = read(rulesFile) ?? {};
   check('rules', config.rules, 'rules.yaml');
@@ -159,6 +161,24 @@ export function businessChecks(c: Built): string[] {
       const draws = card_.abilities.some((a: any) => a.trigger.when === 'play' && a.do.some((x: any) => x.do === 'draw') && !a.limit);
       if (draws) errs.push(`cards/${card_.id}: 0 费摸牌牌必须设置 limit（M4）`);
     }
+  }
+  // 奇遇（#91）：引用的卡牌 / 武将必须存在；每个事件至少一个无条件选项（不会卡住）
+  for (const ev of Object.values<any>(c.events)) {
+    const walkO = (xs: any[] = []) => {
+      for (const o of xs) {
+        if (o.card) card(o.card, `events/${ev.id}`);
+        if (o.pool?.hero && !c.heroes[o.pool.hero]) errs.push(`events/${ev.id}: 专属池武将 ${o.pool.hero} 不存在`);
+        if (o.if?.type === 'hero_is' && !c.heroes[o.if.hero]) errs.push(`events/${ev.id}: 条件武将 ${o.if.hero} 不存在`);
+        walkO(o.success);
+        walkO(o.fail);
+        walkO(o.red);
+        walkO(o.black);
+        walkO(o.then);
+        walkO(o.else);
+      }
+    };
+    for (const op of ev.options) walkO(op.outcomes);
+    if (!ev.options.some((op: any) => !op.requires?.length)) errs.push(`events/${ev.id}: 至少要有一个无条件选项`);
   }
   for (const a of c.affixes) if (a.only) card(a.only, `affixes/${a.id}.only`);
   for (const e of Object.values(c.enemies)) {

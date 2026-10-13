@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V13
+title: 叛军劝降
+art: event/v13
+desc: 一队黄巾残兵拦住去路，头目犹豫：「降，还是打？」
+chapters: [1]
+enabled: true
+options:
+  - { text: 收编, hint: 下一场战斗开场 3 护甲, result: 下一场战斗开场获得 3 点护甲。, outcomes: [{ type: next_battle_buff, armor: 3 }] }
+  - { text: 剿灭, hint: 立刻打一场简单战斗，铜钱 ×2, result: 进入战斗，铜钱奖励翻倍。, outcomes: [{ type: battle, difficulty: easy, reward_mult: { gold: 2 } }] }

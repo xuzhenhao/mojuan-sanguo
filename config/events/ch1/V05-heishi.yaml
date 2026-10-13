@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V05
+title: 黑市
+art: event/v05
+desc: 巷尾灯影昏暗，摊主低声道：「收旧货，也卖好货。」
+chapters: [1]
+enabled: true
+options:
+  - { text: 卖一张牌, hint: 删 1 张牌，得 30 铜钱, result: "卖出「{removed}」，得 30 铜钱。", requires: [{ type: deck_removable }], outcomes: [{ type: remove_card, count: 1 }, { type: gold, value: 30 }] }
+  - { text: 买一张珍品, hint: 花 75 铜钱，得随机 E 牌, result: "获得「{card}」。", requires: [{ type: gold_at_least, value: 75 }], outcomes: [{ type: gold, value: -75 }, { type: add_card, pool: { rarity: E } }] }
+  - { text: 离开, result: 你没有停留。, outcomes: [{ type: leave }] }

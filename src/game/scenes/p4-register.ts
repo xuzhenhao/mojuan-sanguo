@@ -12,6 +12,7 @@ import { RewardScene } from './reward';
 import { ShopScene } from './shop';
 import { ChestScene } from './chest';
 import { RestScene, type RestRun } from './rest';
+import { EventScene, eventRunOf } from './event';
 import { MAP_CONFIG } from '../../data/map';
 import type { Env } from './p4-kit';
 
@@ -20,6 +21,8 @@ export interface P4Deps {
   query: Record<string, string | undefined>;
   safe(): { x: number; y: number; w: number; h: number };
   send(e: FlowEvent): void;
+  /** 奇遇进战斗（#91，入口实现：独立抽 easy 组包、写进节点快照、路由战斗页）；不传则只发 event_battle */
+  eventBattle?(goldMult: number): void;
   /** 本局 RunSession（#122 PR2）：有局时背包 / 经济随机流 / 节点完成都走它；没有局（?page= 直达）用演示背包 */
   run?: RunSession;
 }
@@ -100,8 +103,39 @@ export function registerP4(d: P4Deps) {
         debugState: live() ? undefined : q.rest,
       }),
   );
+  engine.scenes.register(
+    'event',
+    () =>
+      new EventScene({
+        ...env,
+        inventory: inv,
+        rng: () => cur().rng('event'),
+        run: () => eventRunOf(cur() as never),
+        done: done({ type: 'event_done' }),
+        battle: (m) => (live() && d.eventBattle ? d.eventBattle(m) : d.send({ type: 'event_battle' })),
+        // 仅开发构建：?page=event&id=V01（&pick=0 直接看结果页）
+        debugId: import.meta.env.DEV && !live() ? q.id : undefined,
+        debugPick: import.meta.env.DEV && !live() && q.pick !== undefined ? num(q.pick) : undefined,
+      }),
+  );
   const kind = (['normal', 'elite', 'boss'].includes(q.reward ?? '') ? q.reward : 'normal') as BattleKind;
-  engine.scenes.register('reward', () => new RewardScene({ ...env, inventory: inv, rng, done: done({ type: 'reward_done' }), defaultKind: kind }));
+  // V13 剿灭：奖励铜钱倍率取 RunState.eventGoldMult，收入后清除
+  const rewardDone = done({ type: 'reward_done' });
+  engine.scenes.register(
+    'reward',
+    () =>
+      new RewardScene({
+        ...env,
+        inventory: inv,
+        rng,
+        goldMult: () => (live() ? (d.run!.state.eventGoldMult ?? 1) : 1),
+        done: () => {
+          if (live() && d.run!.state.eventGoldMult) d.run!.update((s) => void delete s.eventGoldMult);
+          rewardDone();
+        },
+        defaultKind: kind,
+      }),
+  );
   engine.scenes.register('shop', () => new ShopScene({ ...env, inventory: inv, rng, done: done({ type: 'shop_done' }) }));
   const force = q.chest === 'gold' || q.chest === 'relic' ? q.chest : undefined;
   engine.scenes.register('chest', () => new ChestScene({ ...env, inventory: inv, rng, done: done({ type: 'chest_done' }), force }));

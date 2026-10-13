@@ -118,7 +118,51 @@ export interface ConfigBundle {
   heroes: Record<string, HeroCfg>;
   enemies: Record<string, EnemyCfg>;
   encounters: Record<string, { chapter: number; battles: { name: string; kind?: string; enemies: string[] }[] }>;
+  events: Record<string, EventCfg>;
   decks: Record<string, { id: string; name: string; cards: { card: string; suit: 'S' | 'H' | 'C' | 'D'; rank: number }[] }>;
+}
+
+/** 奇遇事件（config/events，docs/specs/events-v05.md） */
+export interface EventRequire {
+  type: 'gold_at_least' | 'max_hp_at_least' | 'hero_is' | 'deck_removable' | 'hp_below_max';
+  value?: number;
+  hero?: string;
+}
+export interface EventOutcome {
+  type: 'gold' | 'heal' | 'damage' | 'max_hp' | 'add_card' | 'remove_card' | 'roll' | 'judge' | 'next_battle_buff' | 'battle' | 'branch' | 'leave';
+  value?: number | 'full';
+  card?: string;
+  pool?: { rarity?: 'N' | 'R' | 'E' | 'L'; hero?: string };
+  count?: number;
+  chance?: number;
+  success?: EventOutcome[];
+  fail?: EventOutcome[];
+  red?: EventOutcome[];
+  black?: EventOutcome[];
+  armor?: number;
+  difficulty?: 'easy';
+  reward_mult?: { gold?: number };
+  if?: EventRequire;
+  then?: EventOutcome[];
+  else?: EventOutcome[];
+}
+export interface EventOption {
+  text: string;
+  hint?: string;
+  result?: string;
+  resultSuccess?: string;
+  resultFail?: string;
+  requires?: EventRequire[];
+  outcomes: EventOutcome[];
+}
+export interface EventCfg {
+  id: string;
+  title: string;
+  art: string;
+  desc: string;
+  chapters: number[];
+  enabled: boolean;
+  options: EventOption[];
 }
 
 export const CONFIG = raw as unknown as ConfigBundle;

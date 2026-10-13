@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/event.schema.json
+# 文案 / 条件按 docs/specs/events-v05.md §6.2（总策划定稿）；数值按 PRD §13
+id: V06
+title: 古井
+art: event/v06
+desc: 枯井边挂着一只签筒，传说投签问井，可知吉凶。
+chapters: [1]
+enabled: true
+options:
+  - text: 投签问井
+    hint: 红签回 2 体力；黑签失 1 体力（不致死）得 1 张 R 牌
+    resultSuccess: 吉签，回复 2 点体力。
+    resultFail: "凶签，失 1 点体力，井底捞得「{card}」。"
+    outcomes: [{ type: judge, red: [{ type: heal, value: 2 }], black: [{ type: damage, value: 1 }, { type: add_card, pool: { rarity: R } }] }]
+  - { text: 离开, result: 你没有停留。, outcomes: [{ type: leave }] }
