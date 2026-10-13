@@ -15,7 +15,7 @@ import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
 import { bindMapRun, createMapScene, mapSession } from '../../game/map';
 import { CONFIG_VERSION, noticeText } from '../../game/run/state';
-import { showNotice } from '../../game/overlays/notice';
+import { NOTICE_TOP, NOTICE_TOP_DEFAULT, setNoticeTop, showNotice } from '../../game/overlays/notice';
 import { registerP4 } from '../../game/scenes/p4-register';
 import { createWebPlatform, paintPaperBackdrop, showStatusBar } from './platform';
 import { DESIGN_RECT } from '../../engine/viewport';
@@ -43,6 +43,8 @@ run.store = platform.storage;
 bindMapRun(run, platform.storage);
 // 有 core Game 读战斗视图；续玩后（game 未建）由 RunState 推出（奖励 / 事件 / 营地节点都读同一份 state）
 const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : run.view));
+// toast 起点跟随当前页 HUD（不盖 HUD）
+setNoticeTop(() => NOTICE_TOP[flow.page] ?? NOTICE_TOP_DEFAULT);
 const send = (e: FlowEvent) => void router.send(e);
 const pages: Page[] = PAGES;
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));

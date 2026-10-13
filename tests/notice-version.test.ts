@@ -1,7 +1,19 @@
 /** #122 PR3：toast 正式样式 + PRD §21.4 配置版本确认框 */
 import { describe, expect, it } from 'vitest';
 import { OverlayStack } from '../src/engine/modal';
-import { formalNotice, liveNotices, NOTICE_FONT, NOTICE_MS, NOTICE_STYLE, setNoticeRenderer, showNotice } from '../src/game/overlays/notice';
+import {
+  formalNotice,
+  liveNotices,
+  NOTICE_FONT,
+  NOTICE_MAX,
+  NOTICE_MS,
+  NOTICE_STYLE,
+  NOTICE_TOP,
+  noticeRect,
+  setNoticeRenderer,
+  setNoticeTop,
+  showNotice,
+} from '../src/game/overlays/notice';
 import { resumePlan, showVersionDialog, VERSION_TEXT, versionButton } from '../src/game/result/resume';
 import { deserializeRunState, noticeText } from '../src/game/run/state';
 import { RunSession } from '../src/game/run';
@@ -31,14 +43,47 @@ describe('toast 正式样式', () => {
     const o = ov();
     const slots: number[] = [];
     setNoticeRenderer((_s, _t, _time, slot) => slots.push(slot));
-    const before = liveNotices();
     showNotice(o, 'A');
     showNotice(o, 'B');
-    expect(liveNotices() - before).toBe(2);
     o.draw(surface(), 16);
     setNoticeRenderer(null);
-    expect(slots.slice(-2)).toEqual([before, before + 1]);
+    expect(slots.slice(-2)).toEqual([0, 1]);
     expect(NOTICE_STYLE.h + NOTICE_STYLE.gap).toBe(48);
+  });
+});
+
+describe('toast 位置 / 宽度 / 堆叠（UI 验收）', () => {
+  it('起点在 HUD 下边缘 + 8：地图 = 金轴下方 120，战斗 = 顶条下 44，其他默认 64', () => {
+    expect(NOTICE_TOP.map).toBe(120);
+    expect(NOTICE_TOP.map).toBeGreaterThanOrEqual(48 + 50 + 8); // 地图 HUD y48 h50，绝不盖 HUD
+    expect(NOTICE_TOP.battle).toBe(44);
+    setNoticeTop(() => NOTICE_TOP.map);
+    expect(noticeRect(100, 0).y).toBe(120);
+    expect(noticeRect(100, 1).y).toBe(120 + 48);
+    setNoticeTop(null);
+    expect(noticeRect(100, 0).y).toBe(64);
+  });
+  it('宽度按内容自适应：最小 200，最大屏宽 − 48，水平居中', () => {
+    expect(noticeRect(10, 0)).toMatchObject({ w: 200, x: 95 });
+    const mid = noticeRect(200, 0);
+    expect(mid.w).toBe(200 + 44);
+    expect(mid.x * 2 + mid.w).toBe(390);
+    expect(noticeRect(1000, 0)).toMatchObject({ w: 390 - 48, x: 24 });
+    expect(noticeRect(1000, 0, 375).w).toBe(375 - 48);
+  });
+  it('新来的在下面、旧的往上挤；最多 2 条，超出移掉最旧', () => {
+    const o = ov();
+    const seen: string[] = [];
+    setNoticeRenderer((_s, text, _t, slot) => seen.push(`${slot}:${text}`));
+    expect(liveNotices(o)).toBe(0);
+    showNotice(o, 'A');
+    showNotice(o, 'B');
+    showNotice(o, 'C');
+    expect(NOTICE_MAX).toBe(2);
+    expect(liveNotices(o)).toBe(2);
+    o.draw(surface(), 16);
+    setNoticeRenderer(null);
+    expect(seen.sort()).toEqual(['0:B', '1:C']);
   });
 });
 
