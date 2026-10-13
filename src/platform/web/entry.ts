@@ -8,6 +8,7 @@ import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
 import { FlowMachine, PAGES, viewOf, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { triggerDebugRevive, wantDebugRevive } from '../../game/scenes/battle/debug-revive';
+import { triggerDebugEpiphany, wantDebugEpiphany } from '../../game/scenes/battle/debug-epiphany';
 import { BattleScene } from '../../game/scenes/battle/scene';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
@@ -257,6 +258,11 @@ if (query.toast) {
 if (wantDebugRevive(query, import.meta.env.DEV))
   setTimeout(() => {
     if (battleScene?.g) void triggerDebugRevive(battleScene.g);
+  }, 1200);
+const debugEpi = wantDebugEpiphany(query, import.meta.env.DEV);
+if (debugEpi)
+  setTimeout(() => {
+    if (battleScene?.g) void triggerDebugEpiphany(battleScene.g, debugEpi, Number(query.epiN) || undefined);
   }, 1200);
 if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overlays, engine), 800);
 

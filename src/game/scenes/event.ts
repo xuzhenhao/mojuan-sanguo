@@ -6,6 +6,7 @@
  * - V13 剿灭 / 事件池抽空：立刻进 1 场 easy 战斗（env.battle）。
  * - 美术未到：插画区先用纸色底 + 奇遇节点「？」印占位（§6.3-10）。prefers-reduced-motion 时结果不做淡入。
  */
+import { glyphLabel } from '../overlays/glyphs';
 import type { Rng } from '../../core/rng';
 import type { CardInst } from '../../core/types';
 import type { EventCfg } from '../../data/config';
@@ -269,13 +270,12 @@ export class EventScene implements Scene<EventParams> {
       y += 24;
     }
     if (r.judge) {
-      // Brush 子集无 ♣♠♥♦，改用中文花色（不引入回退字体）
-      const suit = SUIT_ZH[r.judge.suit];
-      label(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, SANS(14), r.judge.red ? T.dmg : T.paper, 'center');
+      const suit = SUIT_ZH[r.judge.suit]; // Brush 无 ♠♥♣♦：用中文花色名
+      label(c, `签：${suit}${r.judge.rank}（${r.judge.red ? '红' : '黑'}）`, w / 2, y + 4, SANS(14), r.judge.red ? T.cinnHi : T.paper, 'center');
       y += 26;
     }
     for (const ch of r.changes) {
-      label(c, ch.text, w / 2, y + 6, SANS(15), changeColor(ch), 'center');
+      glyphLabel(c, ch.text, w / 2, y + 6, SANS(15), 15, changeColor(ch), 'center'); // → − 画矢量（Brush 无字形）
       y += 26;
     }
     c.globalAlpha = ga;
@@ -285,17 +285,7 @@ export class EventScene implements Scene<EventParams> {
 /** 情景 / 选项副文案色（与 v3/event.html .desc 一致） */
 const DESC = '#d8c8a0';
 /** Brush 无扑克花色字形，用中文（core+ext 都覆盖） */
-const SUIT_ZH: Record<'S' | 'H' | 'C' | 'D', string> = { S: '黑桃', H: '红桃', C: '梅花', D: '方片' };
-
-/** 结果数值色：得牌 / 上涨 = 金；体力下降 = 朱砂；无绿色 */
-export function changeColor(ch: { kind: string; text: string }): string {
-  if (ch.kind === 'card+') return T.goldHi;
-  if (ch.kind === 'card-') return T.paper;
-  if (ch.kind === 'armor') return T.goldHi;
-  const m = /(\d+)→(\d+)/.exec(ch.text);
-  if (m && Number(m[2]) < Number(m[1])) return T.cinnHi;
-  return T.goldHi;
-}
+export const SUIT_ZH = { S: '黑桃', H: '红桃', C: '梅花', D: '方片' } as const;
 
 /** 正式局读写 RunSession.state（不写盘，completeNode 写） */
 export function eventRunOf(r: {
@@ -340,4 +330,18 @@ export function eventRunOf(r: {
         if (v.eventsSeen) d.eventsSeen = [...v.eventsSeen];
       }) as never),
   };
+}
+
+/**
+ * 结果数值色（UI 验收）：所有收益（得牌 / 数值上涨 / 铜钱增加 / 护甲）= goldHi（选项标题仍是 gold）；
+ * 下降：体力（含上限）朱砂，其余与失去的牌用纸色。
+ */
+export function changeColor(ch: { kind: string; text: string }): string {
+  if (ch.kind === 'card+' || ch.kind === 'armor') return T.goldHi;
+  if (ch.kind === 'card-') return T.paper;
+  const m = /(\d+)→(\d+)/.exec(ch.text);
+  if (!m) return T.paper;
+  const up = Number(m[2]) > Number(m[1]);
+  if (up) return T.goldHi;
+  return ch.kind === 'hp' || ch.kind === 'maxHp' ? T.cinnHi : T.paper;
 }

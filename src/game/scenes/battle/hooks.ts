@@ -9,6 +9,7 @@ import type { ReviveEvent } from '../../../core/battle';
  * - 战斗场景退出时会 `closeAll('detail')` 和 `closeAll('response')`。
  * - 响应窗口与长按详情默认接入 P1b（#64）的 makeRespond / LongPressDetail；hooks 里提供同名钩子时优先用钩子。
  */
+import type { EpiphanyPick } from '../../../core/battle';
 import type { Game } from '../../../core/battle';
 import type { AffixDef, CardInst, Enemy, JudgeCard } from '../../../core/types';
 import type { GestureEvent } from '../../../engine/input';
@@ -95,7 +96,7 @@ export interface BattleOverlayHooks {
   /** 长按进度（0–1，420ms 环形进度）；不提供时场景自己画默认环 */
   longPressProgress?(at: Vec2, progress: number, hit: BattleHit | null, ctx: BattleOverlayContext): void;
   /** 灵光一闪三选一。未注入时：调试版/测试默认选第一个；正式版不自动选（返回 null，本次灵光不铭刻）并告警 */
-  epiphany?(req: EpiphanyRequest, ctx: BattleOverlayContext): Promise<AffixDef | null>;
+  epiphany?(req: EpiphanyRequest, ctx: BattleOverlayContext): Promise<EpiphanyPick | null>;
   /** 判定展示（判定区翻牌）；不提供时场景用内置动画 */
   judge?(reason: string, card: JudgeCard, ctx: BattleOverlayContext): Promise<void>;
   /** 场景收到但未处理的手势（调试/扩展用） */
