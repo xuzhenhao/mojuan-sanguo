@@ -1,7 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { brushChars, checkCoverage, collectFromTs, collectFromYaml, collectGlyphs, isSystemSymbol, readCmap, type GlyphSources } from '../scripts/font-glyphs';
+import {
+  CHARSET_FILE,
+  charsetText,
+  diffCharset,
+  brushChars,
+  checkCoverage,
+  collectFromTs,
+  collectFromYaml,
+  collectGlyphs,
+  isSystemSymbol,
+  readCmap,
+  type GlyphSources,
+} from '../scripts/font-glyphs';
 import { WECHAT_FONT_SRC } from '../scripts/build-wechat';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -22,6 +34,26 @@ describe('#205 收字', () => {
     expect(g.has('注')).toBe(false);
     expect(g.get('提')).toEqual(['src/a.ts:2']);
     expect(g.get('战')).toEqual(['src/a.ts:3']);
+  });
+
+  it('console.* 参数不收', () => {
+    const g: GlyphSources = new Map();
+    collectFromTs(g, "console.warn('日志', `异${1}常`);\nlabel('上屏');\n", 'src/a.ts');
+    expect(g.has('日')).toBe(false);
+    expect(g.has('异')).toBe(false);
+    expect(g.get('屏')).toEqual(['src/a.ts:2']);
+  });
+
+  it('字表清单比对：一致为 null，增删都报并提示重新生成', () => {
+    expect(diffCharset('甲乙\n', '乙甲')).toBeNull();
+    const msg = diffCharset('甲乙', '甲丙')!;
+    expect(msg).toContain('新增 1：丙');
+    expect(msg).toContain('移除 1：乙');
+    expect(msg).toContain('npm run font:build:wechat');
+  });
+
+  it('入库的 charset.txt 与当前收字一致', () => {
+    expect(diffCharset(readFileSync(resolve(ROOT, CHARSET_FILE), 'utf8'), charsetText(collectGlyphs(ROOT)))).toBeNull();
   });
 
   it('真实仓库：包含坏档提示、shortName 与 Boss 名；图标符号不入子集', () => {

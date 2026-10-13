@@ -1,6 +1,6 @@
 /**
  * 书法字体收字（M2 W6 #205）：自动从 config/**\/*.yaml 的全部字符串值 + src/**\/*.ts 的字符串/模板字面量
- * （TypeScript AST，不含注释；排除 src/data/generated 与 H5 调试版 src/platform/web/debug）收集字形，外加可打印 ASCII。
+ * （TypeScript AST，不含注释与 console.* 参数；排除 src/data/generated 与 H5 调试版 src/platform/web/debug）收集字形，外加可打印 ASCII。
  * 不维护手写字表：新增 shortName、提示文案等改了配置/代码即自动入表。
  * 项目只有一款书法字体 "Brush"（p4-kit 的 SERIF/SANS 都指向它），所以只检查这一款。
  */
@@ -40,6 +40,14 @@ export function collectFromYaml(out: GlyphSources, text: string, file: string) {
 export function collectFromTs(out: GlyphSources, text: string, file: string) {
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   const visit = (n: ts.Node) => {
+    // console.* 的参数是日志，不上屏，不收
+    if (
+      ts.isCallExpression(n) &&
+      ts.isPropertyAccessExpression(n.expression) &&
+      ts.isIdentifier(n.expression.expression) &&
+      n.expression.expression.text === 'console'
+    )
+      return;
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n) || ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)) {
       add(out, n.text, `${file}:${sf.getLineAndCharacterOfPosition(n.getStart()).line + 1}`);
     }
@@ -162,4 +170,21 @@ export function writeReport(path: string, report: GlyphReport) {
 
 export function formatMissing(report: GlyphReport): string {
   return report.missing.map((m) => `${m.char} ${m.code} ← ${m.sources.join(', ')}`).join('\n');
+}
+
+/** 入库字表清单：font:build:wechat 生成，CI 每次重新收字与之比对 */
+export const CHARSET_FILE = 'font-report/charset.txt';
+
+export function charsetText(glyphs: GlyphSources): string {
+  return brushChars(glyphs).join('') + '\n';
+}
+
+/** 比对清单与当前收字结果；返回 null 表示一致，否则返回给人看的说明 */
+export function diffCharset(manifest: string, current: string): string | null {
+  const a = new Set([...manifest.replace(/\s+/g, '')]);
+  const b = new Set([...current.replace(/\s+/g, '')]);
+  const added = [...b].filter((c) => !a.has(c));
+  const removed = [...a].filter((c) => !b.has(c));
+  if (!added.length && !removed.length) return null;
+  return `${CHARSET_FILE} 与当前配置/文案收字不一致（新增 ${added.length}：${added.join('')}；移除 ${removed.length}：${removed.join('')}）。请运行 npm run font:build:wechat 重新生成 ttf 与字表并提交`;
 }

@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { brushChars, checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } from './font-glyphs';
+import { CHARSET_FILE, charsetText, checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } from './font-glyphs';
 import { WECHAT_FONT_SRC, GLYPH_REPORT } from './build-wechat';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -93,9 +93,8 @@ function buildWechatTtf() {
     console.error(`✘ 源字体缺 ${report.missing.length} 个字形（报告 ${GLYPH_REPORT}）：\n${formatMissing(report)}`);
     process.exit(1);
   }
-  const chars = brushChars(glyphs).join('');
-  const charsFile = resolve(root, 'scripts/wenkai-chars-wechat.txt');
-  writeFileSync(charsFile, chars + '\n');
+  const charsFile = resolve(root, CHARSET_FILE);
+  writeFileSync(charsFile, charsetText(glyphs));
   const out = resolve(root, WECHAT_FONT_SRC);
   mkdirSync(dirname(out), { recursive: true });
   subset('wechat', charsFile, out, 'ttf');

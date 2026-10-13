@@ -10,7 +10,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { walk } from './size-check';
-import { checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } from './font-glyphs';
+import { CHARSET_FILE, charsetText, diffCharset, checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } from './font-glyphs';
 
 export const DEFAULT_APPID = 'wx3dd635e3cc359d30';
 export const APPID_ENV = 'WX_APPID';
@@ -56,7 +56,11 @@ export function buildWechat(dir: string, root: string, env: Record<string, strin
   writeFileSync(join(dir, 'project.config.json'), JSON.stringify(projectConfig(resolveAppId(env), pkg.name), null, 2) + '\n');
   mkdirSync(join(dir, FONT_DEST_DIR), { recursive: true });
   const font = join(root, WECHAT_FONT_SRC);
-  const report = checkCoverage(collectGlyphs(root), readCmap(readFileSync(font)), WECHAT_FONT_SRC);
+  const glyphs = collectGlyphs(root);
+  const manifest = join(root, CHARSET_FILE);
+  const drift = diffCharset(existsSync(manifest) ? readFileSync(manifest, 'utf8') : '', charsetText(glyphs));
+  if (drift) throw new Error(drift);
+  const report = checkCoverage(glyphs, readCmap(readFileSync(font)), WECHAT_FONT_SRC);
   writeReport(join(root, GLYPH_REPORT), report);
   if (report.missing.length) {
     throw new Error(`书法字体缺 ${report.missing.length} 个字形（报告 ${GLYPH_REPORT}，跑 npm run font:build:wechat 重新生成）：\n${formatMissing(report)}`);
