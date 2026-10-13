@@ -13,6 +13,8 @@ import type { Ctx2DLike, Rect, Vec2 } from '../../engine/types';
 import { frame, inside, wrap } from '../overlays/theme';
 import { B, body, brush, button, center, num, panel, right, silhouette, strike, vertical } from './paint';
 import type { ResultView } from './settlement';
+import { HEROES } from '../../data/heroes';
+import { drawPortrait } from '../portrait';
 
 /** 设计稿坐标（dp，390×844） */
 export const RESULT_LAYOUT = {
@@ -39,6 +41,8 @@ export interface ResultDeps {
 export class ResultScene implements Scene {
   readonly id = 'result';
   private ctx!: SceneContext;
+  /** 立绘加载完成后重绘（#177） */
+  private repaint = () => this.ctx?.invalidate('main');
   private v!: ResultView;
   private t = 0;
   private left = false;
@@ -113,10 +117,12 @@ export class ResultScene implements Scene {
     const k = this.k;
     const L = RESULT_LAYOUT;
     const win = this.win;
-    // 1. 立绘（占位剪影；败北半透明）+ 竖排大字
+    // 1. 立绘（#177：主将大图 cover + 顶对齐；没图回退剪影；败北半透明）+ 竖排大字
     const p = this.rect(L.portrait);
     c.globalAlpha = win ? 0.9 : 0.45;
-    silhouette(c, { x: p.x + 20 * k, y: p.y + 10 * k, w: p.w - 40 * k, h: p.h - 10 * k }, win ? '#120807' : '#1c1714');
+    const art = { x: p.x + 20 * k, y: p.y + 10 * k, w: p.w - 40 * k, h: p.h - 10 * k };
+    const hero = v.lineup.mainId ? HEROES[v.lineup.mainId] : undefined;
+    if (!drawPortrait(c, art, hero?.portrait, 'large', { onReady: this.repaint })) silhouette(c, art, win ? '#120807' : '#1c1714');
     c.globalAlpha = 1;
     const tp = this.pt(L.titleX, L.titleY);
     vertical(c, v.title, tp.x, tp.y, 64 * k, win ? B.gold : B.cinnHi);

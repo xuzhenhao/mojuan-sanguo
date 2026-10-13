@@ -13,6 +13,7 @@ import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { Rect } from '../../engine/types';
 import { CONFIG } from '../../data/config';
 import { HEROES } from '../../data/heroes';
+import { drawPortrait, type PortraitTier } from '../portrait';
 import { gridCell, hitPad, inside, SELECT_LAYOUT as L, skillSeals } from './layout';
 import { canStart, canSwap, clearSlot, comboOf, mainSkillsOf, pickHero, roster, starterDeckSize, swap, type SelectState } from './model';
 
@@ -68,6 +69,8 @@ export class SelectScene implements Scene {
   private breatheMs = 0;
   private press: { at: { x: number; y: number }; progress: number } | null = null;
   detail: OverlayHandle | null = null;
+  /** 立绘加载完成后重绘（#177） */
+  private repaint = () => this.ctx?.invalidate('main');
 
   constructor(private opt: SelectSceneOptions) {
     this.state = opt.initial ?? { main: null, sub: null };
@@ -279,9 +282,9 @@ export class SelectScene implements Scene {
       roundRect(c, L.main, 4);
       c.fill();
       noShadow(c);
-      heroFrame(c, L.main, m, { name: 34, gold: true, beads: 16 });
+      heroFrame(c, L.main, m, { name: 34, gold: true, beads: 16, tier: 'large', onReady: this.repaint });
     } else emptySlot(c, L.main, '主将', flash);
-    if (s) heroFrame(c, L.sub, s, { name: 24, gold: false });
+    if (s) heroFrame(c, L.sub, s, { name: 24, gold: false, tier: 'large', onReady: this.repaint });
     else emptySlot(c, L.sub, '副将', flash);
     roleSeal(c, L.main.x + L.main.w / 2, L.main.y - 12 + 16, 32, '主', false);
     roleSeal(c, L.sub.x + L.sub.w / 2, L.sub.y - 12 + 16, 32, '副', true);
@@ -355,7 +358,7 @@ export class SelectScene implements Scene {
     this.heroes.forEach((h, i) => {
       const r = gridCell(i);
       const role = this.state.main === h.id ? '主' : this.state.sub === h.id ? '副' : null;
-      heroFrame(c, r, h, { name: 17, gold: true, hpNum: true });
+      heroFrame(c, r, h, { name: 17, gold: true, hpNum: true, tier: 'small', onReady: this.repaint });
       if (role) {
         // 已选：压暗（mockup brightness .55）并盖印
         c.fillStyle = 'rgba(0,0,0,.45)';
@@ -608,7 +611,12 @@ function panel(c: Ctx, r: Rect) {
   strokeRect(c, inflate(r, -4), 'rgba(138,106,42,.5)', 1);
 }
 
-function heroFrame(c: Ctx, r: Rect, h: HeroDef, o: { name: number; gold: boolean; beads?: number; hpNum?: boolean }) {
+function heroFrame(
+  c: Ctx,
+  r: Rect,
+  h: HeroDef,
+  o: { name: number; gold: boolean; beads?: number; hpNum?: boolean; tier?: PortraitTier; onReady?: () => void },
+) {
   c.shadowColor = 'rgba(0,0,0,.7)';
   c.shadowBlur = 16;
   c.shadowOffsetY = 8;
@@ -627,7 +635,8 @@ function heroFrame(c: Ctx, r: Rect, h: HeroDef, o: { name: number; gold: boolean
   c.save();
   roundRect(c, w, 2);
   c.clip();
-  inkFigure(c, w, h.id);
+  // 立绘（#177）：主/副槽大图、网格小图，cover + 顶对齐；没图（未配置 / 加载中 / 失败）画程序人形占位
+  if (!drawPortrait(c, w, h.portrait, o.tier ?? 'small', { onReady: o.onReady })) inkFigure(c, w, h.id);
   c.restore();
   strokeRect(c, w, '#2a1a08', 1);
   // 竖排书法名（左上）
@@ -656,7 +665,7 @@ function heroFrame(c: Ctx, r: Rect, h: HeroDef, o: { name: number; gold: boolean
   }
 }
 
-/** 程序化水墨人形（占位；正式立绘到位后换图集） */
+/** 程序化水墨人形（立绘缺失时的回退占位，#177） */
 function inkFigure(c: Ctx, r: Rect, id: string) {
   const g = c.createLinearGradient(0, r.y + r.h * 0.1, 0, r.y + r.h);
   g.addColorStop(0, '#121212');

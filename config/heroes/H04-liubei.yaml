@@ -8,6 +8,8 @@ hp: 7
 role: 仁政续航：存牌换甲，回复强，输出慢
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/liubei.webp
+portraitFocus: { x: 245, y: 208 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: renyi
