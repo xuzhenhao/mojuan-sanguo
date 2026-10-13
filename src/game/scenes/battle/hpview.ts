@@ -110,9 +110,14 @@ export function dyingAlpha(nowMs: number): number {
 export const DYING_FADE_MS = 200;
 export type DyingEdgeState = { a: number; fadeAt: number | null; fromA: number };
 export const newDyingEdge = (): DyingEdgeState => ({ a: 0, fadeAt: null, fromA: 0 });
-export function dyingEdgeAlpha(st: DyingEdgeState, hp: number, now: number): number {
+/** prefers-reduced-motion：不脉动，常亮 .75 */
+export const DYING_STATIC_ALPHA = 0.75;
+export function prefersReducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+export function dyingEdgeAlpha(st: DyingEdgeState, hp: number, now: number, reduced = false): number {
   if (isDying(hp)) {
-    st.a = dyingAlpha(now);
+    st.a = reduced ? DYING_STATIC_ALPHA : dyingAlpha(now);
     st.fadeAt = null;
     return st.a;
   }

@@ -4,7 +4,19 @@
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
 import { CARDS } from '../../../data/cards';
-import { BEAD_D, DYING_EDGE_COLOR, DYING_EDGE_W, dyingEdgeAlpha, dyingFading, newDyingEdge, enemyHpView, isDying, fitNameCached, heroHpView } from './hpview';
+import {
+  BEAD_D,
+  DYING_EDGE_COLOR,
+  DYING_EDGE_W,
+  dyingEdgeAlpha,
+  dyingFading,
+  newDyingEdge,
+  prefersReducedMotion,
+  enemyHpView,
+  isDying,
+  fitNameCached,
+  heroHpView,
+} from './hpview';
 import { textWidth } from '../../overlays/theme';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
@@ -54,6 +66,8 @@ export interface BattleDeps {
   /** 战斗结束（胜利大印播完后）回调：交给流程发 battle_end */
   onEnd?(win: boolean): void;
   now?(): number;
+  /** 是否减少动态（默认读 prefers-reduced-motion） */
+  reducedMotion?(): boolean;
   safe?: Rect;
   /** 结束回合二次确认（1.5s） */
   confirmEnd?: boolean;
@@ -1054,7 +1068,7 @@ export class BattleScene implements Scene<BattleParams> {
     if (!only || only === 'main') {
       const r = { ...L.main, x: L.main.x + shake };
       // dying（§3.3）：朱砂 2px 外轮廓脉动，只给主将
-      const ea = dyingEdgeAlpha(this.dyingEdge, g.p.hp, this.deps.now?.() ?? performance.now());
+      const ea = dyingEdgeAlpha(this.dyingEdge, g.p.hp, this.deps.now?.() ?? performance.now(), this.deps.reducedMotion?.() ?? prefersReducedMotion());
       if (ea > 0) {
         const a = ctx.globalAlpha;
         ctx.globalAlpha = a * ea;
