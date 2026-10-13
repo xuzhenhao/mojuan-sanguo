@@ -47,6 +47,11 @@ export interface BattleDeps {
   autoShan?: boolean;
   /** 本局点将结果：地图进战斗的 params 不带主副将时用它（否则回落默认武将） */
   heroes?(): { main: string; sub: string } | null | undefined;
+  /**
+   * 由 RunState 建本场 Game（#122 PR2，入口接 RunSession.buildBattle）：地图战斗节点进来时调用，
+   * 返回 null（没有局 / 直达调试）则按旧逻辑用 seed + 默认体力牌组建。
+   */
+  build?(io: BattleIO, params: BattleParams): Game | null;
   /** 调试版/测试：允许“灵光一闪默认选第一个”等调试默认；正式版必须为 false */
   debugDefaults?: boolean;
   warn?(msg: string): void;
@@ -131,6 +136,8 @@ export class BattleScene implements Scene<BattleParams> {
     if (p.game) {
       this.g = p.game;
       this.g.io = this.io;
+    } else if (this.deps.build && (this.g = this.deps.build(this.io, p) as Game)) {
+      // RunSession.buildBattle 已 startBattle
     } else {
       const hs = this.deps.heroes?.();
       this.g = new Game(seeded(p.seed ?? 20261012), this.io, { autoShan: false, main: p.main ?? hs?.main, sub: p.sub ?? hs?.sub });

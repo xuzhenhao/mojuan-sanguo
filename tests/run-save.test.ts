@@ -35,8 +35,8 @@ const SAVE = {
 };
 
 describe('run-save 适配层', () => {
-  it('键名与 #78 约定一致', () => {
-    expect(RUN_SAVE_KEY).toBe('mojuan.run.v1');
+  it('键名：#122 PR2 起写新键 mojuan.runstate.v1（旧键只读）', () => {
+    expect(RUN_SAVE_KEY).toBe('mojuan.runstate.v1');
   });
   it('序列化往返：写入后读出深度相等，且只占一个键', () => {
     const st = mem();

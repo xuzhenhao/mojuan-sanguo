@@ -33,7 +33,7 @@ export function summarize(raw: unknown): ResumeSummary | null {
   if (!raw || typeof raw !== 'object') return null;
   const s = raw as Record<string, unknown>;
   if (typeof s.heroMain !== 'string' || typeof s.heroSub !== 'string') return null;
-  const map = (s.mapState ?? {}) as { current?: unknown; nodes?: { id: unknown; layer: unknown }[] };
+  const map = (s.mapState ?? s.map ?? {}) as { current?: unknown; nodes?: { id: unknown; layer: unknown }[] };
   const cur = Array.isArray(map.nodes) ? map.nodes.find((n) => n && n.id === map.current) : undefined;
   return {
     heroMain: s.heroMain,

@@ -93,6 +93,8 @@ export function setRunSaveStore(s: RunSaveStore | null | undefined): void {
   injected = s;
 }
 const store = (): RunSaveStore | null => (injected === undefined ? defaultStore() : injected);
+/** 当前存储层（地图 / 入口的 RunState 读写也走它；#122 PR2 起只写新键 mojuan.runstate.v1） */
+export const runSaveStore = store;
 
 /** 结构校验：字段缺失或类型不对视为损坏 */
 export function isRunSave(x: unknown): x is RunSave {
@@ -129,9 +131,8 @@ export function loadRunSave(): RunSave | null {
     return null;
   }
 }
-export function writeRunSave(s: RunSave): void {
-  store()?.set(RUN_SAVE_KEY, JSON.stringify(s));
-}
+/** 旧键只读（迁移用）；#122 PR2 起不再写入。删档时新旧键一起删 */
 export function clearRunSave(): void {
   store()?.remove(RUN_SAVE_KEY);
+  store()?.remove('mojuan.runstate.v1');
 }
