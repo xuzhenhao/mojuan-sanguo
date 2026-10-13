@@ -150,6 +150,8 @@ export class Game {
   /** 正在结算敌方回合 / 本敌方回合因复活被取消（PRD 4.4 ①） */
   private inEnemyTurn = false;
   private enemyTurnCancelled = false;
+  /** 敌方回合中正在出手的敌人（复活时只有它的剩余出牌被取消、化墨，PRD 4.4 ⑤） */
+  private acting: Enemy | null = null;
   /** 本回合已使用的杀张数（虓烈 / 破阵） */
   shaIndex = 0;
   effects = new Effects(this);
@@ -648,6 +650,7 @@ export class Game {
       await this.enemyTurnBody();
     } finally {
       this.inEnemyTurn = false;
+      this.acting = null;
     }
     if (this.enemyTurnCancelled) {
       this.enemyTurnCancelled = false;
@@ -671,6 +674,7 @@ export class Game {
     for (const e of order) {
       if (e.hp <= 0 || cut()) continue;
       started.add(e);
+      this.acting = e;
       const skipAtk = await this.resolveJudgeArea(e);
       if (e.hp <= 0 || cut()) continue;
       const eak = CONFIG.rules.enemyArmorKeep;
@@ -742,6 +746,7 @@ export class Game {
       if (flashTurn.has(e) && e.reviveKeep) e.reviveKeep = false;
       else e.step++;
       stepped.add(e);
+      this.acting = null;
       if (flashTurn.has(e)) e.reviveFlash = false;
       e.noSha = false;
       e.redirect = false;
@@ -961,7 +966,7 @@ export class Game {
         return [e.uid, { acts: [...i.acts], dmg: i.dmg }] as [number, { acts: EnemyAct[]; dmg: number }];
       }),
     );
-    const cancelled = this.inEnemyTurn ? this.alive().map((e) => e.uid) : [];
+    const cancelled = this.inEnemyTurn && this.acting && this.acting.hp > 0 ? [this.acting.uid] : [];
     for (const e of this.alive()) e.reviveFlash = true;
     if (this.inEnemyTurn) this.enemyTurnCancelled = true;
     this.io.revived?.({ prev, cancelled });

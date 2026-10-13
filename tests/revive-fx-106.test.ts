@@ -49,7 +49,8 @@ describe('#106 复活动画（PRD 4.4.1）', () => {
     g.p.armor = 0;
     await g.enemyTurn();
     expect(evs).toHaveLength(1);
-    expect(evs[0].cancelled.sort()).toEqual(g.en.map((e) => e.uid).sort());
+    // PRD 4.4 ⑤：只有正在出手的敌人（第一个）化墨，未出手的只交叉淡入
+    expect(evs[0].cancelled).toEqual([g.en[0].uid]);
     for (const e of g.en) expect(evs[0].prev.get(e.uid)!.acts).toEqual(['杀', '杀']);
   });
   it('战斗页：复活后动画期间 animating()，结束或减少动态时不再占帧', () => {
@@ -66,5 +67,18 @@ describe('#106 复活动画（PRD 4.4.1）', () => {
     sc.reviveFx = { start: 300, prev: new Map(), cancelled: new Set() };
     reduced = true;
     expect(sc.reviveFxActive()).toBe(false);
+  });
+  it('玩家回合内复活：没有敌人化墨', async () => {
+    const evs: { prev: Map<number, unknown>; cancelled: number[] }[] = [];
+    const { g } = mkGame({ revive: async () => true, revived: (ev) => evs.push(ev) });
+    g.startBattle();
+    g.reviveLeft = 1;
+    g.hand = [];
+    g.p.hp = 1;
+    g.p.armor = 0;
+    await g.dmgPlayer(1);
+    expect(evs).toHaveLength(1);
+    expect(evs[0].cancelled).toEqual([]);
+    expect(evs[0].prev.size).toBe(g.alive().length);
   });
 });
