@@ -94,9 +94,10 @@ describe('#202 rules.fonts 配置', () => {
     expect(web.filter((f) => !f.gate).map((f) => f.url)).toEqual(['assets/fonts/wenkai-ext.woff2']);
     expect(fontStack(FONTS, 'web', 'sans')).toBe('"Brush", sans-serif');
   });
-  it('微信：正文为系统 sans-serif，只加载书法字', () => {
+  it('微信：正文为系统 sans-serif，只加载书法字 ttf', () => {
     expect(FONTS.platforms.wechat.sans).toBe('system');
-    expect(facesOf(FONTS, 'wechat').every((f) => f.family === 'Brush')).toBe(true);
+    expect(facesOf(FONTS, 'wechat').map((f) => f.url)).toEqual(['assets/fonts/wenkai.ttf']);
+    expect(facesOf(FONTS, 'wechat').every((f) => f.family === 'Brush' && f.gate)).toBe(true);
     expect(fontStack(FONTS, 'wechat', 'sans')).toBe('sans-serif');
   });
   it('游戏内书法字体串与配置一致；正文 SANS 随平台切换', () => {
