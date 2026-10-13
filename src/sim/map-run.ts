@@ -22,11 +22,15 @@ export interface RewardCoef {
 export const K0: RewardCoef = { normal: 0, elite: 0, shopCard: 0, smith: 0, relic: 0, cap: 0 };
 export const K_PLACEHOLDER: RewardCoef = { normal: 0.15, elite: 0.3, shopCard: 0.2, smith: 0.15, relic: 0.2, cap: 4 };
 
+/** 主动选精英的体力比例下限（v0.1 为 0.7 时精英只走 0.37 次，见 #117） */
+export const ELITE_MIN_HP = Number(process.env.SIM_ELITE_HP ?? 0.7);
 const EVENTS = ['V01', 'V04', 'V05', 'V06', 'V09', 'V13', 'V14', 'V19'];
 const GOLD = { normal: [15, 25], elite: [40, 55], chest: [50, 80] } as const;
 const ri = (r: () => number, [a, b]: readonly [number, number]) => a + Math.floor(r() * (b - a + 1));
 const PRI_LOW: NodeType[] = ['REST', 'EVENT', 'SHOP', 'CHEST', 'BATTLE', 'ELITE'];
 const PRI: NodeType[][] = [['BATTLE', 'EVENT'], ['CHEST'], ['SHOP'], ['ELITE'], ['REST']];
+/** 体力 ≥ ELITE_MIN_HP 时精英和普通战、奇遇同档（v0.1 精英排第 4 档只走 0.37 次，偏差 −47%） */
+const PRI_HEALTHY: NodeType[][] = [['BATTLE', 'EVENT', 'ELITE'], ['CHEST'], ['SHOP'], ['REST']];
 
 export interface MapRunResult {
   clear: boolean;
@@ -93,8 +97,8 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Prom
     if (avail[0].type !== 'BOSS') {
       const c = cur();
       const low = c.hp / c.max <= 0.4;
-      const ok = avail.filter((n) => n.type !== 'ELITE' || c.hp / c.max >= 0.7 || avail.every((m) => m.type === 'ELITE'));
-      const tiers = low ? PRI_LOW.map((t) => [t]) : PRI;
+      const ok = avail.filter((n) => n.type !== 'ELITE' || c.hp / c.max >= ELITE_MIN_HP || avail.every((m) => m.type === 'ELITE'));
+      const tiers = low ? PRI_LOW.map((t) => [t]) : c.hp / c.max >= ELITE_MIN_HP ? PRI_HEALTHY : PRI;
       for (const t of tiers) {
         const cs = ok.filter((n) => t.includes(n.type));
         if (cs.length) {
