@@ -4,6 +4,9 @@
  * 标【占位】的条目是 PRD 未定或互相冲突、待总策划确认的值，确认后只改这里。
  */
 import type { Rarity } from '../core/types';
+import { CONFIG } from './config';
+
+const SHOP = CONFIG.rules.shop!;
 
 export type BattleKind = 'normal' | 'elite' | 'boss';
 export type Range = readonly [number, number];
@@ -111,22 +114,22 @@ export const ECONOMY = {
   bossRelicPool: 'Boss' as RelicDef['rarity'],
   bossRelicFill: 'E' as RelicDef['rarity'],
   // 14.2 卡牌价格：config/rules.yaml shop.cardPrice 与卡牌 shopPrice（#70）
-  /** 14.2 宝物价格 */
-  relicPrice: { N: 70, R: 100, E: 140 } as Partial<Record<RelicDef['rarity'], number>>,
+  /** 14.2 宝物价格（config/rules.yaml shop.relicPrice） */
+  relicPrice: { ...SHOP.relicPrice } as Partial<Record<RelicDef['rarity'], number>>,
   /** 14.2 价格随机浮动 ±10%，取整到 5（删牌、刷新不浮动） */
   priceJitter: 0.1,
   priceRound: 5,
   /** 10.7 删牌服务：50，本局每用一次 +25 */
-  removeBase: 50,
-  removeStep: 25,
+  removeBase: SHOP.removeBase,
+  removeStep: SHOP.removeStep,
   /** 10.7 刷新 25，H5 每局首次免费 */
   shopRefresh: 25,
   shopFreeRefresh: 1,
   /**
    *【占位】集市槽位。PRD 10.7 = 5 卡 + 1 宝物 + 2 丹药 + 删牌；设计稿 v3/shop.html 与 acceptance.md = 3 卡 + 4 物。
-   * 暂按设计稿：3 卡（2 通用 + 1 势力/专属）、1 宝物、2 丹药、删牌，待总策划定。
+   * 数值在 config/rules.yaml shop.shopSlots。暂按设计稿：3 卡（2 通用 + 1 势力/专属）、1 宝物、2 丹药、删牌，待总策划定。
    */
-  shopSlots: { common: 2, heroCard: 1, relic: 1, potion: 2 },
+  shopSlots: { ...SHOP.shopSlots },
   /** 删牌下限（同 PRD 10.6 焚稿口径：至少 8 张且至少 1 张杀类） */
   minDeck: 8,
   /** 宝箱：PRD 10.8 = 75% 宝物三选一 / 25% 铜钱 50–80 + 卡牌三选一 */

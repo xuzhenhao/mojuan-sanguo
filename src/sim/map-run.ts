@@ -58,7 +58,7 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Prom
   let gold = 60;
   let k = 0;
   let nextArmor = 0;
-  let revive = 1;
+  let revive = CONFIG.rules.revive.count;
   let revived = false;
   let bossHp: number | null = null;
   let goldBeforeBoss: number | null = null;
@@ -75,11 +75,12 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef): Prom
     const base = { ...h, battleIdx: boss ? BATTLES.length - 1 : 0, encounter: { name: enemies.name, en: enemies.enemies }, maxHp };
     let r = await runBattle({ ...base, seed: hashSeed(seed, 'sim-battle', fights++), hp, armorStart: armor });
     if (!r.win && revive > 0) {
-      // 复活（4.4）：近似为同一场重开，体力 max(2, ceil(上限×25%))，+3 甲
+      // 复活（4.4.1）：近似为同一场重开，体力 max(hpMin, ceil(上限×hpRatio))，+armor 甲（rules.revive）
+      const rv = CONFIG.rules.revive;
       revive--;
       revived = true;
-      const rhp = Math.max(2, Math.ceil(r.maxHp * 0.25));
-      r = await runBattle({ ...base, seed: hashSeed(seed, 'sim-battle', fights++), hp: rhp, armorStart: armor + 3 });
+      const rhp = Math.max(rv.hpMin, Math.ceil(r.maxHp * rv.hpRatio));
+      r = await runBattle({ ...base, seed: hashSeed(seed, 'sim-battle', fights++), hp: rhp, armorStart: armor + rv.armor });
     }
     hp = r.hpEnd;
     maxHp = r.maxHp;
