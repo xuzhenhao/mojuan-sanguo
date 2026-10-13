@@ -10,6 +10,7 @@ import { Router } from '../../game/router';
 import { triggerDebugRevive, wantDebugRevive } from '../../game/scenes/battle/debug-revive';
 import { triggerDebugEpiphany, wantDebugEpiphany } from '../../game/scenes/battle/debug-epiphany';
 import { BattleScene } from '../../game/scenes/battle/scene';
+import { SeenBossStore } from '../../game/prefs/seen-bosses';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
 import { initialState } from '../../game/select/model';
@@ -149,6 +150,7 @@ engine.scenes.register(
       paused: () => engine.scenes.isPaused,
       debugDefaults: import.meta.env.MODE === 'debug',
       nodeType: () => run.inNode?.type,
+      seenBosses: new SeenBossStore(platform.storage),
       // 仅开发构建：UI 截图验收参数（#129），生产构建整段被摇掉
       dev: import.meta.env.DEV
         ? {
@@ -158,6 +160,8 @@ engine.scenes.register(
             boss: query.boss === '1',
             longName: query.longname === '1',
             detail: query.detail || undefined,
+            intro: query.intro === 'first' || query.intro === 'repeat' || query.intro === 'phase' ? query.intro : undefined,
+            introT: query.introT != null && query.introT !== '' ? Number(query.introT) : undefined,
           }
         : undefined,
       warn: (m) => platform.warn(m),

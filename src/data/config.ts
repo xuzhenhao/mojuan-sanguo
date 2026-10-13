@@ -63,6 +63,7 @@ export interface HeroCfg {
 export interface EnemyCfg {
   id: string;
   name: string;
+  chapter?: number;
   tier: '小怪' | '精英' | 'Boss';
   hp: number;
   row: 'front' | 'back';
@@ -76,6 +77,8 @@ export interface EnemyCfg {
   armorStart?: number;
   desc?: string;
   abilities?: Ability[];
+  /** 首领登场台词（#107）：line = 登场墨带；phaseLine = 阶段 2 切换 */
+  intro?: { line?: string; phaseLine?: string };
 }
 export interface ConfigBundle {
   rules: {

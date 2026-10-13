@@ -21,6 +21,7 @@ export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
     if (e.desc) d.skill = e.desc;
     if (e.trickOverrides) d.trickOverrides = e.trickOverrides;
     if (e.phases?.length) d.phases = e.phases.map(phaseOf);
+    if (e.intro && e.tier === 'Boss') d.intro = { ...e.intro };
     return [e.id, d];
   }),
 );
