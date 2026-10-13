@@ -19,7 +19,7 @@ import { icons } from './icons';
 import { numFont } from './numfont';
 import { BODY_FONT, TITLE_FONT } from './detail';
 
-const CARD_FONT = `22px "Ma Shan Zheng", "STKaiti", "KaiTi", serif`;
+const CARD_FONT = `22px "Brush", serif`;
 export const RESPONSE = { lift: 22, bannerW: 230, bannerH: 56, barH: 6, btnW: 108, btnH: 44, gap: 10, defaultSeconds: 8, noLegalMs: 600 } as const;
 
 /** 宿主场景提供的布局（逻辑像素） */

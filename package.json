@@ -21,7 +21,8 @@
     "build:debug": "tsc && vite build --mode debug",
     "size-check": "tsx scripts/size-check.ts",
     "prebuild:debug": "npm run config:build",
-    "atlas:build": "tsx scripts/build-ui-atlas.ts"
+    "atlas:build": "tsx scripts/build-ui-atlas.ts",
+    "font:build": "tsx scripts/build-wenkai-subset.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -18,7 +18,7 @@ import { C, ext, frame, text, textWidth, wrap } from './theme';
 
 export const INTENT_ROW = 26;
 export const DETAIL = { w: 180, maxH: 200, pad: 12, titlePx: 24, bodyPx: 13, lineH: 19.5, gap: 12 } as const;
-export const TITLE_FONT = `${DETAIL.titlePx}px "Ma Shan Zheng", "MaShanZheng", "STKaiti", "KaiTi", serif`;
+export const TITLE_FONT = `${DETAIL.titlePx}px "Brush", serif`;
 export const BODY_FONT = `${DETAIL.bodyPx}px "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC", sans-serif`;
 
 export interface DetailContent {

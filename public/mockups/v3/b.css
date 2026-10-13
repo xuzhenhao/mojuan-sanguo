@@ -1,6 +1,6 @@
 /* === 墨卷三国 · 金漆屏风 设计令牌 === */
 :root{--lac-0:#070302;--lac-1:#150a08;--lac-2:#22100b;--lac-3:#2a1410;--lac-4:#4a1d14;--gold-hi:#f4dc9a;--gold:#e9c877;--gold-mid:#b98a3c;--gold-lo:#8a6a2a;--gold-dk:#6e4a18;--paper:#f3ebd8;--paper-2:#efe3c6;--paper-3:#bfae88;--ink:#1a1a1a;--cinnabar:#a63d2f;--cinn-hi:#d4604c;--cinn-glow:#ff6b55;--jade:#4f9a7c;--jade-dk:#1d4a3a;--azure:#5b7c8a;--azure-hi:#86aab8;--silver:#cfd6d9;--f-qun:#7a6a58;--f-shu:#3f7a4f;--f-wei:#3c5a8a;--f-wu:#a63d2f}
-@font-face{font-family:Brush;src:url(fonts/brush.woff) format('woff')}
+@font-face{font-family:Brush;src:url(../../assets/fonts/wenkai-core.woff2) format('woff2')}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none}
 html,body{width:390px;height:844px;overflow:hidden;background:#000}
 body{font-family:"Noto Serif CJK SC",serif;color:var(--paper)}
