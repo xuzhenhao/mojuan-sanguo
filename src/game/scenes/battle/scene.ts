@@ -851,7 +851,7 @@ export class BattleScene implements Scene<BattleParams> {
     text(ctx, SUIT_CH[c.suit], x + 11, r.y + 31, { size: 12, color: red ? C.cinnabar : C.ink, align: 'center' });
     text(ctx, RANK_CH[c.rank], x + 11, r.y + 45, { size: 11, color: red ? C.cinnabar : C.ink, font: FONT.num, align: 'center', bold: true });
     // 卡名（底部书法）
-    // §8.8.3：20px 起逐 1px 缩到放得下，最小 11px 后省略号；全名见长按详情
+    // #141：按字数分档 20/16/13（·不计），≥5 字最小 12、不省略；全名见长按详情
     const nm = this.cardName(ctx, d.name, r.w);
     text(ctx, nm.text, x + r.w / 2, r.y + r.h - 15, { size: nm.px, color: C.ink, font: FONT.brush, align: 'center' });
     if (c.mods.length) {
