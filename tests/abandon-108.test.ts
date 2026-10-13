@@ -3,8 +3,10 @@ import { CONFIG } from '../src/data/config';
 import { OverlayStack } from '../src/engine/modal';
 import { abandonRun, resumeFailure } from '../src/game/result/abandon';
 import { B } from '../src/game/result/paint';
-import { pauseFlow, pauseLayout, segmentRects, SETTINGS_ROWS, tapSetting, toggleRect } from '../src/game/result/pause';
-import { ABANDON_H, dialogButtons } from '../src/game/result/resume';
+import { PAUSE_BTN_GAP, PAUSE_ROW_H, pauseFlow, pauseLayout, segmentRects, SETTINGS_ROWS, tapSetting, toggleRect, visibleRows } from '../src/game/result/pause';
+import { battleSettings } from '../src/game/prefs/settings';
+import { BattleScene } from '../src/game/scenes/battle/scene';
+import { ABANDON_H, ABANDON_TEXT, confirmAbandon, DANGER_RING, dialogButtons } from '../src/game/result/resume';
 import { buildView, computeSoul, EMPTY_META, applyOutcome } from '../src/game/result/settlement';
 import { summarize } from '../src/game/result/store';
 import { PREFS_KEY, SettingsStore, defaultSettings, sanitizeSettings } from '../src/game/prefs/settings';
@@ -73,12 +75,12 @@ describe('#108 设置项：配置 + 局外偏好 mojuan.prefs.v1', () => {
   it('点开关 / 分段切换对应设置', () => {
     const L = pauseLayout(frame);
     const d = defaultSettings();
-    const tr = L.rows.find((r) => r.key === 'sound')!;
+    const tr = L.rows.find((r) => r.key === 'autoDodge')!;
     const t = toggleRect(tr.rect);
-    expect(tapSetting(frame, d, { x: t.x + 5, y: t.y + 5 })!.toggles.sound).toBe(!d.toggles.sound);
-    const sr = L.rows.find((r) => r.key === 'quality')!;
+    expect(tapSetting(frame, d, { x: t.x + 5, y: t.y + 5 })!.toggles.autoDodge).toBe(!d.toggles.autoDodge);
+    const sr = L.rows.find((r) => r.key === 'animSpeed')!;
     const seg = segmentRects(sr.rect, 3)[2];
-    expect(tapSetting(frame, d, { x: seg.x + 5, y: seg.y + 5 })!.choices.quality).toBe(CONFIG.rules.settings.choices.quality.options[2]);
+    expect(tapSetting(frame, d, { x: seg.x + 5, y: seg.y + 5 })!.choices.animSpeed).toBe(CONFIG.rules.settings.choices.animSpeed.options[2]);
     expect(tapSetting(frame, d, { x: 1, y: 1 })).toBeNull();
   });
 });
@@ -116,9 +118,9 @@ describe('#108 暂停浮层（入口 2）', () => {
     const { ov } = newStack();
     const st = memStorage();
     const p = pauseFlow(ov, frame, new SettingsStore(st));
-    const row = pauseLayout(frame).rows.find((r) => r.key === 'hurtVibrate')!;
+    const row = pauseLayout(frame).rows.find((r) => r.key === 'endTurnConfirm')!;
     tapIn(ov, toggleRect(row.rect));
-    expect(JSON.parse(st.get(PREFS_KEY)!).settings.toggles.hurtVibrate).toBe(!defaultSettings().toggles.hurtVibrate);
+    expect(JSON.parse(st.get(PREFS_KEY)!).settings.toggles.endTurnConfirm).toBe(!defaultSettings().toggles.endTurnConfirm);
     tapIn(ov, pauseLayout(frame).resume);
     await p;
   });
@@ -162,5 +164,73 @@ describe('#108 继续本局读档校验', () => {
     st.set(RUN_STATE_KEY, JSON.stringify({ version: RUN_STATE_VERSION + 1 }));
     expect(run.load(st)).toMatchObject({ ok: false, reason: 'newer' });
     expect(run.active).toBe(false);
+  });
+});
+
+describe('#108 设置项生效 / 隐藏', () => {
+  it('底层功能未实现的项（高对比手牌、受伤震动、画质、音乐音效）隐藏，只显示 4 项', () => {
+    expect(visibleRows().map((r) => r.key)).toEqual(['autoDodge', 'endTurnConfirm', 'animSpeed', 'responseSec']);
+    expect(pauseLayout(frame).rows.map((r) => r.key)).toEqual(visibleRows().map((r) => r.key));
+  });
+  it('面板高度按可见行数收缩，按钮在最后一个可见行下方 24', () => {
+    const L = pauseLayout(frame);
+    const last = L.rows[L.rows.length - 1].rect;
+    expect(L.resume.y - (last.y + last.h)).toBe(PAUSE_BTN_GAP);
+    expect(L.abandon.y).toBe(L.resume.y);
+    expect(L.r.y + L.r.h).toBeGreaterThan(L.resume.y + L.resume.h);
+    const all = {
+      ...CONFIG.rules.settings,
+      toggles: Object.fromEntries(Object.entries(CONFIG.rules.settings.toggles).map(([k, v]) => [k, { ...v, hidden: false }])),
+    };
+    all.choices = Object.fromEntries(Object.entries(CONFIG.rules.settings.choices).map(([k, v]) => [k, { ...v, hidden: false }]));
+    expect(pauseLayout(frame, all).r.h - L.r.h).toBe(4 * PAUSE_ROW_H);
+  });
+  it('battleSettings：自动出闪 / 结束回合确认 / 响应时限秒数 / 动画倍速', () => {
+    const d = defaultSettings();
+    expect(battleSettings(d)).toEqual({ autoShan: false, confirmEnd: false, responseSeconds: 8, animSpeed: 1 });
+    const s = { toggles: { ...d.toggles, autoDodge: true, endTurnConfirm: true }, choices: { ...d.choices, responseSec: '12', animSpeed: '1.5x' } };
+    expect(battleSettings(s)).toEqual({ autoShan: true, confirmEnd: true, responseSeconds: 12, animSpeed: 1.5 });
+  });
+  it('动画速度进战斗表现队列倍速', () => {
+    const ov = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
+    expect(new BattleScene({ overlays: ov, animSpeed: 2 }).q.speed).toBe(2);
+    expect(new BattleScene({ overlays: ov }).q.speed).toBe(1);
+  });
+  it('结束回合确认：开启时第一次点只进入确认态，不结束回合', async () => {
+    const ov = new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} });
+    const on = new BattleScene({ overlays: ov, confirmEnd: true, debugDefaults: true });
+    on.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
+    const turn0 = on.g.turn;
+    await on.tapEndTurn();
+    expect((on as unknown as { confirmT: number }).confirmT).toBe(1500);
+    expect(on.g.turn).toBe(turn0);
+    const off = new BattleScene({ overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), confirmEnd: false, debugDefaults: true });
+    off.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
+    void off.tapEndTurn();
+    expect((off as unknown as { confirmT: number }).confirmT).toBe(0);
+  });
+});
+
+describe('#108 放弃确认框（UI 复审）', () => {
+  it('文案去掉「将魂减半」', () => {
+    expect(ABANDON_TEXT).toBe('放弃后本局按战败结算，存档将被删除。确定放弃？');
+  });
+  it('「确定放弃」：2px cinnHi 外描边 + 1px 暗环，字 goldHi', () => {
+    const { ov } = newStack();
+    void confirmAbandon(ov, frame);
+    const c = fakeCanvas(390, 844);
+    const strokes: { color: string; w: number }[] = [];
+    const ctx = c.ctx2d as unknown as Record<string, unknown>;
+    ctx.strokeRect = function (this: { strokeStyle: string; lineWidth: number }) {
+      strokes.push({ color: this.strokeStyle, w: this.lineWidth });
+    };
+    const texts: { s: string; color: string }[] = [];
+    ctx.fillText = function (this: { fillStyle: string }, s: string) {
+      texts.push({ s, color: this.fillStyle });
+    };
+    ov.draw({ canvas: c, ctx } as never, 0);
+    expect(strokes).toContainEqual({ color: B.cinnHi, w: 2 });
+    expect(strokes).toContainEqual({ color: DANGER_RING, w: 1 });
+    expect(texts.find((t) => t.s === '确定放弃')!.color).toBe(B.goldHi);
   });
 });

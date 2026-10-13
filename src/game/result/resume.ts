@@ -8,10 +8,12 @@ import type { OverlayStack } from '../../engine/modal';
 import type { Rect } from '../../engine/types';
 import { inside, wrap } from '../overlays/theme';
 import { B, body, brush, button, center, panel } from './paint';
+import { frame } from '../overlays/theme';
+import { markHit } from '../../engine/hit';
 import type { ResumeSummary } from './store';
 
-/** 文案必须一字不差（flow.md §1 / acceptance.md） */
-export const ABANDON_TEXT = '放弃后本局按失败结算，将魂减半，存档将被删除。确定放弃？';
+/** 文案必须一字不差（#108 UI 复审：去掉「将魂减半」，结算口径同战败） */
+export const ABANDON_TEXT = '放弃后本局按战败结算，存档将被删除。确定放弃？';
 export const RESUME_TITLE = '继续本局？';
 
 export interface DialogFrame {
@@ -121,7 +123,7 @@ export function confirmAbandon(ov: OverlayStack, f: DialogFrame) {
       wrap(c, ABANDON_TEXT, r.w - 40 * k, 15 * k).forEach((l, i) => c.fillText?.(l, r.x + 20 * k, r.y + (148 + i * 24) * k));
       const b = btn();
       button(c, b.left, '返回', 'secondary');
-      button(c, b.right, '确定放弃', 'primary');
+      dangerButton(c, b.right, '确定放弃');
     },
     gesture: (e: GestureEvent, h) => {
       if (e.type !== 'tap') return true;
@@ -200,3 +202,20 @@ export function resumePlan(o: ResumePlanIn): { dialog: boolean; toast: string | 
   const inBattle = ['BATTLE', 'ELITE', 'BOSS'].includes(o.pendingType ?? '') || (!!o.migration && o.migration.kind !== 'none');
   return { dialog: inBattle, toast: null, upgradeConfig: true };
 }
+
+/**
+ * 不可逆操作按钮（#108 UI 复审）：朱砂底（同 primary）；外描边 2px cinnHi，紧贴其外 1px rgba(0,0,0,.7) 暗环（分层描边，不用模糊）；字 goldHi。
+ */
+export function dangerButton(c: Parameters<typeof button>[0], r: Rect, label: string) {
+  markHit(r);
+  c.fillStyle = BTN_FILL_PRIMARY;
+  c.fillRect(r.x, r.y, r.w, r.h);
+  c.fillStyle = 'rgba(255,255,255,.08)';
+  c.fillRect(r.x + 2, r.y + 2, r.w - 4, r.h / 2 - 2);
+  frame(c, { x: r.x - 2.5, y: r.y - 2.5, w: r.w + 5, h: r.h + 5 }, DANGER_RING, 1);
+  frame(c, { x: r.x - 1, y: r.y - 1, w: r.w + 2, h: r.h + 2 }, B.cinnHi, 2);
+  center(c, label, r.x + r.w / 2, r.y + r.h / 2 + 7, brush(20), B.goldHi, 20);
+}
+export const DANGER_RING = 'rgba(0,0,0,.7)';
+/** 与 paint.ts primary 按钮同色 */
+const BTN_FILL_PRIMARY = '#9C3A28';

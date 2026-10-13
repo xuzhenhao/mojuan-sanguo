@@ -87,6 +87,8 @@ export interface BattleDeps {
   paused?(): boolean;
   responseSeconds?: number;
   autoShan?: boolean;
+  /** 动画倍速（设置「动画速度」1 / 1.5 / 2，#108）：表现队列时长除以倍速 */
+  animSpeed?: number;
   /** 本局点将结果：地图进战斗的 params 不带主副将时用它（否则回落默认武将） */
   heroes?(): { main: string; sub: string } | null | undefined;
   /**
@@ -145,6 +147,8 @@ export class BattleScene implements Scene<BattleParams> {
 
   private dyingEdge = newDyingEdge();
   constructor(private deps: BattleDeps = {}) {
+    // 设置「动画速度」（#108）：表现队列所有时长除以倍速
+    if (deps.animSpeed && deps.animSpeed > 0) this.q.speed = deps.animSpeed;
     const ov = deps.overlays;
     if (ov) {
       // P1b #64：响应弹窗。布局全部取自 rectOf，保证与绘制/命中一致

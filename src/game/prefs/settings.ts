@@ -59,3 +59,23 @@ export class SettingsStore {
     }
   }
 }
+
+/** 战斗页实际生效的设置（#108）：自动出闪、结束回合确认、响应时限（秒）、动画倍速 */
+export interface BattleSettings {
+  autoShan: boolean;
+  confirmEnd: boolean;
+  responseSeconds: number;
+  animSpeed: number;
+}
+export function battleSettings(s: Settings): BattleSettings {
+  const num = (v: string | undefined, d: number) => {
+    const n = parseFloat(v ?? '');
+    return Number.isFinite(n) && n > 0 ? n : d;
+  };
+  return {
+    autoShan: !!s.toggles.autoDodge,
+    confirmEnd: !!s.toggles.endTurnConfirm,
+    responseSeconds: num(s.choices.responseSec, 8),
+    animSpeed: num(s.choices.animSpeed, 1),
+  };
+}

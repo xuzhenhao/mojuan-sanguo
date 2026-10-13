@@ -718,6 +718,10 @@
               },
               "default": {
                 "type": "boolean"
+              },
+              "hidden": {
+                "type": "boolean",
+                "description": "底层功能未实现时为 true：浮层不显示该项"
               }
             }
           }
@@ -751,6 +755,10 @@
               "default": {
                 "type": "string",
                 "minLength": 1
+              },
+              "hidden": {
+                "type": "boolean",
+                "description": "底层功能未实现时为 true：浮层不显示该项"
               }
             }
           }

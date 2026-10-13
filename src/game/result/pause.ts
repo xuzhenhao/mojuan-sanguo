@@ -1,5 +1,5 @@
 /**
- * 暂停 / 设置浮层（#108，subpages-v05 §4.1-2，mockup v3/settings.html）：P3 地图（及后续 P2 战斗）右上暂停钮打开。
+ * 暂停 / 设置浮层（#108，subpages-v05 §4.1-2，mockup v3/settings.html）：P3 地图右上暂停钮打开（战斗页入口见 #196）。
  * 设置项读写局外偏好（mojuan.prefs.v1，不进 RunState）；底部「放弃本局」（左，次）/「继续」（右，主）。
  * 「放弃本局」进二次确认 confirmAbandon；「返回」回到本浮层（§4.2 入口 2）。
  * 无动画（不涉及减少动态效果）；遮罩 .90、面板 .97、描边分层，不用模糊。
@@ -26,20 +26,32 @@ export const SETTINGS_ROWS: { key: string; kind: 'toggle' | 'choice' }[] = [
 ];
 export const PAUSE_ROW_H = 46;
 const HEAD = 64;
-const FOOT = 92;
+/** 按钮距最后一个可见行 24（UI #108 复审） */
+export const PAUSE_BTN_GAP = 24;
+const BTN_H = 48;
+const PAD_B = 22;
 
-export function pauseLayout(f: DialogFrame) {
+/** 可见行：配置里 hidden 的项（底层功能未实现）不显示，面板随之变矮 */
+export function visibleRows(cfg: SettingsCfg = CONFIG.rules.settings) {
+  return SETTINGS_ROWS.filter((r) => {
+    const item = r.kind === 'toggle' ? cfg.toggles[r.key] : cfg.choices[r.key];
+    return !!item && !item.hidden;
+  });
+}
+
+export function pauseLayout(f: DialogFrame, cfg: SettingsCfg = CONFIG.rules.settings) {
+  const vis = visibleRows(cfg);
   const w = Math.min(350, f.width - 40);
-  const h = HEAD + SETTINGS_ROWS.length * PAUSE_ROW_H + FOOT;
+  const h = HEAD + vis.length * PAUSE_ROW_H + PAUSE_BTN_GAP + BTN_H + PAD_B;
   const r: Rect = { x: (f.width - w) / 2, y: Math.max(16, (f.height - h) / 2), w, h };
-  const rows = SETTINGS_ROWS.map((row, i) => ({ ...row, rect: { x: r.x + 16, y: r.y + HEAD + i * PAUSE_ROW_H, w: r.w - 32, h: PAUSE_ROW_H } }));
+  const rows = vis.map((row, i) => ({ ...row, rect: { x: r.x + 16, y: r.y + HEAD + i * PAUSE_ROW_H, w: r.w - 32, h: PAUSE_ROW_H } }));
   const bw = 140;
-  const by = r.y + r.h - 70;
+  const by = r.y + HEAD + vis.length * PAUSE_ROW_H + PAUSE_BTN_GAP;
   return {
     r,
     rows,
-    abandon: { x: r.x + r.w / 2 - 8 - bw, y: by, w: bw, h: 48 },
-    resume: { x: r.x + r.w / 2 + 8, y: by, w: bw, h: 48 },
+    abandon: { x: r.x + r.w / 2 - 8 - bw, y: by, w: bw, h: BTN_H },
+    resume: { x: r.x + r.w / 2 + 8, y: by, w: bw, h: BTN_H },
   };
 }
 
@@ -77,7 +89,7 @@ function dot(c: Ctx2DLike, cx: number, cy: number, rad: number, fill: string) {
 }
 
 export function drawPause(c: Ctx2DLike, f: DialogFrame, s: Settings, cfg: SettingsCfg = CONFIG.rules.settings) {
-  const L = pauseLayout(f);
+  const L = pauseLayout(f, cfg);
   panel(c, L.r, 0.97);
   center(c, '暂停', L.r.x + L.r.w / 2, L.r.y + 44, brush(30), B.gold, 30);
   for (const row of L.rows) {
@@ -114,7 +126,7 @@ export function drawPause(c: Ctx2DLike, f: DialogFrame, s: Settings, cfg: Settin
 
 /** 点击设置项：返回新设置（未命中返回 null） */
 export function tapSetting(f: DialogFrame, s: Settings, at: { x: number; y: number }, cfg: SettingsCfg = CONFIG.rules.settings): Settings | null {
-  for (const row of pauseLayout(f).rows) {
+  for (const row of pauseLayout(f, cfg).rows) {
     if (row.kind === 'toggle') {
       if (inside(row.rect, at)) return { ...s, toggles: { ...s.toggles, [row.key]: !s.toggles[row.key] } };
     } else {

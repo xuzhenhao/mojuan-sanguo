@@ -31,7 +31,7 @@ import { resultBridge } from '../../game/result/bridge';
 import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/resume';
 import { abandonRun, resumeFailure } from '../../game/result/abandon';
 import { pauseFlow } from '../../game/result/pause';
-import { SettingsStore } from '../../game/prefs/settings';
+import { SettingsStore, battleSettings } from '../../game/prefs/settings';
 import { loadBrushFonts, webFontDeps } from './brush-font';
 import wenkaiCoreUrl from '../../../public/assets/fonts/wenkai-core.woff2?url';
 import wenkaiExtUrl from '../../../public/assets/fonts/wenkai-ext.woff2?url';
@@ -148,6 +148,8 @@ engine.scenes.register(
   'battle',
   () =>
     (battleScene = new BattleScene({
+      // 暂停/设置浮层的设置项（#108）：每次进战斗读一次局外偏好
+      ...battleSettings(settingsStore.load()),
       overlays: engine.overlays,
       now: () => platform.now(),
       safe: designSafe(),
