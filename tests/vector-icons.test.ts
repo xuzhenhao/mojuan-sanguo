@@ -1,5 +1,6 @@
 /** ⚔ ✦ ♥ ◆ ♠♥♣♦ 一律画行内矢量图标（系统字符在 iOS / 微信可能渲染成彩色 emoji） */
 import { describe, expect, it } from 'vitest';
+import { testNow } from './helpers';
 import { drawInlineIcon, glyphLabel, ICON_H, type InlineIcon } from '../src/game/overlays/glyphs';
 import { BattleScene } from '../src/game/scenes/battle/scene';
 import { C } from '../src/game/scenes/battle/paint';
@@ -67,7 +68,7 @@ describe('glyphLabel：文本里的 ♠♥♣♦ 画矢量，红花色 / 黑花�
 });
 
 describe('战斗意图角标', () => {
-  const sc = () => new BattleScene({ overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
+  const sc = () => new BattleScene({ now: testNow, overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
   const ir = { x: 0, y: 0, w: 52, h: 28 };
   it('⚔（有伤害）→ 矢量 cinnHi', () => {
     const r = recCtx();
