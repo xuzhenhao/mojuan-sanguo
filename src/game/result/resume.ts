@@ -11,6 +11,7 @@ import { B, body, brush, button, center, panel } from './paint';
 import { frame } from '../overlays/theme';
 import { markHit } from '../../engine/hit';
 import type { ResumeSummary } from './store';
+import { brushFont } from '../fonts';
 
 /** 文案必须一字不差（#108 UI 复审：去掉「将魂减半」，结算口径同战败） */
 export const ABANDON_TEXT = '放弃后本局按战败结算，存档将被删除。确定放弃？';
@@ -152,7 +153,7 @@ export async function resumeFlow(ov: OverlayStack, f: DialogFrame, s: ResumeSumm
 export const VERSION_TEXT = '为保证规则一致，本场战斗将从头开始；进入本场战斗前的进度（体力、牌组、铜钱、地图路线）均已保留。';
 export const VERSION_H = 300;
 /** 霞鹜文楷，不回退系统字体 */
-const wk = (px: number) => `${px}px "Brush", serif`;
+const wk = (px: number) => brushFont(px);
 
 /** 只有一个「继续」按钮（居中） */
 export function versionButton(f: DialogFrame): Rect {

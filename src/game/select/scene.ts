@@ -16,6 +16,7 @@ import { HEROES } from '../../data/heroes';
 import { drawNameBand, drawPortrait, nameBandRect, type PortraitTier } from '../portrait';
 import { gridCell, hitPad, inside, SELECT_LAYOUT as L, skillSeals } from './layout';
 import { canStart, canSwap, clearSlot, comboOf, mainSkillsOf, pickHero, roster, starterDeckSize, swap, type SelectState } from './model';
+import { brushFont, brushStack, sansFont } from '../fonts';
 
 /** render-spec §1 令牌色（与 mockups/v3/b.css 一致） */
 export const C = {
@@ -44,8 +45,8 @@ export const C = {
   nameStroke: 'rgba(0,0,0,.6)',
 } as const;
 export const FACTION_COLOR: Record<string, string> = { 群: '#7a6a58', 蜀: '#3f7a4f', 魏: '#3c5a8a', 吴: '#a63d2f' };
-export const BRUSH = '"Brush", serif';
-const NUM = 'bold 14px "Brush", serif';
+export const BRUSH = () => brushStack();
+const NUM = () => sansFont(14, true);
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -188,7 +189,7 @@ export class SelectScene implements Scene {
         const c = s.ctx as unknown as Ctx;
         panel(c, rect);
         c.fillStyle = C.paper;
-        c.font = '14px "Brush", serif';
+        c.font = sansFont(14);
         c.textAlign = 'center';
         c.textBaseline = 'middle';
         c.fillText(text, rect.x + rect.w / 2, rect.y + rect.h / 2);
@@ -244,7 +245,7 @@ export class SelectScene implements Scene {
     strokeRect(c, r, C.goldLo, 1);
     soulIcon(c, r.x + 18, r.y + 13);
     c.fillStyle = C.paper;
-    c.font = NUM;
+    c.font = NUM();
     c.textBaseline = 'middle';
     c.fillText((this.opt.soul ?? 0).toLocaleString('en-US'), r.x + 30, r.y + 14);
     // 标题「点将」
@@ -260,7 +261,7 @@ export class SelectScene implements Scene {
     c.shadowBlur = 6;
     c.shadowOffsetY = 2;
     c.fillStyle = C.gold;
-    c.font = `34px ${BRUSH}`;
+    c.font = `34px ${BRUSH()}`;
     c.fillText('点将', w / 2, ty);
     noShadow(c);
     for (const dir of [-1, 1]) {
@@ -321,7 +322,7 @@ export class SelectScene implements Scene {
     }
     if (!m) {
       c.fillStyle = C.goldLo;
-      c.font = '13px "Brush", serif';
+      c.font = sansFont(13);
       c.textBaseline = 'middle';
       c.fillText('选择主将后显示技能', 22, L.skillY + L.skillD / 2);
       resetText(c);
@@ -338,7 +339,7 @@ export class SelectScene implements Scene {
     c.textBaseline = 'middle';
     c.textAlign = 'right';
     c.fillStyle = C.paper;
-    c.font = NUM;
+    c.font = NUM();
     c.fillText(String(n), 368, L.skillY + 23);
     deckIcon(c, 368 - 32, L.skillY + 13);
     resetText(c);
@@ -346,13 +347,13 @@ export class SelectScene implements Scene {
     const combo = comboOf(this.state.main, this.state.sub);
     if (combo) {
       c.fillStyle = C.gold;
-      c.font = `15px ${BRUSH}`;
+      c.font = `15px ${BRUSH()}`;
       c.textBaseline = 'middle';
       const y = L.combo.y + L.combo.h / 2;
       c.fillText(`珠联·${combo.name}`, L.combo.x, y);
       const x = L.combo.x + c.measureText(`珠联·${combo.name}`).width + 8;
       c.fillStyle = C.paper3;
-      c.font = '12px "Brush", serif';
+      c.font = sansFont(12);
       c.fillText(ellipsis(c, combo.desc, L.combo.w - (x - L.combo.x)), x, y);
       resetText(c);
     }
@@ -384,12 +385,12 @@ export class SelectScene implements Scene {
     c.stroke();
     c.setLineDash([]);
     c.fillStyle = C.goldLo;
-    c.font = '20px "Brush", serif';
+    c.font = sansFont(20);
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText('+', 56, y + 26);
     c.textAlign = 'left';
-    c.font = '12px "Brush", serif';
+    c.font = sansFont(12);
     c.fillText('无可带兵书', 82, y + 26);
     for (let i = 0; i < 6; i++) {
       const x = 156 + i * 10;
@@ -402,7 +403,7 @@ export class SelectScene implements Scene {
     }
     seal(c, { x: 334, y: y + 15, w: 22, h: 22 }, '命', 14);
     c.fillStyle = C.paper;
-    c.font = 'bold 18px "Brush", serif';
+    c.font = sansFont(18, true);
     c.textAlign = 'left';
     c.fillText('0', 362, y + 27);
     resetText(c);
@@ -436,8 +437,8 @@ interface Line {
 function detailLines(hero: HeroDef, focus: 'main' | 'sub' | null): Line[] {
   const out: Line[] = [];
   const add = (title: string, desc: string, dim: boolean) => {
-    out.push({ text: title, font: `18px ${BRUSH}`, color: dim ? C.goldLo : C.gold, h: 26 });
-    for (const l of wrapWidth(desc, 318, 13)) out.push({ text: l, font: '13px "Brush", serif', color: dim ? C.paper3 : C.paper, h: 19 });
+    out.push({ text: title, font: `18px ${BRUSH()}`, color: dim ? C.goldLo : C.gold, h: 26 });
+    for (const l of wrapWidth(desc, 318, 13)) out.push({ text: l, font: sansFont(13), color: dim ? C.paper3 : C.paper, h: 19 });
     out.push({ text: '', font: '', color: '', h: 6 });
   };
   for (const s of mainSkillsOf(hero)) add(`主将技 · ${s.name}`, s.desc, focus === 'sub');
@@ -473,13 +474,13 @@ export function wrapChars(s: string, n: number): string[] {
 function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[]) {
   panel(c, r);
   c.fillStyle = C.gold;
-  c.font = `28px ${BRUSH}`;
+  c.font = `28px ${BRUSH()}`;
   c.textBaseline = 'middle';
   c.fillText(hero.name, r.x + 16, r.y + 30);
   const fx = r.x + 16 + c.measureText(hero.name).width + 10;
   factionBadge(c, fx, r.y + 20, hero.faction);
   c.fillStyle = C.paper;
-  c.font = NUM;
+  c.font = NUM();
   beadRow(c, fx + 30, r.y + 30, hero.hp, 11);
   c.fillText(`体力 ${hero.hp}`, fx + 30 + hero.hp * 13 + 6, r.y + 31);
   let y = r.y + 64;
@@ -492,7 +493,7 @@ function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[]) {
     y += l.h;
   }
   c.fillStyle = C.goldLo;
-  c.font = '11px "Brush", serif';
+  c.font = sansFont(11);
   c.textAlign = 'right';
   c.fillText('点外部关闭', r.x + r.w - 12, r.y + 18);
   resetText(c);
@@ -648,7 +649,7 @@ function heroFrame(
   c.restore();
   strokeRect(c, w, '#2a1a08', 1);
   // 竖排书法名（左上）
-  c.font = `${o.name}px ${BRUSH}`;
+  c.font = `${o.name}px ${BRUSH()}`;
   c.textAlign = 'center';
   c.textBaseline = 'top';
   if (art) {
@@ -676,7 +677,7 @@ function heroFrame(
     c.fillStyle = '#fff';
     c.shadowColor = '#000';
     c.shadowBlur = 3;
-    c.font = 'bold 12px "Brush", serif';
+    c.font = sansFont(12, true);
     c.textBaseline = 'middle';
     c.fillText(String(h.hp), w.x + w.w / 2 - 1, cy + 1);
     noShadow(c);
@@ -732,7 +733,7 @@ function factionBadge(c: Ctx, x: number, y: number, f: string) {
   c.fillRect(x, y, 20, 20);
   strokeRect(c, { x: x - 1, y: y - 1, w: 22, h: 22 }, C.paper, 1);
   c.fillStyle = '#fff';
-  c.font = `14px ${BRUSH}`;
+  c.font = `14px ${BRUSH()}`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.fillText(f, x + 10, y + 11);
@@ -772,7 +773,7 @@ function seal(c: Ctx, r: Rect, text: string, size: number, silver = false) {
   roundRect(c, inflate(r, 0.75), 3);
   c.stroke();
   c.fillStyle = silver ? C.ink : C.paper;
-  c.font = `${size}px ${BRUSH}`;
+  c.font = `${size}px ${BRUSH()}`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.fillText(text, r.x + r.w / 2, r.y + r.h / 2 + 1);
@@ -794,9 +795,9 @@ function emptySlot(c: Ctx, r: Rect, label: string, flash: boolean) {
   c.fillStyle = flash ? C.cinnHi : C.goldMid;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
-  c.font = '30px "Brush", serif';
+  c.font = brushFont(30);
   c.fillText('+', r.x + r.w / 2, r.y + r.h / 2 - 12);
-  c.font = `${r.w > 150 ? 22 : 18}px ${BRUSH}`;
+  c.font = `${r.w > 150 ? 22 : 18}px ${BRUSH()}`;
   c.fillText(`点${label}`, r.x + r.w / 2, r.y + r.h / 2 + 20);
   resetText(c);
 }
@@ -838,7 +839,7 @@ function skillSeal(c: Ctx, r: Rect, name: string, kind: 'main' | 'sub', locked: 
   c.arc(cx, cy, 26, 0, Math.PI * 2);
   c.stroke();
   c.fillStyle = C.paper;
-  c.font = `19px ${BRUSH}`;
+  c.font = `19px ${BRUSH()}`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.fillText(name.slice(0, 2), cx, cy + 1);
@@ -849,7 +850,7 @@ function skillSeal(c: Ctx, r: Rect, name: string, kind: 'main' | 'sub', locked: 
     roundRect(c, lr, 2);
     c.fill();
     c.fillStyle = C.paper;
-    c.font = `11px ${BRUSH}`;
+    c.font = `11px ${BRUSH()}`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText('锁', lr.x + 8, lr.y + 9);
@@ -880,7 +881,7 @@ function button(c: Ctx, r: Rect, text: string, enabled: boolean, glow: number) {
   c.shadowColor = '#000';
   c.shadowBlur = 2;
   c.shadowOffsetY = 2;
-  c.font = `22px ${BRUSH}`;
+  c.font = `22px ${BRUSH()}`;
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   c.fillText(text, r.x + r.w / 2, r.y + r.h / 2 + 1);

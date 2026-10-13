@@ -18,8 +18,9 @@ import { C, ext, frame, inside, text, textCenter, textWidth } from './theme';
 import { icons } from './icons';
 import { numFont } from './numfont';
 import { BODY_FONT, TITLE_FONT } from './detail';
+import { brushFont } from '../fonts';
 
-const CARD_FONT = `22px "Brush", serif`;
+const CARD_FONT = () => brushFont(22);
 export const RESPONSE = { lift: 22, bannerW: 230, bannerH: 56, barH: 6, btnW: 108, btnH: 44, gap: 10, defaultSeconds: 8, noLegalMs: 600 } as const;
 
 /** 宿主场景提供的布局（逻辑像素） */
@@ -145,7 +146,7 @@ function drawCard(s: Surface, c: CardInst, r: Rect, sel: boolean) {
   g.fillRect(r.x + 4, r.y + 4, 18, 18);
   const cs = String(d.cost);
   nf.draw(g, cs, r.x + 13 - nf.measure(g, cs, 13) / 2, r.y + 18, 13, C.paper);
-  textCenter(g, d.name, r.x + r.w / 2, r.y + r.h - 14, CARD_FONT, C.paper, 22);
+  textCenter(g, d.name, r.x + r.w / 2, r.y + r.h - 14, CARD_FONT(), C.paper, 22);
 }
 
 /** 响应窗遮罩：随弹出动画淡入（由引擎全屏绘制） */
@@ -165,8 +166,8 @@ export function drawResponse(s: Surface, lay: ResponseLayout, st: ResponseState)
   g.fillStyle = C.gold;
   g.fillRect(b.x, b.y, b.w, 1.5);
   g.fillRect(b.x, b.y + b.h - 1.5, b.w, 1.5);
-  g.font = TITLE_FONT;
-  text(g, st.info.title, b.x + 16, b.y + 37, TITLE_FONT, C.paper);
+  g.font = TITLE_FONT();
+  text(g, st.info.title, b.x + 16, b.y + 37, TITLE_FONT(), C.paper);
   if (st.info.dmg) {
     // 伤害：杀印章 + 数字（不用 ⚔ 字符）
     const x0 = b.x + 16 + textWidth(g, st.info.title, 24) + 10;
@@ -174,8 +175,8 @@ export function drawResponse(s: Surface, lay: ResponseLayout, st: ResponseState)
     numFont().draw(g, String(st.info.dmg), x0 + 24, b.y + 36, 20, '#f0c0b0');
   }
   if (st.info.attacker) {
-    g.font = BODY_FONT;
-    text(g, st.info.attacker, b.x + b.w - 14 - textWidth(g, st.info.attacker, 13), b.y + 22, BODY_FONT, 'rgba(243,235,216,.6)');
+    g.font = BODY_FONT();
+    text(g, st.info.attacker, b.x + b.w - 14 - textWidth(g, st.info.attacker, 13), b.y + 22, BODY_FONT(), 'rgba(243,235,216,.6)');
   }
   drawCountdown(s, geo, st);
   // 按钮：确定（选中合法牌后可用）/ 承受
@@ -183,7 +184,7 @@ export function drawResponse(s: Surface, lay: ResponseLayout, st: ResponseState)
   g.fillStyle = st.selected ? C.jade : 'rgba(47,107,79,.35)';
   g.fillRect(ok.x, ok.y, ok.w, ok.h);
   frame(g, ok, C.gold, 1.5);
-  textCenter(g, '确定', ok.x + ok.w / 2, ok.y + 30, TITLE_FONT, st.selected ? C.paper : 'rgba(243,235,216,.45)', 24);
+  textCenter(g, '确定', ok.x + ok.w / 2, ok.y + 30, TITLE_FONT(), st.selected ? C.paper : 'rgba(243,235,216,.45)', 24);
   const tk = geo.take;
   g.fillStyle = '#3a1712';
   g.fillRect(tk.x, tk.y, tk.w, tk.h);
@@ -196,7 +197,7 @@ export function drawResponse(s: Surface, lay: ResponseLayout, st: ResponseState)
     const x0 = tk.x + (tk.w - w) / 2;
     icons().draw(g, 'ui_hp', { x: x0, y: tk.y + 13, w: 18, h: 18 });
     nf.draw(g, lab, x0 + 22, tk.y + 29, 18, '#f0c0b0');
-  } else textCenter(g, st.req.pass, tk.x + tk.w / 2, tk.y + 29, TITLE_FONT, '#f0c0b0', 24);
+  } else textCenter(g, st.req.pass, tk.x + tk.w / 2, tk.y + 29, TITLE_FONT(), '#f0c0b0', 24);
 }
 
 /** 倒计时区（不透明底）：进度条 + 秒数。倒计时期间只重绘这一小块 */
@@ -294,7 +295,7 @@ export function toastNoLegal(stack: OverlayStack, label: string, at: () => Rect)
       s.ctx.globalAlpha = Math.max(0, Math.min(1, (RESPONSE.noLegalMs - t) / 150));
       s.ctx.fillStyle = 'rgba(26,8,6,.9)';
       s.ctx.fillRect(r.x, r.y, r.w, r.h);
-      text(s.ctx, label, r.x + 16, r.y + r.h / 2 + 8, TITLE_FONT, C.paper);
+      text(s.ctx, label, r.x + 16, r.y + r.h / 2 + 8, TITLE_FONT(), C.paper);
       s.ctx.globalAlpha = 1;
     },
   });

@@ -244,7 +244,7 @@ export class EventScene implements Scene<EventParams> {
     frame3(c, r, T.goldMid);
     label(c, o.text, r.x + 14, r.y + (o.hint ? 28 : 40), BRUSH(22), T.gold);
     // 副文案 ≥13px，色与情景文案（#d8c8a0）同亮
-    if (o.hint) glyphLabel(c, o.hint, r.x + 14, r.y + 52, BRUSH(13), 13, DESC, 'left');
+    if (o.hint) glyphLabel(c, o.hint, r.x + 14, r.y + 52, SANS(13), 13, DESC, 'left');
     c.globalAlpha = ga;
     if (why) label(c, why, r.x + r.w - 12, r.y + 38, SANS(13), T.dmg, 'right');
   }

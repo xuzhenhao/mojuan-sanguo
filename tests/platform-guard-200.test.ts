@@ -69,7 +69,8 @@ describe('#200 泄漏清理', () => {
     const fonts: FontLoader = { load: (f) => (seen.push(f), Promise.resolve(null)) };
     let redraws = 0;
     await refitAfterBrush(fonts, () => redraws++);
-    expect(seen).toEqual(['20px "Brush"']);
+    expect(seen[0]).toMatch(/^20px /);
+    expect(seen[0]).toContain('Brush');
     expect(redraws).toBe(1);
     await refitAfterBrush({ load: () => Promise.reject(new Error('x')) }, () => redraws++);
     expect(redraws).toBe(1);

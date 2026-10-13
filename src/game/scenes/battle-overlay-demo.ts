@@ -19,6 +19,7 @@ import { C, frame, inside, text } from '../overlays/theme';
 import { def, RANK_CH } from '../../core/rules';
 import { icons } from '../overlays/icons';
 import { numFont } from '../overlays/numfont';
+import { brushFont } from '../fonts';
 
 export interface DemoEnv {
   overlays: OverlayStack;
@@ -156,14 +157,14 @@ export class BattleOverlayDemoScene implements Scene {
     }
     g.clearRect(0, 0, w, h);
     if (layer !== 'main') return;
-    text(g, 'P1b 演示 · 响应与详情', 20, 44, `20px "Brush", serif`, C.gold);
+    text(g, 'P1b 演示 · 响应与详情', 20, 44, brushFont(20), C.gold);
     const en = this.g.alive();
     this.enemyRects().forEach((r, i) => {
       const e = en[i];
       g.fillStyle = '#3b2a22';
       g.fillRect(r.x, r.y, r.w, r.h);
       frame(g, r, C.goldDeep, 1.5);
-      text(g, e.name.split('·')[0], r.x + 8, r.y + 28, `20px "Brush", serif`, C.paper);
+      text(g, e.name.split('·')[0], r.x + 8, r.y + 28, brushFont(20), C.paper);
       numFont().draw(g, `${Math.max(0, e.hp)}/${e.max}`, r.x + 8, r.y + r.h - 10, 13, C.paper);
       if (e.armor) {
         icons().draw(g, 'armor', { x: r.x + r.w - 24, y: r.y + r.h - 24, w: 16, h: 16 });
@@ -174,7 +175,7 @@ export class BattleOverlayDemoScene implements Scene {
     g.fillStyle = '#e9dcc0';
     g.fillRect(hr.x, hr.y, hr.w, hr.h);
     frame(g, hr, C.gold, 2);
-    text(g, this.g.main.name, hr.x + 10, hr.y + 34, `28px "Brush", serif`, C.ink);
+    text(g, this.g.main.name, hr.x + 10, hr.y + 34, brushFont(28), C.ink);
     icons().draw(g, 'ui_hp', { x: hr.x + 10, y: hr.y + hr.h - 26, w: 16, h: 16 });
     numFont().draw(g, `${this.g.p.hp}/${this.g.p.maxHp}`, hr.x + 30, hr.y + hr.h - 12, 15, C.ink);
     const n = this.g.hand.length;
@@ -187,14 +188,14 @@ export class BattleOverlayDemoScene implements Scene {
       const red = c.suit === 'H' || c.suit === 'D';
       numFont().draw(g, RANK_CH[c.rank], r.x + 6, r.y + 40, 14, red ? '#ff8a80' : C.paper);
       icons().draw(g, `suit_${c.suit}`, { x: r.x + 6, y: r.y + 44, w: 13, h: 13 }, red ? '#ff8a80' : C.paper);
-      text(g, d.name, r.x + 14, r.y + r.h - 14, `20px "Brush", serif`, C.paper);
+      text(g, d.name, r.x + 14, r.y + r.h - 14, brushFont(20), C.paper);
     });
     const b = this.button();
     g.fillStyle = '#7a2418';
     g.fillRect(b.x, b.y, b.w, b.h);
     frame(g, b, C.gold, 1.5);
-    text(g, '敌人出杀', b.x + 30, b.y + 32, `22px "Brush", serif`, C.paper);
-    text(g, this.last, 20, h - 92 - 120 - 8, BODY_FONT, 'rgba(243,235,216,.7)');
+    text(g, '敌人出杀', b.x + 30, b.y + 32, brushFont(22), C.paper);
+    text(g, this.last, 20, h - 92 - 120 - 8, BODY_FONT(), 'rgba(243,235,216,.7)');
     this.lp.draw(s);
   }
 

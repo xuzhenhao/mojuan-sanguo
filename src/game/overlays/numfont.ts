@@ -5,6 +5,7 @@
  */
 import type { Ctx2DLike } from '../../engine/types';
 import { ext } from './theme';
+import { sansFont } from '../fonts';
 
 export interface NumFont {
   /** 绘制数字串（0-9 / + − × / A J Q K 和空格），基线在 y；返回宽度 */
@@ -12,7 +13,7 @@ export interface NumFont {
   measure(c: Ctx2DLike, s: string, px: number): number;
 }
 
-const font = (px: number) => `bold ${px}px "Brush", serif`;
+const font = (px: number) => sansFont(px, true);
 
 export const SERIF_DIGITS: NumFont = {
   measure(c, s, px) {

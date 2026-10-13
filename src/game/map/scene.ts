@@ -14,6 +14,7 @@ import { BOSS_ID, walkedEdges, type MapNode, type NodeType } from '../../core/ru
 import type { FlowEvent } from '../flow';
 import { isComingSoon, type MapRouteParams } from './route';
 import type { HudInfo, MapSession } from './session';
+import { brushFont, sansFont } from '../fonts';
 
 type C2D = CanvasRenderingContext2D;
 
@@ -180,7 +181,7 @@ export class MapScene implements Scene {
   }
   private drawTop(c: C2D, w: number) {
     c.fillStyle = GOLD;
-    c.font = '16px "Brush", serif';
+    c.font = brushFont(16);
     c.textAlign = 'left';
     c.fillText(`第${['一', '二', '三'][this.d.session.chapter - 1] ?? this.d.session.chapter}章 · 黄巾`, 16, 32);
     // 暂停：右上，位于胶囊左侧
@@ -197,13 +198,13 @@ export class MapScene implements Scene {
     // 头像
     circle(c, 42, y + 25, 20, PAPER, GOLD);
     c.fillStyle = '#1a1a1a';
-    c.font = '20px "Brush", serif';
+    c.font = brushFont(20);
     c.textAlign = 'center';
     c.fillText(hud.hero.slice(0, 1), 42, y + 32);
     // 勾玉体力（珠径 12）
     for (let i = 0; i < hud.maxHp; i++) circle(c, 74 + i * 15, y + 16, 6, i < hud.hp ? CINNABAR : '#3a2a20', GOLD);
     c.fillStyle = PAPER;
-    c.font = '12px "Brush", serif';
+    c.font = sansFont(12);
     c.textAlign = 'left';
     c.fillText(`${hud.hp}/${hud.maxHp}`, 70, y + 40);
     // 铜钱
@@ -230,7 +231,7 @@ export class MapScene implements Scene {
     c.fillRect(0, h - 72, w, 1);
     this.drawRoundBtn(c, 24, h - 58, 40, '牌');
     c.fillStyle = PAPER;
-    c.font = '13px "Brush", serif';
+    c.font = sansFont(13);
     c.textAlign = 'left';
     const n = this.d.session.available.length;
     c.fillText(this.moving ? '行军中…' : n ? `选择下一处（${n} 条路）` : '本章已终', 76, h - 42);
@@ -238,7 +239,7 @@ export class MapScene implements Scene {
   private drawRoundBtn(c: C2D, x: number, y: number, s: number, label: string) {
     circle(c, x + s / 2, y + s / 2, s / 2, '#2a120c', GOLD);
     c.fillStyle = GOLD;
-    c.font = `${Math.round(s * 0.45)}px "Brush", serif`;
+    c.font = brushFont(Math.round(s * 0.45));
     c.textAlign = 'center';
     c.fillText(label, x + s / 2, y + s * 0.65);
   }
@@ -338,7 +339,7 @@ export class MapScene implements Scene {
     if (at) {
       circle(c, at.x, at.y, 22, PAPER, CINNABAR, 3);
       c.fillStyle = '#1a1a1a';
-      c.font = '22px "Brush", serif';
+      c.font = brushFont(22);
       c.textAlign = 'center';
       c.fillText(this.d.hud().hero.slice(0, 1), at.x, at.y + 8);
     }
@@ -370,7 +371,7 @@ export class MapScene implements Scene {
     }
     // 层号
     c.fillStyle = '#8a7a5a';
-    c.font = '11px "Brush", serif';
+    c.font = sansFont(11);
     c.textAlign = 'left';
     for (let l = 1; l <= s.cfg.layers; l++) c.fillText(String(l), 6, this.contentH - 46 - (l - 1) * this.spacing);
     // 路径：已走朱砂实线 3.5，未走虚线
@@ -398,7 +399,7 @@ export class MapScene implements Scene {
       const fill = n.type === 'ELITE' ? '#7d2418' : '#1a1a1a';
       circle(c, p.x, p.y, 19, done ? '#555' : fill, done ? '#777' : '#b98a3c', 2);
       c.fillStyle = done ? '#bbb' : GLYPH_COLOR[n.type];
-      c.font = '17px "Brush", serif';
+      c.font = brushFont(17);
       c.textAlign = 'center';
       c.fillText(GLYPH[n.type], p.x, p.y + 6);
       c.globalAlpha = 1;
@@ -415,13 +416,13 @@ export class MapScene implements Scene {
     c.lineWidth = 2;
     c.strokeRect(bp.x - 44, bp.y - 54, 88, 108);
     c.fillStyle = PAPER;
-    c.font = '44px "Brush", serif';
+    c.font = brushFont(44);
     c.textAlign = 'center';
     c.fillText(this.d.bossGlyph, bp.x, bp.y + 8);
     c.fillStyle = CINNABAR;
     c.fillRect(bp.x - 34, bp.y + 42, 68, 22);
     c.fillStyle = PAPER;
-    c.font = '14px "Brush", serif';
+    c.font = brushFont(14);
     c.fillText(this.d.bossName, bp.x, bp.y + 58);
   }
 
@@ -539,17 +540,17 @@ export class MapScene implements Scene {
         c.strokeRect(rect.x, rect.y, rect.w, rect.h);
         c.textAlign = 'center';
         c.fillStyle = GOLD_HI;
-        c.font = '26px "Brush", serif';
+        c.font = brushFont(26);
         c.fillText(title, w / 2, rect.y + 44);
         c.fillStyle = PAPER;
-        c.font = '14px "Brush", serif';
+        c.font = sansFont(14);
         c.fillText(line, w / 2, rect.y + 84);
         c.fillStyle = CINNABAR;
         c.fillRect(btn.x, btn.y, btn.w, btn.h);
         c.strokeStyle = GOLD;
         c.strokeRect(btn.x, btn.y, btn.w, btn.h);
         c.fillStyle = PAPER;
-        c.font = '20px "Brush", serif';
+        c.font = brushFont(20);
         c.fillText('确定', w / 2, btn.y + 30);
       },
       gesture: (e, hd) => {
@@ -588,9 +589,9 @@ export class MapScene implements Scene {
         c.strokeRect(rect.x, rect.y, rect.w, rect.h);
         c.fillStyle = '#1a1a1a';
         c.textAlign = 'left';
-        c.font = '15px "Brush", serif';
+        c.font = brushFont(15);
         c.fillText(title, rect.x + 12, rect.y + 28);
-        c.font = '12px "Brush", serif';
+        c.font = sansFont(12);
         c.fillText(body, rect.x + 12, rect.y + 54);
       },
     });
@@ -621,16 +622,16 @@ export class MapScene implements Scene {
         c.strokeRect(box.x, box.y, box.w, box.h);
         c.textAlign = 'center';
         c.fillStyle = GOLD_HI;
-        c.font = '28px "Brush", serif';
+        c.font = brushFont(28);
         c.fillText('进入首领战？', w / 2, box.y + 56);
         c.fillStyle = PAPER;
-        c.font = '14px "Brush", serif';
+        c.font = sansFont(14);
         c.fillText('（之后无法返回）', w / 2, box.y + 82);
         c.fillStyle = '#f0b0a0';
-        c.font = '22px "Brush", serif';
+        c.font = brushFont(22);
         c.fillText(`首领 · ${this.d.bossName}`, w / 2, box.y + 124);
         c.fillStyle = PAPER;
-        c.font = '14px "Brush", serif';
+        c.font = sansFont(14);
         c.fillText(`体力 ${hud.hp}/${hud.maxHp}`, w / 2, box.y + 160);
         for (let i = 0; i < 3; i++) {
           const x = w / 2 - 45 + i * 32;
@@ -650,7 +651,7 @@ export class MapScene implements Scene {
           c.strokeStyle = GOLD;
           c.strokeRect(r.x, r.y, r.w, r.h);
           c.fillStyle = PAPER;
-          c.font = '20px "Brush", serif';
+          c.font = brushFont(20);
           c.fillText(label, r.x + r.w / 2, r.y + 30);
         }
       },

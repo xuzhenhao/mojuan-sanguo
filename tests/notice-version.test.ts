@@ -23,8 +23,8 @@ const ov = () => new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScen
 
 describe('toast 正式样式', () => {
   it('字体只用霞鹜文楷（Brush），未就绪回退 serif（#202）；2.5s 后关闭', () => {
-    expect(NOTICE_FONT).toBe('16px "Brush", serif');
-    expect(NOTICE_FONT).not.toMatch(/PingFang|Kai|楷/);
+    expect(NOTICE_FONT()).toBe('16px "Brush", sans-serif');
+    expect(NOTICE_FONT()).not.toMatch(/PingFang|Kai|楷/);
     const o = ov();
     const fonts: string[] = [];
     const s = surface();
@@ -33,7 +33,7 @@ describe('toast 正式样式', () => {
     o.update?.(100);
     formalNotice(s, '已回到进入此处前', 500, 0);
     fonts.push(ctx.font);
-    expect(fonts).toEqual([NOTICE_FONT]);
+    expect(fonts).toEqual([NOTICE_FONT()]);
     expect(NOTICE_MS).toBe(2500);
     expect(o.size).toBe(1);
     expect(showNotice(o, null)).toBeNull();

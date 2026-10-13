@@ -2,6 +2,7 @@
 import { markHit } from '../../engine/hit';
 import type { Ctx2DLike, Rect } from '../../engine/types';
 import { ext, frame, textWidth } from '../overlays/theme';
+import { brushFont, sansFont } from '../fonts';
 
 export const B = {
   lac0: '#070302',
@@ -57,9 +58,9 @@ export function portraitEdges(c: Ctx2DLike, r: Rect, edge: number, shade: number
 }
 
 /** 书法字（霞鹜文楷，FontFace 族名 Brush）；禁止系统楷体回退 */
-export const brush = (px: number) => `${px}px "Brush", serif`;
-export const body = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px "Brush", serif`;
-export const num = (px: number) => `bold ${px}px "Brush", serif`;
+export const brush = (px: number) => brushFont(px);
+export const body = (px: number, bold = false) => sansFont(px, bold);
+export const num = (px: number) => sansFont(px, true);
 
 export type BtnKind = 'primary' | 'confirm' | 'secondary';
 const BTN_FILL: Record<BtnKind, string> = { primary: '#9C3A28', confirm: '#3E7D63', secondary: '#43362A' };

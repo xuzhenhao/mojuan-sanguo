@@ -14,7 +14,7 @@ import type { Rect, Vec2 } from '../../engine/types';
 import type { Surface } from '../../engine/surfaces';
 import type { Ctx2DLike } from '../../engine/types';
 import { AFFIXES } from '../../data/affixes';
-import { BRUSH, CARD_H, CARD_W, RARITY_COLOR, T, drawButton, gx, label, paintCard, stroke, vgrad, type Button } from '../scenes/p4-kit';
+import { BRUSH, CARD_H, CARD_W, RARITY_COLOR, SANS, T, drawButton, gx, label, paintCard, stroke, type Button, vgrad } from '../scenes/p4-kit';
 import { STAMP_ICONS, type IconId } from './icons';
 import { inside } from './theme';
 import { prefersReducedMotion as readReducedMotion } from '../motion';
@@ -321,10 +321,10 @@ function affixRow(c: Ctx2DLike, r: Rect, a: AffixDef, dia: number, namePx: numbe
   const icon = effPx >= 16 ? 16 : 13;
   let px = effPx;
   const room = right - (nx + nw + 10) - icon - 4;
-  while (px > 11 && measure(c, a.d, BRUSH(px), px) > room) px--;
-  const ew = measure(c, a.d, BRUSH(px), px);
+  while (px > 11 && measure(c, a.d, SANS(px), px) > room) px--;
+  const ew = measure(c, a.d, SANS(px), px);
   if (ew > room) return { nx, nw }; // 已有行 169 宽放不下效果：只显示名称（长按看详情）
-  label(c, a.d, right, cy + px * 0.36, BRUSH(px), T.paper, 'right');
+  label(c, a.d, right, cy + px * 0.36, SANS(px), T.paper, 'right');
   STAMP_ICONS.draw(c, CAT_ICON[a.cat], { x: right - ew - 4 - icon, y: cy - icon / 2, w: icon, h: icon }, T.paper3);
   return { nx, nw };
 }
@@ -454,9 +454,9 @@ export function drawEpiphany(s: Surface, w: number, _h: number, info: EpiphanyIn
     c.globalAlpha = ga * uiA;
     label(c, EPIPHANY_TEXT.title, w / 2, 56 + 12 + 2, BRUSH(34), 'rgba(0,0,0,.7)', 'center'); // 阴影 0 2 6 #000 近似（不用 shadowBlur）
     label(c, EPIPHANY_TEXT.title, w / 2, 56 + 12, BRUSH(34), T.gold, 'center');
-    label(c, `${info.count} / ${info.max}`, 366, 56 + 6, BRUSH(16), T.gold, 'right');
-    if (full) label(c, EPIPHANY_TEXT.fullNote, w / 2, L.noteY + 4, BRUSH(12), T.paper3, 'center');
-    label(c, full ? EPIPHANY_TEXT.hintFull : EPIPHANY_TEXT.hintDefault, w / 2, L.hintY + 5, BRUSH(13), T.paper3, 'center');
+    label(c, `${info.count} / ${info.max}`, 366, 56 + 6, SANS(16), T.gold, 'right');
+    if (full) label(c, EPIPHANY_TEXT.fullNote, w / 2, L.noteY + 4, SANS(12), T.paper3, 'center');
+    label(c, full ? EPIPHANY_TEXT.hintFull : EPIPHANY_TEXT.hintDefault, w / 2, L.hintY + 5, SANS(13), T.paper3, 'center');
     const pick = epiphanyCommit(info, st);
     if (L.giveUp) drawButton(c, { id: 'giveup', rect: L.giveUp, text: EPIPHANY_TEXT.giveUp, kind: 'secondary', font: BRUSH(22) });
     const ok: Button = { id: 'ok', rect: L.ok, text: full ? EPIPHANY_TEXT.replace : EPIPHANY_TEXT.engrave, kind: 'confirm', disabled: !pick, font: BRUSH(22) };

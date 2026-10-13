@@ -14,8 +14,7 @@ import type { OverlayHandle, OverlayStack } from '../../engine/modal';
 import type { Surface } from '../../engine/surfaces';
 import type { Canvas2DLike, Ctx2DLike, Rect, Vec2 } from '../../engine/types';
 import { ext, inside, wrap } from '../overlays/theme';
-import { activeFontStack } from '../fonts';
-import { FONTS } from '../../data/config';
+import { brushFont, sansFont } from '../fonts';
 
 export const T = {
   lac0: '#070302',
@@ -41,9 +40,9 @@ export const T = {
   azureHi: '#86AAB8',
 } as const;
 export const RARITY_COLOR: Record<Rarity | 'Boss', string> = { N: '#C49A6A', R: '#DFE5E8', E: '#E9C877', L: '#9AD4B8', Boss: '#D4604C' };
-export const BRUSH = (px: number) => `${px}px "Brush", serif`;
-/** 正文字体：按平台取 rules.fonts 的 sans 角色（H5 霞鹜文楷，微信系统 sans-serif，#202） */
-export const SANS = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px ${activeFontStack('sans', FONTS)}`;
+/** 书法 / 正文字体（#228：族名统一由 game/fonts 从 rules.fonts 读取） */
+export const BRUSH = (px: number) => brushFont(px);
+export const SANS = (px: number, bold = false) => sansFont(px, bold);
 
 type G = ReturnType<typeof ext> &
   Partial<{

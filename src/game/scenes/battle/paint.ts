@@ -4,6 +4,7 @@
  */
 import { markHit } from '../../../engine/hit';
 import type { Ctx2DLike, Rect } from '../../../engine/types';
+import { brushStack, sansStack } from '../../fonts';
 
 export const C = {
   lac0: '#070302',
@@ -38,10 +39,15 @@ export const C = {
 } as const;
 
 export const FONT = {
-  /** 霞鹜文楷（FontFace 族名 Brush）；正文、数字、书法字同一族名，不回退任何系统字体（#129 / #142） */
-  brush: '"Brush", serif',
-  num: '"Brush", serif',
-  body: '"Brush", serif',
+  get brush() {
+    return brushStack();
+  },
+  get num() {
+    return sansStack();
+  },
+  get body() {
+    return sansStack();
+  },
 };
 
 type Ext = Ctx2DLike & {

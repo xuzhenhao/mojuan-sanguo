@@ -10,11 +10,12 @@ import type { Ctx2DLike } from '../../engine/types';
 import { DESIGN_RECT } from '../../engine/viewport';
 import { wrap } from './theme';
 import { SELECT_LAYOUT } from '../select/layout';
+import { sansFont } from '../fonts';
 
 export const NOTICE_MS = 2500;
 export const NOTICE_FADE_MS = 180;
 /** 字体只用霞鹜文楷（Brush），不写任何系统字体回退 */
-export const NOTICE_FONT = '16px "Brush", serif';
+export const NOTICE_FONT = () => sansFont(16);
 /** 宽度按内容自适应：最小 200dp，最大 屏宽 − 48dp，水平居中；多条同时在屏时统一取最宽一条的宽度（#136） */
 export const NOTICE_STYLE = {
   bg: 'rgba(7,3,2,0.9)',
@@ -69,13 +70,13 @@ export const noticeTextMaxW = (W: number = DESIGN_RECT.w) => Math.min(W - NOTICE
 export type NoticeRenderer = (s: Surface, text: string, t: number, slot: number, stackW?: number, count?: number) => void;
 /** 量文字宽（无 measureText 的环境按 16dp/字估） */
 export function measureNotice(c: Ctx2DLike, text: string) {
-  c.font = NOTICE_FONT;
+  c.font = NOTICE_FONT();
   return (c as Ctx2DLike & { measureText?(t: string): { width: number } }).measureText?.(text).width ?? text.length * 16;
 }
 
 /** 折行（theme.wrap：逐字 + 标点避头尾），字号固定 16 不缩 */
 export function noticeLines(c: Ctx2DLike, text: string, W: number = DESIGN_RECT.w): string[] {
-  c.font = NOTICE_FONT;
+  c.font = NOTICE_FONT();
   return wrap(c, text, noticeTextMaxW(W), 16);
 }
 

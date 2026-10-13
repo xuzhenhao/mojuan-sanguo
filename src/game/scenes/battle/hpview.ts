@@ -1,5 +1,6 @@
 import { clearTextWidthCache } from '../../overlays/theme';
 import { prefersReducedMotion as readReducedMotion } from '../../motion';
+import { brushFont } from '../../fonts';
 /**
  * 战斗页体力显示（#129，render-spec §8.8.2）——纯布局函数，场景只负责照着画。
  * - 武将：上限 ≤6 用勾玉（17⌀，间距 clamp((innerW − n×17)/(n−1), 2, 4)，整排居中，不出卡框）；
@@ -80,7 +81,7 @@ export interface FontLoader {
 }
 /** 等霞鹜文楷（族名 Brush）可用后：清牌名字号缓存与量宽缓存，再重绘（加载前量的是回退字体宽度） */
 export function refitAfterBrush(fonts: FontLoader, redraw: () => void): Promise<void> {
-  return fonts.load('20px "Brush"').then(
+  return fonts.load(brushFont(20)).then(
     () => refitFonts(redraw),
     () => undefined,
   );

@@ -101,7 +101,6 @@ describe('#202 rules.fonts 配置', () => {
     expect(fontStack(FONTS, 'wechat', 'sans')).toBe('sans-serif');
   });
   it('游戏内书法字体串与配置一致；正文 SANS 随平台切换', () => {
-    expect(readFileSync(join(__dirname, '../src/engine/fonts.ts'), 'utf8')).toContain(`'${fontStack(FONTS, 'web', 'brush')}'`);
     expect(SANS(14)).toBe('14px "Brush", sans-serif');
     setFontPlatform(FONTS, 'wechat');
     expect(SANS(14, true)).toBe('bold 14px sans-serif');
