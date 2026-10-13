@@ -99,7 +99,7 @@ export class RunSession {
       potionSlots: ECONOMY.potionSlots,
       tianming: o.tianming,
       configVersion: o.configVersion,
-      startedAt: o.now,
+      startedAt: o.now ?? Date.now(),
     });
     this.st = st0;
     this.game = new Game(this.rng('battle'), io, { autoShan: false, main: p.main, sub: p.sub });
@@ -116,6 +116,12 @@ export class RunSession {
     return this.game;
   }
 
+  /** 点将出征（#215）：建局后立即写档（地图未生成，map = null），出征后到进首个节点前刷新也不丢局 */
+  begin(p: RunParams, store: RunStateStore, o: StartOpts = {}): Game {
+    const g = this.start(p, NULL_IO, o);
+    this.save(store);
+    return g;
+  }
   get active() {
     return this.st !== null;
   }

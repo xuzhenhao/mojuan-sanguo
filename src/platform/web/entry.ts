@@ -27,7 +27,7 @@ import { DESIGN_RECT } from '../../engine/viewport';
 import { ResultScene } from '../../game/result/scene';
 import { buildView, type RunOutcome } from '../../game/result/settlement';
 import { MetaStore, RunSaveSlot } from '../../game/result/store';
-import { demoOutcome, heroName, outcomeFromSave } from '../../game/result/adapter';
+import { demoOutcome, heroName, outcomeFromRunState, outcomeFromSave } from '../../game/result/adapter';
 import { resultBridge } from '../../game/result/bridge';
 import { resumeFlow, resumePlan, showVersionDialog } from '../../game/result/resume';
 import { abandonRun, resumeFailure } from '../../game/result/abandon';
@@ -67,7 +67,12 @@ const slot = new RunSaveSlot(platform.storage);
 const settingsStore = new SettingsStore(platform.storage);
 /** 当前结算对象：放弃本局 / 战斗页设置的 outcome；都没有时用示例（?demo=win|defeat，示例不入账） */
 let abandoned: RunOutcome | null = null;
-const outcome = () => abandoned ?? resultBridge.outcome ?? demoOutcome(query.demo === 'win');
+/** #212：整局结束（Boss 收入 / 战斗失败）由真实 RunState 生成并缓存，示例只在没有进行中的局时用 */
+let killer: string | undefined;
+const outcome = () => {
+  if (!abandoned && !resultBridge.outcome && run.active) resultBridge.outcome = outcomeFromRunState(run.state, { now: Date.now(), killer });
+  return abandoned ?? resultBridge.outcome ?? demoOutcome(query.demo === 'win');
+};
 const isDemo = () => !abandoned && !resultBridge.outcome;
 engine.scenes.register(
   'result',
@@ -81,6 +86,7 @@ engine.scenes.register(
         slot.remove();
         run.clear();
         abandoned = null;
+        killer = undefined;
         resultBridge.outcome = null;
         if (to === 'map' && resultBridge.restart) {
           resultBridge.restart({ main: o.heroMain, sub: o.heroSub, seed: Math.floor(platform.now() * 1000) >>> 0, tianming: o.tianming });
@@ -98,7 +104,7 @@ engine.scenes.register(
       initial: initialState(query),
       onStart(sel) {
         const seed = query.seed ? Number(query.seed) : Math.floor(platform.now() * 1000) >>> 0;
-        run.start({ ...sel, seed }, undefined, { configVersion: CONFIG_VERSION });
+        run.begin({ ...sel, seed }, platform.storage, { configVersion: CONFIG_VERSION, now: Date.now() });
         send({ type: 'start_run' });
       },
     }),
@@ -177,6 +183,7 @@ engine.scenes.register(
         const pend = run.inNode;
         if (run.active && run.game) {
           run.settleBattle(win);
+          if (!win) killer = run.game.en.find((e) => e.hp > 0)?.name;
           if (win) run.completeNode(platform.storage);
           else run.endRun(platform.storage); // 失败：存档标记「结束本局」，刷新直接进结算页
           // 胜利 → 奖励页也是一个节点：先存进节点快照，刷新后奖励候选一致
@@ -282,7 +289,16 @@ if (query.version === '1') setTimeout(() => void showVersionDialog(engine.overla
 async function checkResume() {
   if (flow.page !== 'select') return;
   const s = slot.peek();
-  if (!s) return;
+  if (!s) {
+    // #214：JSON 截断 / 无法解析的坏档与结构损坏同口径：提示并删档
+    if (slot.unreadable()) {
+      platform.warn('继续本局：存档无法解析');
+      const f = resumeFailure('corrupt');
+      if (f.clearSave) slot.remove();
+      showNotice(engine.overlays, f.text);
+    }
+    return;
+  }
   const raw0 = slot.raw() as { ended?: unknown } | null;
   if (raw0?.ended) {
     // 已「结束本局」（战斗失败后刷新）：不弹续玩，直接进结算页

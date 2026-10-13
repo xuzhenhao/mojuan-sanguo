@@ -11,6 +11,7 @@ import { CONFIG } from '../../data/config';
 import { emptyStats, mergeStats, parseStats } from '../run/stats';
 import { lastChapter, type ResultCard, type RunOutcome, type RunStats } from './settlement';
 import type { ResumeSummary } from './store';
+import type { RunState } from '../run/state';
 
 /** 复活「已使用」只按 reviveLeft 实际值判断（PRD 4.4.1：reviveLeft < 每局次数），不能用胜负推断（#106） */
 export const reviveUsedOf = (reviveLeft: unknown) => typeof reviveLeft === 'number' && reviveLeft < CONFIG.rules.revive.count;
@@ -108,5 +109,42 @@ export function demoOutcome(win: boolean, reviveLeft: number = CONFIG.rules.revi
     relics: ['青囊书'],
     gold: win ? 86 : 42,
     killer: win ? undefined : '黄巾力士',
+  };
+}
+
+/**
+ * 整局结束（#212）：从 RunState 读本局真实数据。
+ * - 胜利：Boss 奖励收入后进结算（state.ended 为空）；失败：战斗失败 endRun 后（state.ended.reason = defeat）。
+ * - killer 由调用方从战斗页 Game 读（存档里没有）。
+ */
+export function outcomeFromRunState(
+  st: Pick<
+    RunState,
+    'runSeed' | 'heroMain' | 'heroSub' | 'chapter' | 'startedAt' | 'tianming' | 'reviveLeft' | 'stats' | 'deck' | 'relics' | 'gold' | 'map' | 'ended' | 'hp'
+  >,
+  o: { now: number; killer?: string },
+): RunOutcome {
+  const win = !st.ended && st.hp > 0;
+  const cur = st.map?.nodes.find((n) => n.id === st.map?.current);
+  const nodeId = st.ended?.nodeId ?? null;
+  const at = (nodeId ? st.map?.nodes.find((n) => n.id === nodeId) : undefined) ?? cur;
+  return {
+    win,
+    abandoned: false,
+    runSeed: st.runSeed,
+    heroMain: st.heroMain,
+    heroSub: st.heroSub,
+    chapter: st.chapter,
+    chapterName: CHAPTER_NAME[st.chapter],
+    layer: at?.layer ?? 0,
+    durationMs: st.startedAt ? Math.max(0, o.now - st.startedAt) : 0,
+    tianming: st.tianming,
+    chaptersCleared: win ? lastChapter() : 0,
+    reviveUsed: reviveUsedOf(st.reviveLeft),
+    stats: parseStats(st.stats),
+    deck: st.deck.map(cardOf),
+    relics: [...st.relics],
+    gold: st.gold,
+    killer: win ? undefined : o.killer,
   };
 }

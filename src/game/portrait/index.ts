@@ -13,9 +13,26 @@ export const PORTRAIT_SRC = { w: 512, h: 712 } as const;
 
 export const smallPath = (p: string) => p.replace(/\.webp$/, '@s.webp');
 
-/** 资源根目录（rules.assets.baseUrl）；未配置时为空串 */
+export interface AssetEnv {
+  /** 开发构建（import.meta.env.DEV） */
+  dev: boolean;
+  /** VITE_ASSET_LOCAL=1：本地 art/out/（只在开发构建生效） */
+  local: boolean;
+}
+type AssetRoots = Partial<(typeof CONFIG.rules)['assets']>;
+/**
+ * 按构建模式选资源根目录：正式构建 = baseUrl；开发构建默认 devBaseUrl（测试 OSS），
+ * VITE_ASSET_LOCAL=1 时改用 localBaseUrl（dev server 提供 art/out/）。未配置时为空串。
+ */
+export function pickAssetBase(a: AssetRoots | undefined, env: AssetEnv): string {
+  if (!a) return '';
+  if (!env.dev) return a.baseUrl ?? '';
+  return (env.local ? a.localBaseUrl : a.devBaseUrl) ?? '';
+}
+const ENV: AssetEnv = { dev: !!import.meta.env.DEV, local: !!import.meta.env.DEV && import.meta.env.VITE_ASSET_LOCAL === '1' };
+/** 当前构建的资源根目录（rules.assets） */
 export function assetBase(): string {
-  return CONFIG.rules.assets?.baseUrl ?? '';
+  return pickAssetBase(CONFIG.rules.assets, ENV);
 }
 
 /** 相对路径 + 档位 → URL；未配置根目录或缺路径返回 null */

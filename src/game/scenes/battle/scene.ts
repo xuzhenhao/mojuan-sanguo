@@ -3,6 +3,7 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
+import { battleTitle } from './title';
 import { openEpiphany } from '../../overlays/epiphany';
 import { drawVecGlyph } from '../../overlays/glyphs';
 import { EPIPHANY } from '../../../data/affixes';
@@ -927,10 +928,13 @@ export class BattleScene implements Scene<BattleParams> {
     this.lp?.draw(s);
   }
 
-  /** 顶条文案：全部读 core 状态，不写死（#55） */
+  /** 顶条文案：模板来自 rules.battleTitle（#216），数据读 core 状态，不写死（#55） */
   topBar() {
     const g = this.g;
-    return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
+    return {
+      left: battleTitle(this.deps.nodeType?.(), this.deps.battleNo?.() ?? g.battleIdx + 1, g.battle?.name ?? ''),
+      right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}`,
+    };
   }
 
   /**
