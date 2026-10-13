@@ -6,7 +6,7 @@ import { availableNodes, generateMap, getNode, moveTo, type MapConfig, type MapN
 import { drawEncounter, groupOf, newEncounterState, type EncounterPools, type EncounterState } from '../../core/run/encounters';
 import { loadRunSave, writeRunSave, type RunSave } from '../../core/run/save';
 import { isComingSoon, routeFor } from './route';
-import { applyRestHeal, type RestConfig } from '../../core/run/rest';
+import { applyRestHeal, restRelicBonus, type RestConfig } from '../../core/run/rest';
 
 export interface HudInfo {
   hp: number;
@@ -69,10 +69,13 @@ export class MapSession {
     const same = prev && prev.runSeed === this.runSeed && prev.chapter === this.chapter;
     return (same ? prev : { ...this.base(), runSeed: this.runSeed, chapter: this.chapter }) as RunSave;
   }
-  /** 营地疗伤预览（PRD 10.6） */
-  restPreview() {
+  get restConfig(): RestConfig {
+    return this.restCfg;
+  }
+  /** 营地疗伤预览（PRD 10.6）：relics 默认取存档（宝物 R03 青囊书 +2） */
+  restPreview(relics: readonly string[] = this.head().relics ?? []) {
     const h = this.head();
-    return { ...applyRestHeal(h.hp, h.maxHp, this.restCfg), maxHp: h.maxHp };
+    return { ...applyRestHeal(h.hp, h.maxHp, this.restCfg, restRelicBonus(relics)), maxHp: h.maxHp };
   }
   get available() {
     return availableNodes(this.state);
@@ -80,19 +83,11 @@ export class MapSession {
   node(id: string): MapNode | undefined {
     return getNode(this.state, id);
   }
-  /**
-   * 营地/奇遇（页面未实现）：记为完成并前进，不路由（第 8 层固定营地之后可去 Boss）。
-   * 营地最小版：直接疗伤（不超过上限）并写存档；奇遇：直接跳过。
-   */
-  pass(id: string): { type: 'REST'; healed: number; hp: number; maxHp: number } | { type: 'EVENT' } {
+  /** 奇遇（页面未实现）：记为完成并前进，不路由。营地（#90）走 enter() → 营地页 */
+  pass(id: string): { type: 'EVENT' } {
     const n = this.node(id);
-    if (!n || (n.type !== 'REST' && n.type !== 'EVENT')) throw new Error(`pass 只用于营地/奇遇：${id}`);
+    if (!n || n.type !== 'EVENT') throw new Error(`pass 只用于奇遇：${id}`);
     this.state = moveTo(this.state, id);
-    if (n.type === 'REST') {
-      const r = this.restPreview();
-      this.save({ hp: r.hp });
-      return { type: 'REST', ...r };
-    }
     this.save();
     return { type: 'EVENT' };
   }

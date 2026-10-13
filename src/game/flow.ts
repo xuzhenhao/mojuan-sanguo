@@ -1,20 +1,22 @@
 /**
- * 页面流程状态机（engine-design §4.13）：点将 → 地图 →（战斗 → 奖励 | 集市 | 宝箱）→ … → 结算。
+ * 页面流程状态机（engine-design §4.13）：点将 → 地图 →（战斗 → 奖励 | 集市 | 宝箱 | 营地）→ … → 结算。
  * 由 src/core 的局状态驱动：通过只读视图 RunStateView 读取 Game 的字段，不修改 core。
  */
 import type { Game } from '../core/battle';
 
-export type Page = 'select' | 'map' | 'battle' | 'reward' | 'shop' | 'chest' | 'result';
+export type Page = 'select' | 'map' | 'battle' | 'reward' | 'shop' | 'chest' | 'rest' | 'result';
 
-export const PAGES: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'chest', 'result'];
+export const PAGES: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'chest', 'rest', 'result'];
 
 export type FlowEvent =
   | { type: 'start_run' } // 点将确认
-  | { type: 'enter_node'; node: 'battle' | 'shop' | 'chest' }
+  | { type: 'enter_node'; node: 'battle' | 'shop' | 'chest' | 'rest' }
   | { type: 'battle_end'; win: boolean }
   | { type: 'reward_done' }
   | { type: 'shop_done' }
   | { type: 'chest_done' }
+  /** 营地（#90）：完成一项或离开 */
+  | { type: 'rest_done' }
   /** 结算页离开：to='map' 为「再来一局」（同主副将、新 runSeed，直接进地图），默认 'select'「返回点将」（PRD 14.5） */
   | { type: 'result_done'; to?: 'select' | 'map' }
   /** 放弃本局（PRD 5.13 V0.5.4）：二次确认后按失败进入结算。入口：启动续玩弹窗（在点将页上）/ 设置浮层（地图、战斗页） */
@@ -40,11 +42,12 @@ const abandon = () => 'result' as const;
 
 const TABLE: Record<Page, Partial<Record<FlowEvent['type'], (e: FlowEvent, v: RunStateView | null) => Page>>> = {
   select: { start_run: () => 'map', abandon },
-  map: { enter_node: (e) => (e as { node: 'battle' | 'shop' | 'chest' }).node, abandon },
+  map: { enter_node: (e) => (e as { node: 'battle' | 'shop' | 'chest' | 'rest' }).node, abandon },
   battle: { battle_end: (e) => ((e as { win: boolean }).win ? 'reward' : 'result'), abandon },
   reward: { reward_done: (_e, v) => (v?.isLast ? 'result' : 'map'), abandon },
   shop: { shop_done: () => 'map', abandon },
   chest: { chest_done: () => 'map', abandon },
+  rest: { rest_done: () => 'map', abandon },
   result: { result_done: (e) => (e as { to?: 'select' | 'map' }).to ?? 'select' },
 };
 

@@ -70,11 +70,11 @@ const surface = () => {
   const c = anyCtx();
   return { s: { name: 'main', ctx: c.ctx, canvas: {}, scale: 1, dirty: true } as unknown as Surface, calls: c.calls };
 };
-/** 测试辅助：走一步（营地/奇遇用 pass） */
+/** 测试辅助：走一步（奇遇用 pass，其余 enter） */
 const walk = (session: MapSession) => {
   const id = session.available[0];
   const t = session.node(id)!.type;
-  if (t === 'REST' || t === 'EVENT') session.pass(id);
+  if (t === 'EVENT') session.pass(id);
   else session.enter(id);
 };
 const tick = (scene: MapScene, ms: number) => {
@@ -165,7 +165,7 @@ describe('P3 地图页', () => {
   });
 });
 
-describe('营地/奇遇（地图内最小版）', () => {
+describe('营地/奇遇（营地走营地页，奇遇地图内最小版）', () => {
   const flush = async () => {
     for (let i = 0; i < 4; i++) await Promise.resolve();
   };
@@ -178,25 +178,26 @@ describe('营地/奇遇（地图内最小版）', () => {
     }
     return null;
   };
-  it('营地：提示疗伤量，点「确定」后记为完成并前进，回血不超上限并写存档；HUD 体力随之变化', async () => {
+  it('营地（#90）：移动后 core 走一步 + 写盘 → 路由到营地页（不在地图内自动回血）', () => {
     const { scene, session, overlays, sent, store } = setup(3);
     session.save({ hp: 3, maxHp: 8 });
     const rest = reach(session, 'REST')!;
     expect(session.restPreview()).toEqual({ hp: 5, healed: 2, maxHp: 8 }); // max(2, floor(8×0.3)) = 2
     scene.tapNode(rest);
     tick(scene, 520);
-    expect(overlays.ids()).toEqual([`popup:map:notice:${rest.id}`]);
-    expect(session.state.current).not.toBe(rest.id); // 未确定前不前进
-    overlays.gesture({ type: 'tap', at: { x: 5, y: 5 } }); // 点外部不关闭
-    expect(overlays.size).toBe(1);
-    overlays.gesture({ type: 'tap', at: { x: 195, y: 844 / 2 + 90 - 40 } }); // 确定
-    await flush();
     expect(overlays.size).toBe(0);
+    expect(sent.at(-1)!.e).toEqual({ type: 'enter_node', node: 'rest' });
+    expect(sent.at(-1)!.p).toMatchObject({ kind: 'rest', nodeId: rest.id, layer: rest.layer, fixed: rest.layer === 8 });
     expect(session.state.current).toBe(rest.id);
-    expect(sent).toHaveLength(0);
     const saved = JSON.parse(store.m.get('mojuan.run.v1')!);
-    expect([saved.hp, saved.mapState.current]).toEqual([5, rest.id]);
-    expect(scene.log).toContain('rest_heal:2');
+    expect([saved.hp, saved.mapState.current]).toEqual([3, rest.id]);
+    expect(scene.log).toContain('enter_node:rest');
+    expect(() => session.pass(rest.id)).toThrow(/只用于奇遇/);
+  });
+  it('营地疗伤预览含青囊书 +2（存档宝物 R03）', () => {
+    const { session } = setup(3);
+    session.save({ hp: 1, maxHp: 8, relics: ['R03'] });
+    expect(session.restPreview()).toEqual({ hp: 5, healed: 4, maxHp: 8 });
   });
   it('营地回血不超过体力上限；最大体力 10 → 回复 3', () => {
     const { session } = setup(3);
@@ -221,15 +222,14 @@ describe('营地/奇遇（地图内最小版）', () => {
     }
     throw new Error('没有找到奇遇');
   });
-  it('第 8 层营地确定后可去 Boss', async () => {
-    const { scene, session, overlays } = setup(5);
+  it('第 8 层固定营地：同样进营地页（fixed=true），之后可去 Boss', () => {
+    const { scene, session, sent } = setup(5);
     for (let i = 0; i < 7; i++) walk(session);
     const r8 = session.node(session.available[0])!;
     expect(r8.layer).toBe(8);
     scene.tapNode(r8);
     tick(scene, 520);
-    overlays.gesture({ type: 'tap', at: { x: 195, y: 844 / 2 + 90 - 40 } });
-    await flush();
+    expect(sent.at(-1)!.p).toMatchObject({ kind: 'rest', layer: 8, fixed: true });
     expect(session.available).toEqual([BOSS_ID]);
   });
 });
@@ -237,8 +237,13 @@ describe('营地/奇遇（地图内最小版）', () => {
 describe('路由约定', () => {
   it('节点类型 → 页面', () => {
     const n = (type: 'SHOP' | 'CHEST' | 'REST' | 'EVENT') => ({ id: 'L2C0', layer: 2, col: 0, type });
-    expect(isComingSoon('REST') && isComingSoon('EVENT')).toBe(true);
-    expect(() => routeFor(1, n('REST'))).toThrow(/地图内处理/);
+    expect(isComingSoon('EVENT')).toBe(true);
+    expect(isComingSoon('REST')).toBe(false);
+    expect(() => routeFor(1, n('EVENT'))).toThrow(/地图内处理/);
+    expect(routeFor(1, n('REST'))).toEqual({
+      event: { type: 'enter_node', node: 'rest' },
+      params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'rest', fixed: false },
+    });
     expect(routeFor(1, n('SHOP'))).toEqual({
       event: { type: 'enter_node', node: 'shop' },
       params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'shop' },

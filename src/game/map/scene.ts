@@ -490,7 +490,7 @@ export class MapScene implements Scene {
   private commit(id: string) {
     const node = this.d.session.node(id)!;
     if (isComingSoon(node.type)) {
-      // 营地/奇遇页未实现：弹提示，点「确定」后记为完成并前进（营地直接疗伤并写存档；奇遇跳过）
+      // 奇遇页未实现：弹提示，点「确定」后记为完成并前进
       this.notice(node);
       return;
     }
@@ -499,14 +499,13 @@ export class MapScene implements Scene {
     this.d.go(r.event, r.params);
   }
 
-  /** 营地/奇遇提示框：营地显示疗伤量，奇遇提示跳过；点「确定」后 session.pass */
+  /** 奇遇提示框：提示跳过；点「确定」后 session.pass */
   notice(n: MapNode) {
     const { width: w, height: h } = this.ctx;
     const rect = { x: 40, y: h / 2 - 90, w: w - 80, h: 180 };
     const btn = { x: w / 2 - 70, y: rect.y + rect.h - 62, w: 140, h: 44 };
-    const rest = n.type === 'REST' ? this.d.session.restPreview() : null;
-    const title = rest ? '营地 · 疗伤' : '奇遇';
-    const line = rest ? `围炉小憩，回复 ${rest.healed} 点体力（${rest.hp}/${rest.maxHp}）` : '此处奇遇尚未开放，继续前行';
+    const title = '奇遇';
+    const line = '此处奇遇尚未开放，继续前行';
     this.log.push(`notice:${n.type}`);
     this.d.overlays.closeAll('detail');
     const handle = this.d.overlays.push({
@@ -544,7 +543,7 @@ export class MapScene implements Scene {
     });
     return handle.result.then(() => {
       const r = this.d.session.pass(n.id);
-      this.log.push(r.type === 'REST' ? `rest_heal:${r.healed}` : 'event_skip');
+      this.log.push(r.type === 'EVENT' ? 'event_skip' : r.type);
       this.scrollToCurrent();
       this.ctx.invalidate();
       return r;

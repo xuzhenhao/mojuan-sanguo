@@ -32,16 +32,21 @@ export interface ShopRouteParams extends Base {
 export interface ChestRouteParams extends Base {
   kind: 'chest';
 }
-export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams;
+/** 营地页（#90）params：第 8 层固定营地规则相同，只用于埋点 */
+export interface RestRouteParams extends Base {
+  kind: 'rest';
+  fixed: boolean;
+}
+export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams | RestRouteParams;
 
-/** 节点类型 → 页面；null = 页面未实现，在地图内处理（营地最小版直接疗伤、奇遇跳过；不走任何奖励类页面，避免误发奖励） */
+/** 节点类型 → 页面；null = 页面未实现，在地图内处理（奇遇跳过；不走任何奖励类页面，避免误发奖励） */
 export const PAGE_OF: Record<NodeType, NodePage | null> = {
   BATTLE: 'battle',
   ELITE: 'battle',
   BOSS: 'battle',
   SHOP: 'shop',
   CHEST: 'chest',
-  REST: null,
+  REST: 'rest',
   EVENT: null,
 };
 export const isComingSoon = (t: NodeType) => PAGE_OF[t] === null;
@@ -64,5 +69,6 @@ export function routeFor(
     };
   }
   if (node.type === 'SHOP') return { event, params: { ...base, kind: 'shop' } };
+  if (node.type === 'REST') return { event, params: { ...base, kind: 'rest', fixed: node.layer === 8 } };
   return { event, params: { ...base, kind: 'chest' } };
 }

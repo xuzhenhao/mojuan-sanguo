@@ -13,7 +13,7 @@ import { RunSession } from '../../game/run';
 import { initialState } from '../../game/select/model';
 import { SelectScene } from '../../game/select/scene';
 import { BattleOverlayDemoScene } from '../../game/scenes/battle-overlay-demo';
-import { createMapScene } from '../../game/map';
+import { createMapScene, mapSession } from '../../game/map';
 import { registerP4 } from '../../game/scenes/p4-register';
 import { createWebPlatform, paintPaperBackdrop, showStatusBar } from './platform';
 import { DESIGN_RECT } from '../../engine/viewport';
@@ -103,8 +103,8 @@ engine.scenes.register('map', () =>
     () => run.params?.seed,
   ),
 );
-// P4 奖励 / 集市 / 宝箱（#45）：替换占位页
-const economy = registerP4({ engine, query, safe: designSafe, send, run });
+// P4 奖励 / 集市 / 宝箱（#45）/ 营地（#90）：替换占位页；营地体力与存档走地图会话
+const economy = registerP4({ engine, query, safe: designSafe, send, run, restRun: () => mapSession(engine, 1, run.params?.seed) });
 // P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）
 engine.scenes.register(
   'battle',

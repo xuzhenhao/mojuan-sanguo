@@ -1,5 +1,5 @@
 /**
- * P4 页面注册（#45）：把奖励 / 集市 / 宝箱场景注册到 SceneManager，替换占位页。
+ * P4 页面注册（#45）：把奖励 / 集市 / 宝箱 / 营地（#90）场景注册到 SceneManager，替换占位页。
  * 入口 entry.ts 只需调用一次 registerP4，避免多人同时改共用入口。
  * 直入调试参数：?page=reward&reward=normal|elite|boss&potions=0..3&gold=N&seed=N；?page=chest&chest=relic|gold
  */
@@ -11,6 +11,8 @@ import type { RunSession } from '../run';
 import { RewardScene } from './reward';
 import { ShopScene } from './shop';
 import { ChestScene } from './chest';
+import { RestScene, type RestRun } from './rest';
+import { MAP_CONFIG } from '../../data/map';
 import type { Env } from './p4-kit';
 
 export interface P4Deps {
@@ -22,6 +24,14 @@ export interface P4Deps {
   economy?: EconomySession;
   /** 点将建局后由此取 core Game（共享牌组） */
   run?: Pick<RunSession, 'game' | 'params'>;
+  /** 营地体力与存档（正式局 = 地图会话 MapSession）；不传时用内存替身（?page=rest 直入调试） */
+  restRun?: () => RestRun;
+}
+
+/** 直入调试用：内存体力（?hp=&maxHp=），不落盘 */
+export function memoryRestRun(hp = 5, maxHp = 8): RestRun {
+  const st = { hp, maxHp };
+  return { head: () => st, save: (p) => void (st.hp = p.hp), restConfig: MAP_CONFIG.rest };
 }
 
 const num = (s: string | undefined) => (s !== undefined && s !== '' && !Number.isNaN(Number(s)) ? Number(s) : undefined);
@@ -55,6 +65,19 @@ export function registerP4(d: P4Deps) {
   engine.scenes.register(
     'chest',
     () => new ChestScene({ ...env, inventory: () => econ.inventory, rng: () => econ.rng, done: () => d.send({ type: 'chest_done' }), force }),
+  );
+  const mem = memoryRestRun(num(q.hp), num(q.maxHp));
+  engine.scenes.register(
+    'rest',
+    () =>
+      new RestScene({
+        ...env,
+        inventory: inv,
+        rng: () => econ.rng,
+        run: d.restRun ?? (() => mem),
+        done: () => d.send({ type: 'rest_done' }),
+        wx: q.wx === '1',
+      }),
   );
   return econ;
 }
