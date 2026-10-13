@@ -19,7 +19,8 @@
     "checks",
     "mechanics",
     "sim",
-    "map"
+    "map",
+    "revive"
   ],
   "properties": {
     "lingPerTurn": {
@@ -281,7 +282,11 @@
       "type": "object",
       "description": "商店（PRD 14.2）",
       "required": [
-        "cardPrice"
+        "cardPrice",
+        "relicPrice",
+        "removeBase",
+        "removeStep",
+        "shopSlots"
       ],
       "properties": {
         "cardPrice": {
@@ -313,6 +318,72 @@
               "type": "integer",
               "minimum": 0,
               "multipleOf": 5
+            }
+          },
+          "additionalProperties": false
+        },
+        "relicPrice": {
+          "type": "object",
+          "description": "宝物按稀有度的基础价（浮动前）",
+          "required": [
+            "N",
+            "R",
+            "E"
+          ],
+          "properties": {
+            "N": {
+              "type": "integer",
+              "minimum": 0,
+              "multipleOf": 5
+            },
+            "R": {
+              "type": "integer",
+              "minimum": 0,
+              "multipleOf": 5
+            },
+            "E": {
+              "type": "integer",
+              "minimum": 0,
+              "multipleOf": 5
+            }
+          },
+          "additionalProperties": false
+        },
+        "removeBase": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "删牌首次价格"
+        },
+        "removeStep": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "每次删牌后的涨价"
+        },
+        "shopSlots": {
+          "type": "object",
+          "description": "集市各类槽位数",
+          "required": [
+            "common",
+            "heroCard",
+            "relic",
+            "potion"
+          ],
+          "properties": {
+            "common": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "heroCard": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "relic": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "potion": {
+              "type": "integer",
+              "minimum": 0
             }
           },
           "additionalProperties": false
@@ -585,6 +656,40 @@
       "type": "integer",
       "minimum": 1,
       "description": "场上同时存活敌人上限（召唤受此约束，达到上限时召唤落空；PRD 未写，取最保守 = 组包最大人数 3）"
+    },
+    "revive": {
+      "type": "object",
+      "description": "复活（PRD §4.4.1；仅天命<5）",
+      "required": [
+        "count",
+        "hpRatio",
+        "hpMin",
+        "armor"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "每局复活次数"
+        },
+        "hpRatio": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "复活体力占上限比例（向上取整）"
+        },
+        "hpMin": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "复活体力下限"
+        },
+        "armor": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "复活附带护甲"
+        }
+      }
     }
   },
   "additionalProperties": false
