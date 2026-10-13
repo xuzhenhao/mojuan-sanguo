@@ -3,7 +3,8 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
-import { BEAD_D, enemyHpView, heroHpView } from './hpview';
+import { BEAD_D, enemyHpView, fitNameCached, heroHpView } from './hpview';
+import { textWidth } from '../../overlays/theme';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
@@ -827,8 +828,9 @@ export class BattleScene implements Scene<BattleParams> {
     text(ctx, SUIT_CH[c.suit], x + 11, r.y + 31, { size: 12, color: red ? C.cinnabar : C.ink, align: 'center' });
     text(ctx, RANK_CH[c.rank], x + 11, r.y + 45, { size: 11, color: red ? C.cinnabar : C.ink, font: FONT.num, align: 'center', bold: true });
     // 卡名（底部书法）
-    const nm = d.name.length > 2 ? d.name.slice(0, 4) : d.name;
-    text(ctx, nm, x + r.w / 2, r.y + r.h - 15, { size: nm.length > 2 ? 15 : 20, color: C.ink, font: FONT.brush, align: 'center' });
+    // §8.8.3：20px 起逐 1px 缩到放得下，最小 11px 后省略号；全名见长按详情
+    const nm = this.cardName(ctx, d.name, r.w);
+    text(ctx, nm.text, x + r.w / 2, r.y + r.h - 15, { size: nm.px, color: C.ink, font: FONT.brush, align: 'center' });
     if (c.mods.length) {
       rect(ctx, { x: x + 3, y: r.y + r.h - 16, w: 12, h: 12 }, C.cinnabar);
       frame(ctx, { x: x + 3, y: r.y + r.h - 16, w: 12, h: 12 }, C.gold, 1);
@@ -956,6 +958,17 @@ export class BattleScene implements Scene<BattleParams> {
     if (v.mode === 'dots') return { x: v.xs[0] - v.r, y: card.y + card.h - 6 - BEAD_D, w: v.xs[v.xs.length - 1] - v.xs[0] + BEAD_D, h: BEAD_D };
     const capW = compactHpW(v);
     return { x: card.x + card.w / 2 - capW / 2, y: card.y + card.h - 30, w: capW, h: 24 };
+  }
+
+  /** 卡名适配（按名字+卡宽缓存）；量宽用当前 ctx 的 Brush 字体 */
+  cardName(ctx: Ctx2DLike, name: string, cardW: number) {
+    return fitNameCached(name, cardW, (t, px) => {
+      const prev = ctx.font;
+      ctx.font = `${px}px ${FONT.brush}`;
+      const w = textWidth(ctx, t, px);
+      ctx.font = prev;
+      return w;
+    });
   }
 
   shield(ctx: Ctx2DLike, x: number, y: number, n: number, s: number) {
