@@ -4,6 +4,7 @@
 # 闪电用统一卡 D003，张角覆盖 amount = 2：放在玩家判定区，张角每回合开始判定 ♠2–9 命中 2 点雷伤，最多 4 次（可被无懈）。
 id: B1
 name: 张角·墨魇
+shortName: 张角 # 竖排名 / 战斗顶条用短名
 chapter: 1
 tier: Boss
 enabled: true

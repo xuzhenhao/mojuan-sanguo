@@ -14,7 +14,16 @@ function phaseOf(ph: NonNullable<EnemyCfg['phases']>[number]): EnemyPhaseDef {
 
 export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(
   Object.values(CONFIG.enemies).map((e) => {
-    const d: EnemyDef = { name: e.name, hp: e.hp, row: e.row, pat: e.intents as EnemyAct[][], flash: e.flashMarksPerTurn ?? 0, g: e.glyph, tier: e.tier };
+    const d: EnemyDef = {
+      name: e.name,
+      ...(e.shortName ? { short: e.shortName } : {}),
+      hp: e.hp,
+      row: e.row,
+      pat: e.intents as EnemyAct[][],
+      flash: e.flashMarksPerTurn ?? 0,
+      g: e.glyph,
+      tier: e.tier,
+    };
     if (e.abilities) d.abilities = e.abilities;
     if (e.armorStart) d.armorStart = e.armorStart;
     if (e.tier !== '小怪') d.elite = true;

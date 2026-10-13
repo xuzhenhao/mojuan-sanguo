@@ -63,12 +63,12 @@ describe('toast 位置 / 宽度 / 堆叠（UI 验收）', () => {
     setNoticeTop(null);
     expect(noticeRect(100, 0).y).toBe(64);
   });
-  it('宽度按内容自适应：最小 200，最大屏宽 − 48，水平居中', () => {
+  it('宽度按内容自适应：最小 200，最大 min(屏宽 − 48, 340)，水平居中', () => {
     expect(noticeRect(10, 0)).toMatchObject({ w: 200, x: 95 });
     const mid = noticeRect(200, 0);
     expect(mid.w).toBe(200 + 44);
     expect(mid.x * 2 + mid.w).toBe(390);
-    expect(noticeRect(1000, 0)).toMatchObject({ w: 390 - 48, x: 24 });
+    expect(noticeRect(1000, 0)).toMatchObject({ w: NOTICE_STYLE.maxW, x: 25 }); // #214 跟进：最大 340
     expect(noticeRect(1000, 0, 375).w).toBe(375 - 48);
   });
   it('新来的在下面、旧的往上挤；最多 2 条，超出移掉最旧', () => {

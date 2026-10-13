@@ -3,7 +3,7 @@
  * 表现层新写：逻辑全部来自 src/core 的 Game（不改 core），通过 BattleIO 适配器把逻辑回调转成表现队列步骤。
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
-import { battleTitle } from './title';
+import { battleTitle, enemyShortName, titleName } from './title';
 import { openEpiphany } from '../../overlays/epiphany';
 import { drawVecGlyph } from '../../overlays/glyphs';
 import { EPIPHANY } from '../../../data/affixes';
@@ -932,7 +932,7 @@ export class BattleScene implements Scene<BattleParams> {
   topBar() {
     const g = this.g;
     return {
-      left: battleTitle(this.deps.nodeType?.(), this.deps.battleNo?.() ?? g.battleIdx + 1, g.battle?.name ?? ''),
+      left: battleTitle(this.deps.nodeType?.(), this.deps.battleNo?.() ?? g.battleIdx + 1, titleName(this.deps.nodeType?.(), g.battle?.name ?? '', g.en)),
       right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}`,
     };
   }
@@ -1016,7 +1016,7 @@ export class BattleScene implements Scene<BattleParams> {
       font: FONT.brush,
       align: 'center',
     });
-    vtext(ctx, e.name.slice(0, 4), r.x + 14, r.y + 18, e.row === 'front' ? 15 : 13, C.paper);
+    vtext(ctx, enemyShortName(e).slice(0, 4), r.x + 14, r.y + 18, e.row === 'front' ? 15 : 13, C.paper);
     const hit = this.q.free.find((s) => s.id === 'ink_hit' && s.data?.uid === e.uid);
     if (hit) {
       ctx.globalAlpha = a0 * a * (1 - this.q.progress(hit)) * 0.7;

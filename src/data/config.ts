@@ -67,6 +67,8 @@ export interface HeroCfg {
 export interface EnemyCfg {
   id: string;
   name: string;
+  /** 短名（竖排名 / 战斗顶条，≤4 字不含「·」；没有时用 name） */
+  shortName?: string;
   /** 立绘 OSS 相对路径（#177，暂无美术） */
   portrait?: string;
   chapter?: number;

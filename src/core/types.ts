@@ -96,6 +96,8 @@ export interface EnemyPhaseDef {
 
 export interface EnemyDef {
   name: string;
+  /** 短名（竖排名 / 顶条用；来自 enemy yaml shortName） */
+  short?: string;
   hp: number;
   row: 'front' | 'back';
   pat: EnemyAct[][];
