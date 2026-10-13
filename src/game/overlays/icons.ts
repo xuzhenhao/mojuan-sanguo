@@ -88,6 +88,12 @@ const GLYPH: Partial<Record<IconId, Path[]>> = {
 
 /** 花色 / 体力：实心矢量形（不用 ♠♥♣♦❤ 字符） */
 function suitShape(g: Ctx2DExtLike, id: IconId, r: Rect) {
+  suitPath(g, id, r);
+  g.fill!();
+}
+
+/** 花色 / 体力的闭合路径（只建路径，不填充；供带描边的行内图标复用） */
+export function suitPath(g: Ctx2DExtLike, id: IconId, r: Rect) {
   const { x, y, w } = r;
   const p = (u: number, v: number) => [x + u * w, y + v * w] as const;
   g.beginPath!();
@@ -127,7 +133,6 @@ function suitShape(g: Ctx2DExtLike, id: IconId, r: Rect) {
     g.lineTo!(...p(0.54, 0.55));
   }
   g.closePath!();
-  g.fill!();
 }
 
 export const STAMP_ICONS: IconSet = {
