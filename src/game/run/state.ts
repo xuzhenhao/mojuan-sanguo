@@ -22,6 +22,8 @@ import { emptyStats, parseStats, type RunStats } from './stats';
 
 /** v2（#122 PR3）：counters 去掉 rewardRefreshUsed（#92 已去掉 H5 奖励刷新） */
 export const RUN_STATE_VERSION = 2;
+/** 当前配置版本（PRD §21.4 configVersion）；配置结构 / 数值发版时改这里 */
+export const CONFIG_VERSION = 'dev';
 
 /** 局内随机流：战斗（core Game.rng）、经济（奖励/集市/宝箱，EconomySession.rng）、节点事件（营地淬炼 / 奇遇，PR3 接入） */
 export const RNG_STREAMS = ['battle', 'economy', 'event'] as const;
