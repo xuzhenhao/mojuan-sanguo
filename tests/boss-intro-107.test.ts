@@ -5,7 +5,7 @@ import { CONFIG } from '../src/data/config';
 import { ENEMIES } from '../src/data/enemies';
 import { OverlayStack } from '../src/engine/modal';
 import { BattleScene } from '../src/game/scenes/battle/scene';
-import { chapterLabel, INTRO_MS, introFrame, nameSize, wrapIntroLine, LINE_MAX_W } from '../src/game/scenes/battle/boss-intro';
+import { NAME_GLOW, chapterLabel, INTRO_MS, introFrame, nameSize, wrapIntroLine, LINE_MAX_W } from '../src/game/scenes/battle/boss-intro';
 import { PREFS_KEY, SeenBossStore } from '../src/game/prefs/seen-bosses';
 import type { StorageAdapter } from '../src/platform/types';
 
@@ -76,6 +76,16 @@ describe('#107 排版', () => {
     expect(nameSize('一二三四五六七八')).toBe(42);
     expect(nameSize('一二三四五六七八九十一二')).toBe(40);
     expect(chapterLabel(1)).toBe('第一章 · 首领');
+  });
+});
+
+describe('#107 名字发光', () => {
+  it('三层 T.cinnHi 描边：12/7/3px，不透明度 .15/.30/.60，从最宽的画起', () => {
+    expect(NAME_GLOW).toEqual([
+      [12, 0.15],
+      [7, 0.3],
+      [3, 0.6],
+    ]);
   });
 });
 

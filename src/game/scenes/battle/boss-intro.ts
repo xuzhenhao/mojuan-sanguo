@@ -19,6 +19,12 @@ export const LINE_SIZE = 20;
 export const LINE_HEIGHT = 26;
 export const NAME_SIZE = 56;
 export const NAME_MIN = 40;
+/** 名字朱砂外发光：T.cinnHi 描边叠层 [线宽, 不透明度]，从最宽的画起（代替 blur） */
+export const NAME_GLOW: readonly (readonly [number, number])[] = [
+  [12, 0.15],
+  [7, 0.3],
+  [3, 0.6],
+];
 const CN = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 
 export interface IntroData {
@@ -178,11 +184,7 @@ export function drawBossIntro(ctx: Ctx2DLike, d: IntroData, f: IntroFrame, W: nu
       c.textBaseline = 'middle';
       c.lineJoin = 'round';
       c.strokeStyle = C.cinnHi;
-      for (const [w, a] of [
-        [18, 0.14],
-        [10, 0.24],
-        [5, 0.4],
-      ] as const) {
+      for (const [w, a] of NAME_GLOW) {
         c.globalAlpha = a0 * f.name * a;
         c.lineWidth = w;
         c.strokeText(d.name, cx, L.nameY);
