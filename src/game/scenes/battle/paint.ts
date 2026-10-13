@@ -39,9 +39,9 @@ export const C = {
 
 export const FONT = {
   /** 霞鹜文楷（FontFace 族名 Brush）；正文、数字、书法字同一族名，不回退任何系统字体（#129 / #142） */
-  brush: '"Brush"',
-  num: '"Brush"',
-  body: '"Brush"',
+  brush: '"Brush", serif',
+  num: '"Brush", serif',
+  body: '"Brush", serif',
 };
 
 type Ext = Ctx2DLike & {

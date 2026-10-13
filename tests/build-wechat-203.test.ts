@@ -2,7 +2,16 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildWechat, DEFAULT_APPID, findBrowserGlobals, gameJson, projectConfig, resolveAppId } from '../scripts/build-wechat';
+import {
+  buildWechat,
+  DEFAULT_APPID,
+  findBrowserGlobals,
+  gameJson,
+  projectConfig,
+  resolveAppId,
+  wechatFontPackageUrls,
+  wechatFontSource,
+} from '../scripts/build-wechat';
 
 const ROOT = resolve(import.meta.dirname, '..');
 
@@ -28,7 +37,13 @@ describe('#203 build-wechat', () => {
     expect(findBrowserGlobals('wx.createCanvas();a.mywindow;x.windowWidth')).toEqual([]);
   });
 
-  it('后处理：生成 json、拷字体；无 game.js 或含 window. 时失败', () => {
+  it('#205 字体路径从 rules.fonts.wechat 读，不写死', () => {
+    expect(wechatFontPackageUrls(ROOT)).toEqual(['assets/fonts/wenkai.ttf']);
+    expect(wechatFontSource('assets/fonts/wenkai.ttf')).toBe('wechat-assets/fonts/wenkai.ttf');
+    expect(() => wechatFontSource('public/x.ttf')).toThrow(/assets\/fonts/);
+  });
+
+  it('后处理：生成 json、按配置拷 ttf；无 game.js 或含 window. 时失败', () => {
     const dir = mkdtempSync(join(tmpdir(), 'wx203-'));
     expect(() => buildWechat(dir, ROOT, {})).toThrow(/game\.js/);
     writeFileSync(join(dir, 'game.js'), 'window.x=1');

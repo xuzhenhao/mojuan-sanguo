@@ -139,6 +139,8 @@ export interface ConfigBundle {
     /** 战斗页顶条标题模板（#216） */
     battleTitle: { normal: string; elite: string; boss: string };
     assets: { baseUrl: string; devBaseUrl: string; localBaseUrl: string };
+    /** 字体（#202） */
+    fonts: FontsConfig;
     mechanics: { judgeSource: 'deck' | 'pool'; passiveQuotaPerEnemyTurn: number | null; moying: boolean; zeroCostPerTurn: number | null };
   };
   cards: Record<string, CardCfg>;
@@ -237,6 +239,19 @@ export interface EconomyCfg {
   chestRelicRarity: Record<'N' | 'R' | 'E', number>;
   destinyShopMarkup: number;
 }
+
+/** rules.fonts（#202）：族名、包内路径、首屏门控 */
+export type FontRoleName = 'brush' | 'sans';
+/** 系统通用字族（回退用） */
+export type GenericFamily = 'serif' | 'sans-serif';
+/** 字体角色：system = 系统字体（不加载）；否则族名 + 要加载的文件（无 faces 时复用同族已加载字体） */
+export type FontRole = 'system' | { family: string; faces?: { url: string; gate: boolean }[] };
+export interface FontsConfig {
+  gateTimeoutMs: number;
+  fallback: Record<FontRoleName, GenericFamily>;
+  platforms: Record<'web' | 'wechat', Record<FontRoleName, FontRole>>;
+}
+export const FONTS: FontsConfig = CONFIG.rules.fonts;
 
 /** rules.settlement（PRD 14.5） */
 export interface SettlementCfg {

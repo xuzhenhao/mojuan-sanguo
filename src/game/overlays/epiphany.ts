@@ -17,6 +17,7 @@ import { AFFIXES } from '../../data/affixes';
 import { BRUSH, CARD_H, CARD_W, RARITY_COLOR, T, drawButton, gx, label, paintCard, stroke, vgrad, type Button } from '../scenes/p4-kit';
 import { STAMP_ICONS, type IconId } from './icons';
 import { inside } from './theme';
+import { prefersReducedMotion as readReducedMotion } from '../motion';
 
 export const EPIPHANY_ID = 'epiphany';
 /** 触发阻塞时长（§10.1）：900ms 起接受点击 */
@@ -140,7 +141,7 @@ const easeInOut = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 /
 const easeBack = (x: number) => 1 + 2.70158 * (x - 1) ** 3 + 1.70158 * (x - 1) ** 2;
 
 export function prefersReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return readReducedMotion();
 }
 
 export interface EpiphanyOpts {

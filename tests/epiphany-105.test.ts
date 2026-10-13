@@ -1,3 +1,4 @@
+import { fakeClock } from './helpers';
 /** #105 灵光一闪弹层：布局、必选 / 满词条替换 / 放弃、墨聚与减少动态、core 替换写回、调试入口 */
 import { describe, expect, it } from 'vitest';
 import { OverlayStack } from '../src/engine/modal';
@@ -162,7 +163,7 @@ describe('#105 core 写回', () => {
 describe('#105 战斗页接入与调试入口', () => {
   it('正式战斗页默认弹灵光一闪层', async () => {
     const ov = mk();
-    const sc = new BattleScene({ overlays: ov, reducedMotion: () => true });
+    const sc = new BattleScene({ now: fakeClock().now, overlays: ov, reducedMotion: () => true });
     sc.enter({ width: W, height: H, invalidate() {} }, { seed: 7 });
     const i = info();
     const p = sc.io.epiphany(i.card, i.options, () => i.options);
@@ -265,6 +266,7 @@ describe('#105 视觉规格（docs/art/specs/spec-105-epiphany.md）', () => {
   it('§2 排队的响应窗口等灵光一闪关闭后再开', async () => {
     const ov = mk();
     const sc = new BattleScene({
+      now: fakeClock().now,
       overlays: ov,
       reducedMotion: () => true,
       hooks: { respond: async () => (order.push(`respond:${ov.top()?.id ?? 'none'}`), null) },

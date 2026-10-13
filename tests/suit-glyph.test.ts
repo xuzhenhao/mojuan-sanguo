@@ -1,3 +1,4 @@
+import { fakeClock } from './helpers';
 /** Brush（霞鹜文楷子集）没有 ♠♥♣♦ 字形：牌面花色一律画矢量形，不出现在 fillText 里 */
 import { describe, expect, it } from 'vitest';
 import { paintCard } from '../src/game/scenes/p4-kit';
@@ -37,7 +38,11 @@ describe('花色不用字符（Brush 无字形）', () => {
     }
   });
   it('战斗页手牌与判定区不画花色字符', () => {
-    const sc = new BattleScene({ overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }), debugDefaults: true });
+    const sc = new BattleScene({
+      now: fakeClock().now,
+      overlays: new OverlayStack({ invalidate() {}, pauseScene() {}, resumeScene() {} }),
+      debugDefaults: true,
+    });
     sc.enter({ width: 390, height: 844, invalidate() {} }, { seed: 7 });
     (sc as unknown as { judging: unknown }).judging = { reason: '乐', suit: 'H', rank: 12, face: '♥Q', red: true };
     const r = recCtx();

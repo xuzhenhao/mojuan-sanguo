@@ -1,3 +1,4 @@
+import { fakeClock } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { OverlayStack } from '../src/engine/modal';
 import { openRevive, reviveCountText, reviveLayout, REVIVE_ID } from '../src/game/overlays/revive';
@@ -37,7 +38,7 @@ describe('#106 复活层「将星未陨」', () => {
   });
   it('战斗页：体力归 0 时弹出复活层，选复活后继续战斗', async () => {
     const ov = mkOv();
-    const sc = new BattleScene({ overlays: ov, debugDefaults: true });
+    const sc = new BattleScene({ now: fakeClock().now, overlays: ov, debugDefaults: true });
     sc.enter({ width: 390, height: 844, invalidate() {} } as never, { seed: 7 });
     const g = sc.g;
     expect(g.reviveLeft).toBe(1);
