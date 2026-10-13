@@ -51,10 +51,12 @@ describe('#142 霞鹜文楷加载门控', () => {
     expect(await loadBrushFonts(null, { core: 'c' })).toBe(false);
   });
   it('entry 首帧挂在字体门控后；调试页也加载 Brush', () => {
-    const entry = readFileSync(join(__dirname, '../src/platform/web/entry.ts'), 'utf8');
+    // #201：门控逻辑在 game/boot.ts，entry 只负责把字体加载交给 bootGame
+    const entry = readFileSync(join(__dirname, '../src/game/boot.ts'), 'utf8');
+    expect(readFileSync(join(__dirname, '../src/platform/web/entry.ts'), 'utf8')).toMatch(/fonts: \(engine\) =>\s*loadBrushFonts\(/);
     expect(entry).toMatch(/engine\.holdFramesUntil\(fontsReady\)/);
     expect(entry).toMatch(/framesReleased\.then\(\(\) => engine\.start\(\)\)/);
-    expect(entry).not.toMatch(/^engine\.start\(\);/m);
+    expect(entry).not.toMatch(/^\s*engine\.start\(\);/m);
     const dbg = readFileSync(join(__dirname, '../src/platform/web/debug/main.ts'), 'utf8');
     expect(dbg).toMatch(/loadBrushFonts\(/);
     expect(dbg).toMatch(/wenkai-core\.woff2\?url/);
