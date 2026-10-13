@@ -149,7 +149,7 @@ export class BattleScene implements Scene<BattleParams> {
     },
     update: () => this.onLogicUpdate(),
     sleep: (ms) => this.q.push('sleep', ms),
-    showJudge: (reason, card) => {
+    showJudge: ({ reason, card }) => {
       const h = this.deps.hooks?.judge;
       if (h) return h(reason, card, this.overlayCtx);
       this.judging = judgeViewOf(reason, card);

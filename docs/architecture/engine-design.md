@@ -2,7 +2,7 @@
 
 > 状态：已评审；关键取舍均已拍板（第 8 节）。仅文档，不含代码改动。
 > 硬约束：**同一份 TypeScript 同时产出 H5 与微信小游戏**；**不使用游戏引擎**，以 Canvas 2D 绘制为主。
-> v0.7 变更（#60）：纹理内存按 render-spec §12.5（#51）落地 2D 路径分辨率分级（2x 锐利 / 1x 半尺寸 / 0.75x 立绘）、1.5x 烘焙、烘焙后释放源图、背景离屏 1x、半尺寸开关（默认开，`?half=0` 关）；复算后战斗稳态 WebGL 关 29.99MB / 开 31.88MB，见 §4.7.1。
+> v0.7 变更（#60）：纹理内存按 render-spec §12.5（#51）落地 2D 路径分辨率分级（2x 锐利 / 1x 半尺寸 / 0.75x 立绘）、1.5x 烘焙、烘焙后释放源图、背景离屏 1x、半尺寸开关（默认开，`?half=0` 关）；复算后战斗稳态 WebGL 关 29.99MB / 开 31.88MB，见 §4.7.1。#71 改为满载口径判定：关 30.44 / 开 32.33MB（×1.5 = 45.7 / 48.5），峰值 32.69 / 34.58MB；手牌 LRU 上限 12→10。
 >
 > v0.6 变更（P0，#32）：新增 §4.13 场景与页面流程框架；纹理内存对齐 render-spec §12（战斗峰值 22.4MB 压缩 / 35.7MB 无压缩；45MB 告警；1.5x 烘焙；LRU 上限；按场景加载图集；无 mipmap；特效 7 个 shader，纹理 0.63MB）；Pages 同时部署 DOM 可玩版（根目录）和 Canvas 新版（`/next/`），P5（#46）对调。
 > v0.5 变更（P0，#32）：【已决定 2026-10-12】WebGL 改为**可选叠加层**：关闭时由 3 块 2D 画布**直接合成到上屏 2D 画布**，画面完整可玩，只是没有特效。开关：配置 + URL `?webgl=0|1`。自动降级延后到微信上线前。纹理内存预算 **≤50MB**（§4.7.1），取代 106MB 的假设；与 render-spec 的冲突待对齐。
@@ -493,7 +493,7 @@ export interface AssetManager {
 | 系统字体动态文本画布 512×256 | 0.50 | 0.50 | |
 | **合计** | **22.43MB** | **35.70MB** | 余量 27.6MB / 14.3MB |
 
-**烘焙缓存 LRU 上限**（§12.2，代码 `BAKE_LRU_CAPS`）：手牌 12、大牌 4、敌人 6、武将 2 套（主+副 = 4 张）、徽章 40、详情 1、地图卷轴 1（与战斗互斥）。只缓存在屏对象；对象离屏时 `drop`，离开场景时 `clearScene`。低端机按 **1.5x** 烘焙（`bakeScale`），中高端 2x。
+**烘焙缓存 LRU 上限**（§12.2，代码 `BAKE_LRU_CAPS`）：手牌 10（#71 起，与 PRD 手牌硬上限一致；render-spec 原为 12）、大牌 4、敌人 6、武将 2 套（主+副 = 4 张）、徽章 40、详情 1、地图卷轴 1（与战斗互斥）。只缓存在屏对象；对象离屏时 `drop`，离开场景时 `clearScene`。低端机按 **1.5x** 烘焙（`bakeScale`），中高端 2x。
 
 **图集按场景加载**（§12.3，代码 `SPEC_ATLASES` + `AtlasManager.enterScene/leaveScene`，引用计数，卸载时回调 `deleteTexture`）：常驻 ui_common / fx / cards_art×2 / bg_lacquer；generals_battle 在局内各场景；generals_select 只在选将页；enemies_chN 只在战斗。格式选择优先 ASTC 6×6，其次 ETC2，最后 4444/565，**不回退到 RGBA8**（`pickFormat`）。
 
@@ -515,6 +515,8 @@ export interface AssetManager {
 
 **复算：战斗页（390×844 @2x，RGBA8；测试 `tests/engine-memory-2d.test.ts` 用真实 `Engine` 跑出）**
 
+> 【#71，UI 对齐】口径：**预算判定一律用满载口径**——手牌 10（PRD 硬上限）、敌人 5（前 3 + 后 2，精英/Boss 常满编），各烘焙 LRU 上限打满（render-spec §12.2，手牌上限 #71 起改为 10：手牌 10、敌人 6、武将 2 套、徽章 40、详情 1）。**典型组合**（手牌 7、敌人 5、大牌 1、武将 2、徽章 40）只用于稳态展示。代码 `BATTLE_BAKE_FULL` / `BATTLE_BAKE_TYPICAL`（`src/engine/budget-plan.ts`）。
+
 | 类别 | WebGL 关 | WebGL 开 | 计算 |
 |---|---|---|---|
 | 上屏画布 | 5.02 | 5.02 | 780×1688×4 |
@@ -530,11 +532,15 @@ export interface AssetManager {
 | generals_battle 768² | 已释放（峰值 2.25） | 已释放 | 0.75x，烘焙后释放 |
 | enemies_ch1 1024×512 | 2.00 | 2.00 | |
 | WebGL 特效纹理 | — | 0.63 | 7 个 shader（压缩） |
-| 烘焙缓存（1.5x） | 1.94 | 1.94 | 手牌 12 + 大牌 1 + 敌人 3 + 武将 2 + 徽章 40 |
+| 烘焙缓存（1.5x）典型 | 1.62 | 1.62 | 手牌 7 + 大牌 1 + 敌人 5 + 武将 2 + 徽章 40 |
+| 烘焙缓存（1.5x）**满载** | 2.38 | 2.38 | LRU 打满：手牌 10 + 敌人 6 + 武将 2 套 + 徽章 40 + 详情 1（render-spec 按手牌 12、KB 取整估 2.77） |
 | 文字缓存 | 0.50 | 0.50 | |
-| **稳态合计** | **29.99MB** | **31.88MB** | ×1.5 浏览器开销 45.0 / 47.8，≤50 |
-| **峰值**（立绘源图烘焙前） | 32.24MB | 34.13MB | <45MB 告警线 |
+| 稳态合计（典型，仅展示） | 29.67MB | 31.56MB | ×1.5 = 44.5 / 47.3 |
+| **满载合计（预算判定）** | **30.44MB** | **32.33MB** | **×1.5 = 45.7 / 48.5，≤50** |
+| **满载峰值**（立绘源图烘焙前） | **32.69MB** | **34.58MB** | <45MB 告警线 |
 | 对照：`?half=0` | 64.82MB | — | 超 45MB，触发回收后仍超标 |
+
+注意：WebGL 开路径满载 ×1.5 = 48.5MB，余量仅 1.5MB；新增常驻纹理需先在此表记账。
 
 其他页面：选将页 generals_select 1536×768 = 4.5MB，地图页 map_base 烘焙后释放，均低于战斗页。
 
@@ -579,12 +585,14 @@ export interface ErrorReport { message: string; stack?: string; version: string;
 
 ### 4.10 构建工具链（需求 9）
 
-> **部署（v0.6，用户验收决定）**：GitHub Pages 一次部署产出两个入口：
-> - 根目录 = **DOM 可玩版**（当前对外试玩）：https://xuzhenhao.github.io/mojuan-sanguo/
-> - `/next/` = **Canvas 新版**（引擎 + 页面流程）：https://xuzhenhao.github.io/mojuan-sanguo/next/
+> **部署（v0.7，P5 #46 对调入口后）**：GitHub Pages 一次部署产出：
+> - 根目录 = **Canvas 版**（引擎 + B 金漆屏风页面流程，默认入口）：https://xuzhenhao.github.io/mojuan-sanguo/
+> - `/debug/` = **DOM 调试版**（原可玩原型，测试用）：https://xuzhenhao.github.io/mojuan-sanguo/debug/
+> - `/next/` = 跳转页（`scripts/next-redirect.html`），保留查询参数跳到根目录，避免旧链接 404
+> - `/mockups/` = 设计稿（`public/` 直接拷到站点根目录，**不进任何构建产物**）
 >
-> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/next/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/`，带 public/mockups）→ 组装 `_site/`：DOM 版放根目录（`debug.html` 改名为 `index.html`），Canvas 版放 `next/`。CI 同样跑 size-check 和 build:debug。
-> **P5 对调入口（#46）**：Canvas 版到根目录，DOM 版移到 `/debug/`；只需改 `vite.config.ts` 的两个 base 和 `pages.yml` 的组装步骤。
+> `pages.yml` 依次执行 `build`（base `/mojuan-sanguo/`）→ **`size-check`（只检查 Canvas 包 dist/：≤4MB，且不含 DOM/调试标记）** → `build:debug`（base `/mojuan-sanguo/debug/`）→ 组装 `_site/`：`dist/` 放根目录，`dist-debug/` 放 `debug/`（`debug.html` 改名为 `index.html`），再放 `next/` 跳转页和 `public/`。CI 同样跑 size-check 和 build:debug。base 定义在 `vite.config.ts` 的 `PAGES_BASE`，有测试（`tests/result.test.ts`）。
+> v0.6 时为根目录 DOM 版 + `/next/` Canvas 版（#36）。
 
 ```mermaid
 flowchart LR
@@ -652,7 +660,8 @@ flowchart LR
 - **`src/game/flow.ts` · FlowMachine**：页面状态机，非法事件抛错。由 core 局状态驱动：`viewOf(game)` 只读 `over / isLast / battleIdx / p.hp`；`sync()` 在 core 报告战斗结束时自动转到奖励或结算；`battle_end` 与 core 状态矛盾时拒绝。**不修改 src/core 和 config/**。
 - **`src/game/router.ts` · Router**：把页面变化映射到场景切换（默认用泼墨转场）。
 - **`src/game/scenes/placeholder.ts`**：6 个占位页面，带按钮推进流程、长按弹详情浮层；正式页面替换对应 id 即可。发布入口支持 `?page=map` 等参数直接进入某页（截图和测试用）。
-- 测试：`tests/engine-scene.test.ts`、`tests/flow.test.ts`。
+- **P5 结算与放弃本局（#46）**：`FlowMachine` 增加 `abandon`（点将 / 地图 / 战斗 / 奖励 / 集市 → 结算，PRD 5.13）和 `result_done.to`（`'map'` = 再来一局，默认 `'select'` = 返回点将，PRD 14.5）。结算页 `src/game/result/scene.ts`；启动续玩弹窗与放弃二次确认 `src/game/result/resume.ts` 只用 `OverlayStack.push`，设置浮层可复用 `confirmAbandon`。**离开结算页时**才入账局外存档（`mojuan.meta.v1`）并删除局内存档（`mojuan.run.v1`）。其他页面通过 `src/game/result/bridge.ts` 接入（`outcome` / `restart` / `resume`）。
+- 测试：`tests/engine-scene.test.ts`、`tests/flow.test.ts`、`tests/result.test.ts`。
 
 ### 4.12 WebGL 水墨增强层（【已决定 2026-10-12】）
 

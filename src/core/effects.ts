@@ -5,7 +5,7 @@
  */
 import { CONFIG, type Ability } from '../data/config';
 import type { Game } from './battle';
-import type { CardInst, Enemy } from './types';
+import type { CardInst, Enemy, JudgeCard, JudgeColor, Suit } from './types';
 import { def, isRed, isShaPlay } from './rules';
 
 export type When = Ability['trigger']['when'];
@@ -45,9 +45,32 @@ export interface Source {
 export type Atom = (g: Game, a: Action, ctx: Ctx, src: Source) => Promise<void> | void;
 
 const SUITS = ['S', 'H', 'C', 'D'] as const;
-/** 天机签筒（M1）：52 张标准花色点数 */
-export const standardJudgeDeck = (): CardInst[] =>
-  SUITS.flatMap((suit) => Array.from({ length: 13 }, (_, i) => ({ uid: -(i + 1), id: 'JUDGE', suit, rank: i + 1, mods: [] })));
+export const JUDGE_POOL_NAME = '天机签';
+export const judgeColor = (suit: Suit): JudgeColor => (suit === 'H' || suit === 'D' ? 'red' : 'black');
+/** 天机签筒（M1）：52 张标准花色点数的独立签，不是卡牌、没有卡牌定义 */
+export const standardJudgeDeck = (): JudgeCard[] =>
+  SUITS.flatMap((suit, si) =>
+    Array.from({ length: 13 }, (_, i): JudgeCard => ({
+      kind: 'judge',
+      uid: -(si * 13 + i + 1),
+      suit,
+      rank: i + 1,
+      color: judgeColor(suit),
+      source: 'pool',
+      name: JUDGE_POOL_NAME,
+    })),
+  );
+/** 摸牌堆亮出的实体牌 → 判定牌 */
+export const judgeFromCard = (c: CardInst, name: string): JudgeCard => ({
+  kind: 'judge',
+  uid: c.uid,
+  suit: c.suit,
+  rank: c.rank,
+  color: judgeColor(c.suit),
+  source: 'deck',
+  cardId: c.id,
+  name,
+});
 
 function targets(g: Game, t: string | undefined, ctx: Ctx): (Enemy | 'player')[] {
   switch (t ?? 'self') {
@@ -72,7 +95,7 @@ function targets(g: Game, t: string | undefined, ctx: Ctx): (Enemy | 'player')[]
   }
 }
 
-export function judgeOk(c: CardInst, s: NonNullable<Action['success']>) {
+export function judgeOk(c: Pick<JudgeCard, 'suit' | 'rank'>, s: NonNullable<Action['success']>) {
   let ok = true;
   if (s.color) ok &&= (s.color === 'red') === isRed(c);
   if (s.suit) ok &&= s.suit.includes(c.suit);
@@ -153,6 +176,10 @@ export const ATOMS: Record<string, Atom> = {
   },
   gain_ling(g, a, ctx) {
     g.p.ling += amt(a, ctx);
+  },
+  negate_trick(_g, _a, ctx, src) {
+    ctx.negatedBy = src.ab.id;
+    ctx.negatedName = src.ab.name;
   },
   negate_sha(_g, _a, ctx, src) {
     ctx.negatedBy = src.ab.id;

@@ -19,7 +19,8 @@ describe('V1 数值（design-v1 第 7 节定稿）', () => {
   it('rules 机制与检查', () => {
     expect(CONFIG.rules.mechanics).toEqual({ judgeSource: 'pool', passiveQuotaPerEnemyTurn: 2, moying: false, zeroCostPerTurn: 1 });
     expect(CONFIG.rules.starterDeck).toBe('hero');
-    expect(CONFIG.rules.betweenBattleHeal).toBe(1);
+    expect(CONFIG.rules.sim.baselineBetweenBattleHeal).toBe(1);
+    expect(CONFIG.rules.map.betweenBattleHeal).toBe(0);
   });
   it('每将起始牌组 12 张，红 50%', () => {
     for (const id of heroes.ROSTER) {
@@ -28,9 +29,9 @@ describe('V1 数值（design-v1 第 7 节定稿）', () => {
       expect(d.filter((c) => c.suit === 'H' || c.suit === 'D').length).toBe(6);
     }
   });
-  it('第 1 章：波才 / 张角为停用占位；闪电 D003 统一定义，张角覆盖 2', () => {
+  it('第 1 章：波才为停用占位、张角已启用（design-v1 10.7）；闪电 D003 统一定义，张角覆盖 2', () => {
     expect(CONFIG.enemies.E1E2.enabled).toBe(false);
-    expect(CONFIG.enemies.B1.enabled).toBe(false);
+    expect(CONFIG.enemies.B1.enabled).toBe(true);
     expect(CONFIG.enemies.B1.trickOverrides).toEqual({ D003: { amount: 2 } });
     expect(cards.CARDS.D003.cost).toBe(1);
   });

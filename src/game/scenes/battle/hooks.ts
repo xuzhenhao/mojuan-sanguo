@@ -9,7 +9,7 @@
  * - 响应窗口与长按详情默认接入 P1b（#64）的 makeRespond / LongPressDetail；hooks 里提供同名钩子时优先用钩子。
  */
 import type { Game } from '../../../core/battle';
-import type { AffixDef, CardInst, Enemy } from '../../../core/types';
+import type { AffixDef, CardInst, Enemy, JudgeCard } from '../../../core/types';
 import type { GestureEvent } from '../../../engine/input';
 import type { OverlayStack } from '../../../engine/modal';
 import type { Surface } from '../../../engine/surfaces';
@@ -94,7 +94,7 @@ export interface BattleOverlayHooks {
   /** 灵光一闪三选一。未注入时：调试版/测试默认选第一个；正式版不自动选（返回 null，本次灵光不铭刻）并告警 */
   epiphany?(req: EpiphanyRequest, ctx: BattleOverlayContext): Promise<AffixDef | null>;
   /** 判定展示（判定区翻牌）；不提供时场景用内置动画 */
-  judge?(reason: string, card: CardInst, ctx: BattleOverlayContext): Promise<void>;
+  judge?(reason: string, card: JudgeCard, ctx: BattleOverlayContext): Promise<void>;
   /** 场景收到但未处理的手势（调试/扩展用） */
   gesture?(e: GestureEvent, ctx: BattleOverlayContext): boolean;
 }
