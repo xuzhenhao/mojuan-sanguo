@@ -5,17 +5,28 @@
 .say{position:absolute;left:150px;top:70px;padding:10px 14px;font-family:Brush;font-size:22px;color:var(--gold)}
 .say::before{content:"";position:absolute;left:-8px;top:18px;border:8px solid transparent;border-right-color:var(--gold-lo);border-left:0}
 .coins{position:absolute;right:20px;top:150px;display:flex;align-items:center;gap:6px;font-size:22px}.coins svg{width:24px;height:24px;fill:var(--gold)}
-.zone{position:absolute;left:14px;right:14px}
-.cards{top:244px;display:flex;justify-content:space-around}
-.it{display:flex;flex-direction:column;align-items:center;gap:8px}
+.zone{position:absolute;left:10px;right:10px}
+.cards{top:236px;display:flex;justify-content:space-between;align-items:flex-end;gap:4px}
+.it{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0}
 .it.sold{opacity:.35;filter:grayscale(1)}
+/* 5 卡用中号牌（72→略压），大牌装不下；奖励页仍用 .big */
+.card.shop{width:66px;height:96px;padding:2px}
+.card.shop .art{inset:3px 3px 22px}
+.card.shop .cn{font-size:16px;bottom:2px}
+.card.shop .c{width:18px;height:18px;line-height:18px;font-size:11px}
+.card.shop .su{top:22px;font-size:10px;line-height:10px}
+.card.shop .rar{width:8px;height:8px;right:2px;top:2px}
+.slot{font-family:Brush;font-size:12px;color:var(--gold-lo);letter-spacing:.5px;line-height:1}
+.slot.faction{color:#c9a55a}
+.slot.exclusive{color:#9ad4b8}
 .shelf{position:absolute;left:10px;right:10px;height:10px;background:linear-gradient(#6e4a18,#e9c877 40%,#6e4a18);border-radius:2px;box-shadow:0 4px 8px #000}
-.row2{top:470px;display:flex;justify-content:space-around;align-items:flex-end}
+/* 1 宝物 + 2 丹药等距；删牌改为服务按钮，不再占「4 物」槽 */
+.row2{top:456px;display:flex;justify-content:space-around;align-items:flex-end;padding:0 24px}
 .orb{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#4a4a4a,#0a0a0a);box-shadow:0 0 0 2px var(--gold),0 0 0 5px var(--lac-3),0 0 18px rgba(233,200,119,.4)}
 .orb svg{width:34px;height:34px;fill:var(--gold)}.orb.p svg{fill:#9ad4b8}.orb.w svg{fill:#ff9a85}.orb.x{background:radial-gradient(circle at 35% 30%,#5a2a20,#1a0806)}.orb.x svg{fill:var(--paper)}
 .orb{position:relative}.gem{position:absolute;right:2px;top:2px;width:12px;height:12px;transform:rotate(45deg);background:var(--gold);box-shadow:0 0 0 1px #000}
 .sale{position:absolute;margin:-120px 0 0 60px;width:34px;height:34px;line-height:34px;font-size:15px;border-radius:50%;transform:rotate(12deg)}
-.refresh{top:640px;display:flex;justify-content:center;gap:12px}
+.refresh{top:620px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
 .bar .btn{margin-left:auto}
 </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -147,14 +158,13 @@
 
 <div class="top"><div class="tb brush" style="font-size:16px;color:var(--gold)">集市</div><div class="sp"></div><div class="capsule"></div></div>
 <div class="stall"><div class="awn"></div><svg class="merchant"><use href="#scholar"/></svg><div class="say panel">客官，看货</div><div class="coins"><svg><use href="#i-coin"/></svg><span class="num">186</span></div></div>
-<div class="zone cards" id="cards"></div><div class="shelf" style="top:444px"></div>
+<div class="zone cards" id="cards"></div><div class="shelf" style="top:430px"></div>
 <div class="zone row2">
- <div class="it"><div class="orb"><svg><use href="#i-jade"/></svg><span class="gem"></span></div><span class="price"><svg><use href="#i-coin"/></svg><span class="num">140</span></span></div>
- <div class="it"><div class="orb p"><svg><use href="#i-gourd"/></svg></div><span class="price"><svg><use href="#i-coin"/></svg><span class="num">50</span></span></div>
- <div class="it sold"><div class="orb w"><svg><use href="#i-wine"/></svg></div><span class="price"><svg><use href="#i-coin"/></svg><span class="num">40</span></span></div>
- <div class="it"><div class="orb x"><svg><use href="#i-trash"/></svg></div><span class="price"><svg><use href="#i-coin"/></svg><span class="num">50</span></span></div>
-</div><div class="shelf" style="top:596px"></div>
-<div class="zone refresh"><div class="btn sec sm"><svg><use href="#i-refresh"/></svg><span class="num">25</span></div><div class="btn sec sm"><svg><use href="#i-ad"/></svg><svg><use href="#i-refresh"/></svg></div></div>
+ <div class="it"><div class="orb"><svg><use href="#i-jade"/></svg><span class="gem"></span></div><span class="slot">宝物</span><span class="price"><svg><use href="#i-coin"/></svg><span class="num">140</span></span></div>
+ <div class="it"><div class="orb p"><svg><use href="#i-gourd"/></svg></div><span class="slot">丹药</span><span class="price"><svg><use href="#i-coin"/></svg><span class="num">50</span></span></div>
+ <div class="it sold"><div class="orb w"><svg><use href="#i-wine"/></svg></div><span class="slot">丹药</span><span class="price"><svg><use href="#i-coin"/></svg><span class="num">40</span></span></div>
+</div><div class="shelf" style="top:584px"></div>
+<div class="zone refresh"><div class="btn sec sm"><svg><use href="#i-refresh"/></svg><span class="num">25</span></div><div class="btn sec sm"><svg><use href="#i-ad"/></svg><svg><use href="#i-refresh"/></svg></div><div class="btn sec sm"><svg><use href="#i-trash"/></svg><span>删牌</span><span class="num">50</span></div></div>
 <div class="bar"><div class="ico"><svg><use href="#i-deck"/></svg></div><span class="num" style="font-size:14px">14</span><div class="btn sm">离开</div></div>
 </div>
 <script>const use=(id,cls='')=>`<svg class="${cls}"><use href="#${id}"/></svg>`;
@@ -164,6 +174,13 @@ const beads=(h,m)=>`<div class="beads">${Array.from({length:m},(_,k)=>`<i class=
 const HEROES=[{n:'吕布',f:'qun',fa:'群',hp:9,s:'boss'},{n:'貂蝉',f:'qun',fa:'群',hp:7,s:'lady'},{n:'赵云',f:'shu',fa:'蜀',hp:8,s:'hero'},{n:'刘备',f:'shu',fa:'蜀',hp:8,s:'hero2'},{n:'郭嘉',f:'wei',fa:'魏',hp:8,s:'scholar'},{n:'曹操',f:'wei',fa:'魏',hp:9,s:'hero2'},{n:'周瑜',f:'wu',fa:'吴',hp:8,s:'scholar'},{n:'陆逊',f:'wu',fa:'吴',hp:7,s:'scholar'}];
 function longpress(el,fn){let t;el.addEventListener('pointerdown',()=>{t=setTimeout(fn,420)});['pointerup','pointerleave'].forEach(v=>el.addEventListener(v,()=>clearTimeout(t)));}
 
-const C=[{n:'杀',c:1,s:'♠',p:'9',k:'atk',i:'i-sword',r:'N',$:40},{n:'八卦',c:1,s:'♥',p:'2',k:'def',i:'i-jade',r:'R',$:60},{n:'借刀',c:2,s:'♣',p:'Q',k:'skill',i:'i-swords',r:'E',$:90,no:1}];
-cards.innerHTML=C.map((c,i)=>`<div class="it">${card(c,'big')}<span class="price ${c.no?'no':''}"><svg><use href="#i-coin"/></svg><span class="num">${c.$}</span></span></div>`).join('');
+/* PRD §10.7：5 卡 = 3 通用 + 1 势力 + 1 专属；废止旧「3卡+4物」 */
+const C=[
+  {n:'杀',c:1,s:'♠',p:'9',k:'atk',i:'i-sword',r:'N',$:40,slot:'通用',slotCls:''},
+  {n:'闪',c:0,s:'♥',p:'2',k:'def',i:'i-dodge',r:'N',$:40,slot:'通用',slotCls:''},
+  {n:'桃',c:0,s:'♥',p:'3',k:'heal',i:'i-peach',r:'N',$:40,slot:'通用',slotCls:''},
+  {n:'万箭',c:1,s:'♥',p:'A',k:'skill',i:'i-arrow',r:'R',$:60,slot:'势力',slotCls:'faction'},
+  {n:'无双',c:1,s:'♠',p:'K',k:'skill',i:'i-swords',r:'E',$:90,slot:'专属',slotCls:'exclusive',no:1},
+];
+cards.innerHTML=C.map((c)=>`<div class="it ${c.no?'':''}"><span class="slot ${c.slotCls}">${c.slot}</span>${card(c,'shop')}<span class="price ${c.no?'no':''}"><svg><use href="#i-coin"/></svg><span class="num">${c.$}</span></span></div>`).join('');
 </script></body></html>

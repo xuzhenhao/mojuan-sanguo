@@ -6,7 +6,7 @@ import { CARD_W, HAND_MIN_STEP, layoutHand, lockDirection } from '../src/game/sc
 import type { BattleOverlayHooks } from '../src/game/scenes/battle/hooks';
 import { judgeViewOf } from '../src/game/scenes/battle/judge';
 import { diff, PresentationQueue } from '../src/game/scenes/battle/present';
-import { BattleScene } from '../src/game/scenes/battle/scene';
+import { BACK_ROW_GAP, BEAD_R_ENEMY, BEAD_R_MAIN, BattleScene } from '../src/game/scenes/battle/scene';
 import { battleSkillButtons, skillReason, skillTargetOk } from '../src/game/scenes/battle/skills';
 import { fakePlatform } from './engine-fakes';
 import { card } from './helpers';
@@ -250,5 +250,31 @@ describe('战斗场景', () => {
     eng.frame(16);
     expect(eng.overlay).toBeNull();
     expect(fp.offscreens.some((c) => c.calls.includes('fillText'))).toBe(true);
+  });
+});
+
+describe('战斗页跟进（勾玉 / 致命脉冲 / 手满 Toast / 后排间距）', () => {
+  it('勾玉半径对齐 render-spec ⌀17 / ⌀11', () => {
+    expect(BEAD_R_MAIN * 2).toBe(17);
+    expect(BEAD_R_ENEMY * 2).toBe(11);
+  });
+  it('后排默认间距 120', () => {
+    expect(BACK_ROW_GAP).toBe(120);
+  });
+  it('手牌硬上限触发 handOverflow Toast「手满，弃置」', () => {
+    const { sc } = mkScene(undefined, 'H03', 'H04');
+    const c = card('B001', 'S', 7);
+    sc.io.handOverflow?.({ type: 'discard', reason: 'hand_overflow', card: c, cap: 10 });
+    expect(sc.hint).toContain('手满，弃置');
+    expect(sc.hint).toContain('杀');
+  });
+  it('武将名随 main/sub 变化（#55 战斗页）', () => {
+    const { sc } = mkScene(undefined, 'H06', 'H04');
+    expect(sc.g.main.name).toBe('曹操');
+    expect(sc.g.sub.name).toBe('刘备');
+    const { texts, s } = recCtx();
+    sc.draw('main', s);
+    // 竖排逐字绘制，断言每个字都出现过
+    for (const ch of '曹操刘备') expect(texts).toContain(ch);
   });
 });

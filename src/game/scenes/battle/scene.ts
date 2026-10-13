@@ -21,6 +21,12 @@ import { judgeViewOf, type JudgeView } from './judge';
 import { diff, PresentationQueue, type Snapshot } from './present';
 import { battleSkillButtons, nextSkillStep, skillCardOk, skillTargetOk, type SkillButton, type SkillPick } from './skills';
 
+/** render-spec §3.4：主将勾玉 ⌀17、敌人/小牌 ⌀11 */
+export const BEAD_R_MAIN = 8.5;
+export const BEAD_R_ENEMY = 5.5;
+/** 后排牌间距（acceptance §3；过宽时由 enemyRect 压缩以塞进屏宽） */
+export const BACK_ROW_GAP = 120;
+
 export type BattleMode = 'idle' | 'target' | 'redSel' | 'skillCard' | 'skillTarget' | 'discard' | 'busy' | 'over';
 export type CardState = 'normal' | 'selected' | 'legal' | 'illegal' | 'unaffordable';
 
@@ -182,6 +188,9 @@ export class BattleScene implements Scene<BattleParams> {
       this.mode = 'over';
       void this.q.push(win ? 'seal_win' : 'seal_lose', 600, true).then(() => this.q.push('seal_hold', 600).then(() => this.deps.onEnd?.(win)));
     },
+    handOverflow: (ev) => {
+      this.flash(`手满，弃置${ev.card ? `「${def(ev.card).name}」` : ''}`, 1800);
+    },
   };
 
   snapshot(): Snapshot {
@@ -264,7 +273,11 @@ export class BattleScene implements Scene<BattleParams> {
     const boss = !!e.elite && e.tier === 'Boss';
     const cw = front ? (boss ? 116 : 96) : 76;
     const ch = front ? (boss ? 160 : 132) : 104;
-    const gap = front ? 18 : 44;
+    let gap = front ? 18 : BACK_ROW_GAP;
+    if (!front && row.length > 1) {
+      const maxGap = Math.max(8, (this.W - 24 - row.length * cw) / (row.length - 1));
+      gap = Math.min(gap, maxGap);
+    }
     const total = row.length * cw + (row.length - 1) * gap;
     const x = (this.W - total) / 2 + i * (cw + gap);
     let y = front ? L.frontY - (boss ? 22 : 0) : L.backY;
@@ -623,7 +636,11 @@ export class BattleScene implements Scene<BattleParams> {
   }
 
   update(dt: number) {
-    const before = this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0;
+    const lethalPulse = this.g?.alive().some((e) => {
+      const it = enemyIntent(e);
+      return it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
+    });
+    const before = this.q.busy || !!this.drag || this.hintT > 0 || this.confirmT > 0 || this.shakeT > 0 || !!lethalPulse;
     this.q.update(dt);
     if (this.hintT > 0) this.hintT -= dt;
     if (this.confirmT > 0) this.confirmT -= dt;
@@ -835,15 +852,22 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, { x: r.x + 6, y: by, w: (bw * Math.max(0, e.hp)) / e.max, h: 12 }, C.cinnabar);
       frame(ctx, { x: r.x + 6, y: by, w: bw, h: 12 }, C.gold, 1);
       text(ctx, `${Math.max(0, e.hp)}/${e.max}`, r.x + r.w / 2, by + 6, { size: 10, color: C.paper, font: FONT.num, align: 'center', bold: true });
-    } else this.beads(ctx, r.x + r.w / 2, by + 6, e.hp, e.max, 5);
+    } else this.beads(ctx, r.x + r.w / 2, by + 6, e.hp, e.max, BEAD_R_ENEMY);
     // 护盾（左下）
     if (e.armor > 0) this.shield(ctx, r.x - 10, r.y + r.h - 34, e.armor, 24);
     // 意图（右上）
     const ir = this.intentRect(e)!;
     const it = enemyIntent(e);
     const lethal = it.dmg > 0 && it.dmg >= this.g.p.hp + this.g.p.armor;
+    const pulse = lethal ? 0.55 + 0.45 * Math.sin(((this.deps.now?.() ?? performance.now()) / 1200) * Math.PI * 2) : 1;
+    if (lethal) {
+      const a0 = ctx.globalAlpha;
+      ctx.globalAlpha = a0 * pulse;
+      rect(ctx, { x: ir.x - 4, y: ir.y - 4, w: ir.w + 8, h: ir.h + 8 }, 'rgba(255,80,50,0.35)');
+      ctx.globalAlpha = a0;
+    }
     rect(ctx, ir, lethal ? C.cinnabar : C.lac1);
-    frame(ctx, ir, lethal ? C.cinnGlow : C.gold, 1);
+    frame(ctx, ir, lethal ? C.cinnGlow : C.gold, lethal ? 1.5 : 1);
     const defOnly = it.dmg === 0 && it.acts.includes('闪');
     const icon = it.dmg > 0 ? '⚔' : defOnly ? '盾' : '✦';
     text(ctx, icon, ir.x + 13, ir.y + 14, { size: 15, color: it.dmg > 0 ? C.dmg : defOnly ? C.defIntent : C.gold, align: 'center' });
@@ -903,7 +927,7 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, { x: r.x + 6, y: r.y + 6, w: r.w - 12, h: r.h - 34 }, '#3B2C22');
       text(ctx, g.main.name.slice(-1), r.x + r.w / 2 + 10, r.y + 80, { size: 64, color: 'rgba(243,235,216,0.2)', font: FONT.brush, align: 'center' });
       vtext(ctx, g.main.name, r.x + 20, r.y + 24, 26, C.paper);
-      this.beads(ctx, r.x + r.w / 2, r.y + r.h - 14, g.p.hp, g.p.maxHp, 7);
+      this.beads(ctx, r.x + r.w / 2, r.y + r.h - 14, g.p.hp, g.p.maxHp, BEAD_R_MAIN);
       if (g.p.armor > 0) this.shield(ctx, r.x - 14, r.y + r.h - 48, g.p.armor, 30);
       const st: string[] = [];
       if (g.p.jiu) st.push(`酒${g.p.jiu}`);
