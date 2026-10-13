@@ -85,17 +85,10 @@
       "description": "敌人意图牌定义：t=类型，dmg=伤害，mod=显示的进化词条名",
       "additionalProperties": {
         "type": "object",
-        "required": [
-          "t"
-        ],
+        "required": ["t"],
         "properties": {
           "t": {
-            "enum": [
-              "杀",
-              "万箭",
-              "闪",
-              "咒"
-            ]
+            "enum": ["杀", "万箭", "闪", "咒"]
           },
           "dmg": {
             "type": "integer",
@@ -110,11 +103,7 @@
     },
     "epiphany": {
       "type": "object",
-      "required": [
-        "baseRate",
-        "maxPerBattle",
-        "pityPlays"
-      ],
+      "required": ["baseRate", "maxPerBattle", "pityPlays"],
       "properties": {
         "baseRate": {
           "type": "number",
@@ -136,12 +125,7 @@
     },
     "rarityWeight": {
       "type": "object",
-      "required": [
-        "N",
-        "R",
-        "E",
-        "L"
-      ],
+      "required": ["N", "R", "E", "L"],
       "description": "词条稀有度权重",
       "properties": {
         "N": {
@@ -175,10 +159,7 @@
       "description": "业务校验开关（第③步套 V1 数值时开启）",
       "properties": {
         "starterRedRatio": {
-          "type": [
-            "number",
-            "null"
-          ],
+          "type": ["number", "null"],
           "description": "起始牌组红色比例必须等于该值；null 不检查"
         },
         "zeroCostDrawNeedsLimit": {
@@ -186,10 +167,7 @@
           "description": "0 费且会摸牌的牌必须带 limit"
         },
         "comboStartArmorMax": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         }
       },
       "additionalProperties": false
@@ -197,25 +175,14 @@
     "mechanics": {
       "type": "object",
       "description": "机制开关（默认保持现行行为）",
-      "required": [
-        "judgeSource",
-        "passiveQuotaPerEnemyTurn",
-        "moying",
-        "zeroCostPerTurn"
-      ],
+      "required": ["judgeSource", "passiveQuotaPerEnemyTurn", "moying", "zeroCostPerTurn"],
       "properties": {
         "judgeSource": {
-          "enum": [
-            "deck",
-            "pool"
-          ],
+          "enum": ["deck", "pool"],
           "description": "判定来源：deck=玩家摸牌堆；pool=独立天机签筒（52 张标准花色）"
         },
         "passiveQuotaPerEnemyTurn": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": ["integer", "null"],
           "minimum": 0,
           "description": "被动免伤配额，null=不限"
         },
@@ -224,10 +191,7 @@
           "description": "墨影：精英/Boss 在玩家满血时多出 1 张杀"
         },
         "zeroCostPerTurn": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": ["integer", "null"],
           "minimum": 1,
           "description": "0 费非响应牌每回合每种限次，null=不限"
         }
@@ -239,10 +203,7 @@
       "description": "自动对局 / 回归用的预设（不影响正式选将）",
       "additionalProperties": {
         "type": "object",
-        "required": [
-          "main",
-          "sub"
-        ],
+        "required": ["main", "sub"],
         "properties": {
           "main": {
             "type": "string"
@@ -270,10 +231,7 @@
     },
     "defaultHeroes": {
       "type": "object",
-      "required": [
-        "main",
-        "sub"
-      ],
+      "required": ["main", "sub"],
       "properties": {
         "main": {
           "type": "string"
@@ -288,23 +246,12 @@
     "shop": {
       "type": "object",
       "description": "商店（PRD 14.2）",
-      "required": [
-        "cardPrice",
-        "relicPrice",
-        "removeBase",
-        "removeStep",
-        "shopSlots"
-      ],
+      "required": ["cardPrice", "relicPrice", "removeBase", "removeStep", "shopSlots"],
       "properties": {
         "cardPrice": {
           "type": "object",
           "description": "卡牌按稀有度的基础价（浮动前）；卡牌可用 shopPrice 单独覆盖",
-          "required": [
-            "N",
-            "R",
-            "E",
-            "L"
-          ],
+          "required": ["N", "R", "E", "L"],
           "properties": {
             "N": {
               "type": "integer",
@@ -332,11 +279,7 @@
         "relicPrice": {
           "type": "object",
           "description": "宝物按稀有度的基础价（浮动前）",
-          "required": [
-            "N",
-            "R",
-            "E"
-          ],
+          "required": ["N", "R", "E"],
           "properties": {
             "N": {
               "type": "integer",
@@ -369,12 +312,7 @@
         "shopSlots": {
           "type": "object",
           "description": "集市各类槽位数",
-          "required": [
-            "common",
-            "heroCard",
-            "relic",
-            "potion"
-          ],
+          "required": ["common", "heroCard", "relic", "potion"],
           "properties": {
             "common": {
               "type": "integer",
@@ -400,11 +338,7 @@
     },
     "sim": {
       "type": "object",
-      "required": [
-        "baselineBetweenBattleHeal",
-        "shan",
-        "reward"
-      ],
+      "required": ["baselineBetweenBattleHeal", "shan", "reward"],
       "additionalProperties": false,
       "description": "自动对局 / 回归基线专用参数",
       "properties": {
@@ -416,18 +350,11 @@
         "shan": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "mode",
-            "keepMax",
-            "takeHitHpRatio"
-          ],
+          "required": ["mode", "keepMax", "takeHitHpRatio"],
           "description": "#241 AI 留闪策略（sim 专用）",
           "properties": {
             "mode": {
-              "enum": [
-                "legacy",
-                "budget"
-              ]
+              "enum": ["legacy", "budget"]
             },
             "keepMax": {
               "type": "integer",
@@ -443,12 +370,7 @@
         "reward": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "skipBelow",
-            "loopMaxInDeck",
-            "shopBuyMinGold",
-            "shopMaxCards"
-          ],
+          "required": ["skipBelow", "loopMaxInDeck", "shopBuyMinGold", "shopMaxCards"],
           "description": "#241 模拟卡牌奖励 / 商店选牌 AI（sim 专用）",
           "properties": {
             "skipBelow": {
@@ -474,19 +396,7 @@
       "type": "object",
       "description": "章节地图与正式地图流程参数（PRD 10.1–10.4、10.9；betweenBattleHeal 来自 #77）",
       "additionalProperties": false,
-      "required": [
-        "layers",
-        "columns",
-        "paths",
-        "distinctStarts",
-        "fixedLayers",
-        "weights",
-        "constraints",
-        "boss",
-        "nodeIcons",
-        "betweenBattleHeal",
-        "rest"
-      ],
+      "required": ["layers", "columns", "paths", "distinctStarts", "fixedLayers", "weights", "constraints", "boss", "nodeIcons", "betweenBattleHeal", "rest"],
       "properties": {
         "layers": {
           "type": "integer",
@@ -513,14 +423,7 @@
             "pattern": "^[0-9]+$"
           },
           "additionalProperties": {
-            "enum": [
-              "BATTLE",
-              "ELITE",
-              "EVENT",
-              "REST",
-              "SHOP",
-              "CHEST"
-            ]
+            "enum": ["BATTLE", "ELITE", "EVENT", "REST", "SHOP", "CHEST"]
           }
         },
         "weights": {
@@ -528,15 +431,7 @@
           "minItems": 1,
           "items": {
             "type": "object",
-            "required": [
-              "layers",
-              "BATTLE",
-              "ELITE",
-              "EVENT",
-              "REST",
-              "SHOP",
-              "CHEST"
-            ],
+            "required": ["layers", "BATTLE", "ELITE", "EVENT", "REST", "SHOP", "CHEST"],
             "additionalProperties": false,
             "properties": {
               "layers": {
@@ -579,26 +474,12 @@
         "constraints": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "minLayerFor",
-            "noConsecutive",
-            "distinctSiblings",
-            "minElite",
-            "shopOnEveryStart",
-            "maxRerolls"
-          ],
+          "required": ["minLayerFor", "noConsecutive", "distinctSiblings", "minElite", "shopOnEveryStart", "maxRerolls"],
           "properties": {
             "minLayerFor": {
               "type": "object",
               "propertyNames": {
-                "enum": [
-                  "BATTLE",
-                  "ELITE",
-                  "EVENT",
-                  "REST",
-                  "SHOP",
-                  "CHEST"
-                ]
+                "enum": ["BATTLE", "ELITE", "EVENT", "REST", "SHOP", "CHEST"]
               },
               "additionalProperties": {
                 "type": "integer",
@@ -608,14 +489,7 @@
             "noConsecutive": {
               "type": "array",
               "items": {
-                "enum": [
-                  "BATTLE",
-                  "ELITE",
-                  "EVENT",
-                  "REST",
-                  "SHOP",
-                  "CHEST"
-                ]
+                "enum": ["BATTLE", "ELITE", "EVENT", "REST", "SHOP", "CHEST"]
               },
               "uniqueItems": true
             },
@@ -660,15 +534,7 @@
         "nodeIcons": {
           "type": "object",
           "propertyNames": {
-            "enum": [
-              "BATTLE",
-              "ELITE",
-              "EVENT",
-              "REST",
-              "SHOP",
-              "CHEST",
-              "BOSS"
-            ]
+            "enum": ["BATTLE", "ELITE", "EVENT", "REST", "SHOP", "CHEST", "BOSS"]
           },
           "additionalProperties": {
             "$ref": "icon.schema.json"
@@ -682,10 +548,7 @@
         "rest": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "healMin",
-            "healRatio"
-          ],
+          "required": ["healMin", "healRatio"],
           "description": "营地疗伤（PRD 10.6）：回复 max(healMin, floor(最大体力 × healRatio))",
           "properties": {
             "healMin": {
@@ -703,9 +566,7 @@
     },
     "run": {
       "type": "object",
-      "required": [
-        "chapters"
-      ],
+      "required": ["chapters"],
       "additionalProperties": false,
       "properties": {
         "chapters": {
@@ -724,12 +585,7 @@
     "revive": {
       "type": "object",
       "description": "复活（PRD §4.4.1；仅天命<5）",
-      "required": [
-        "count",
-        "hpRatio",
-        "hpMin",
-        "armor"
-      ],
+      "required": ["count", "hpRatio", "hpMin", "armor"],
       "additionalProperties": false,
       "properties": {
         "count": {
@@ -794,11 +650,7 @@
         "battleGold": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "normal",
-            "elite",
-            "boss"
-          ],
+          "required": ["normal", "elite", "boss"],
           "description": "14.1 战斗铜钱 [min,max]，按章 1–3",
           "properties": {
             "normal": {
@@ -855,12 +707,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "N",
-              "R",
-              "E",
-              "L"
-            ],
+            "required": ["N", "R", "E", "L"],
             "properties": {
               "N": {
                 "type": "number",
@@ -896,11 +743,7 @@
         "potionDrop": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "normal",
-            "elite",
-            "boss"
-          ],
+          "required": ["normal", "elite", "boss"],
           "properties": {
             "normal": {
               "type": "number",
@@ -923,11 +766,7 @@
         "relicRarity": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "N",
-            "R",
-            "E"
-          ],
+          "required": ["N", "R", "E"],
           "properties": {
             "N": {
               "type": "number",
@@ -946,24 +785,12 @@
         },
         "bossRelicPool": {
           "type": "string",
-          "enum": [
-            "N",
-            "R",
-            "E",
-            "L",
-            "Boss"
-          ],
+          "enum": ["N", "R", "E", "L", "Boss"],
           "description": "Boss 额外宝物池稀有度"
         },
         "bossRelicFill": {
           "type": "string",
-          "enum": [
-            "N",
-            "R",
-            "E",
-            "L",
-            "Boss"
-          ],
+          "enum": ["N", "R", "E", "L", "Boss"],
           "description": "Boss 池不足时补位稀有度"
         },
         "priceJitter": {
@@ -1011,11 +838,7 @@
         "chestRelicRarity": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "N",
-            "R",
-            "E"
-          ],
+          "required": ["N", "R", "E"],
           "properties": {
             "N": {
               "type": "number",
@@ -1042,9 +865,7 @@
     "event": {
       "type": "object",
       "description": "奇遇（#174）",
-      "required": [
-        "startArmorCap"
-      ],
+      "required": ["startArmorCap"],
       "additionalProperties": false,
       "properties": {
         "startArmorCap": {
@@ -1057,22 +878,12 @@
     "settlement": {
       "type": "object",
       "description": "结算将魂系数（PRD 14.5；#174）",
-      "required": [
-        "soul",
-        "maxTianming"
-      ],
+      "required": ["soul", "maxTianming"],
       "additionalProperties": false,
       "properties": {
         "soul": {
           "type": "object",
-          "required": [
-            "perChapter",
-            "perElite",
-            "perWin",
-            "perBoss",
-            "defeatMul",
-            "tianmingStep"
-          ],
+          "required": ["perChapter", "perElite", "perWin", "perBoss", "defeatMul", "tianmingStep"],
           "additionalProperties": false,
           "properties": {
             "perChapter": {
@@ -1118,10 +929,7 @@
     "settings": {
       "type": "object",
       "description": "暂停/设置浮层（#108）：局外偏好默认值",
-      "required": [
-        "toggles",
-        "choices"
-      ],
+      "required": ["toggles", "choices"],
       "additionalProperties": false,
       "properties": {
         "toggles": {
@@ -1129,10 +937,7 @@
           "minProperties": 1,
           "additionalProperties": {
             "type": "object",
-            "required": [
-              "label",
-              "default"
-            ],
+            "required": ["label", "default"],
             "additionalProperties": false,
             "properties": {
               "label": {
@@ -1154,11 +959,7 @@
           "minProperties": 1,
           "additionalProperties": {
             "type": "object",
-            "required": [
-              "label",
-              "options",
-              "default"
-            ],
+            "required": ["label", "options", "default"],
             "additionalProperties": false,
             "properties": {
               "label": {
@@ -1191,11 +992,7 @@
     "assets": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "baseUrl",
-        "devBaseUrl",
-        "localBaseUrl"
-      ],
+      "required": ["baseUrl", "devBaseUrl", "localBaseUrl"],
       "description": "美术资源位置（#177）：立绘不打进包，放阿里云 OSS",
       "properties": {
         "baseUrl": {
@@ -1218,11 +1015,7 @@
     "battleTitle": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "normal",
-        "elite",
-        "boss"
-      ],
+      "required": ["normal", "elite", "boss"],
       "description": "战斗页顶条左侧标题模板（#216），按节点类型",
       "properties": {
         "normal": {
@@ -1248,11 +1041,7 @@
     "fonts": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "gateTimeoutMs",
-        "fallback",
-        "platforms"
-      ],
+      "required": ["gateTimeoutMs", "fallback", "platforms"],
       "description": "字体（#202）：按平台配置字体角色（system = 系统字体不加载），首屏门控超时与系统回退",
       "properties": {
         "gateTimeoutMs": {
@@ -1263,42 +1052,27 @@
         "fallback": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "brush",
-            "sans"
-          ],
+          "required": ["brush", "sans"],
           "properties": {
             "brush": {
               "type": "string",
-              "enum": [
-                "serif",
-                "sans-serif"
-              ]
+              "enum": ["serif", "sans-serif"]
             },
             "sans": {
               "type": "string",
-              "enum": [
-                "serif",
-                "sans-serif"
-              ]
+              "enum": ["serif", "sans-serif"]
             }
           }
         },
         "platforms": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "web",
-            "wechat"
-          ],
+          "required": ["web", "wechat"],
           "properties": {
             "web": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "brush",
-                "sans"
-              ],
+              "required": ["brush", "sans"],
               "properties": {
                 "brush": {
                   "oneOf": [
@@ -1308,9 +1082,7 @@
                     {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": [
-                        "family"
-                      ],
+                      "required": ["family"],
                       "properties": {
                         "family": {
                           "type": "string",
@@ -1321,10 +1093,7 @@
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
-                            "required": [
-                              "url",
-                              "gate"
-                            ],
+                            "required": ["url", "gate"],
                             "properties": {
                               "url": {
                                 "type": "string",
@@ -1348,9 +1117,7 @@
                     {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": [
-                        "family"
-                      ],
+                      "required": ["family"],
                       "properties": {
                         "family": {
                           "type": "string",
@@ -1361,10 +1128,7 @@
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
-                            "required": [
-                              "url",
-                              "gate"
-                            ],
+                            "required": ["url", "gate"],
                             "properties": {
                               "url": {
                                 "type": "string",
@@ -1385,10 +1149,7 @@
             "wechat": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "brush",
-                "sans"
-              ],
+              "required": ["brush", "sans"],
               "properties": {
                 "brush": {
                   "oneOf": [
@@ -1398,9 +1159,7 @@
                     {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": [
-                        "family"
-                      ],
+                      "required": ["family"],
                       "properties": {
                         "family": {
                           "type": "string",
@@ -1411,10 +1170,7 @@
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
-                            "required": [
-                              "url",
-                              "gate"
-                            ],
+                            "required": ["url", "gate"],
                             "properties": {
                               "url": {
                                 "type": "string",
@@ -1438,9 +1194,7 @@
                     {
                       "type": "object",
                       "additionalProperties": false,
-                      "required": [
-                        "family"
-                      ],
+                      "required": ["family"],
                       "properties": {
                         "family": {
                           "type": "string",
@@ -1451,10 +1205,7 @@
                           "items": {
                             "type": "object",
                             "additionalProperties": false,
-                            "required": [
-                              "url",
-                              "gate"
-                            ],
+                            "required": ["url", "gate"],
                             "properties": {
                               "url": {
                                 "type": "string",
@@ -1480,12 +1231,7 @@
       "type": "object",
       "description": "军令「留令」路线 1（M3 · #230）：回合开始地板 + 回合结束保留 + 硬顶 + 额外产令软上限",
       "additionalProperties": false,
-      "required": [
-        "perTurn",
-        "carryMax",
-        "hardCap",
-        "maxGainPerTurn"
-      ],
+      "required": ["perTurn", "carryMax", "hardCap", "maxGainPerTurn"],
       "properties": {
         "perTurn": {
           "type": "integer",
@@ -1520,10 +1266,7 @@
           "description": "费用下限（已拍板 0）"
         },
         "zeroCostPerTurn": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": ["integer", "null"],
           "minimum": 1,
           "description": "0 费非响应牌每回合每种限次；缺省回退 mechanics.zeroCostPerTurn"
         },
@@ -1557,12 +1300,7 @@
           "additionalProperties": {
             "type": "array",
             "items": {
-              "enum": [
-                "N",
-                "R",
-                "E",
-                "L"
-              ]
+              "enum": ["N", "R", "E", "L"]
             },
             "minItems": 1
           }

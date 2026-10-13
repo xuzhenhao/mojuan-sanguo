@@ -19,6 +19,7 @@ const cases: [string, MapRunOpts][] = [
   ['不拿奖励', { rewards: false }],
   ['拿奖励·不含循环牌', { rewards: true, noLoop: true }],
   ['拿奖励·含循环牌', { rewards: true }],
+  ['固定循环牌组(起手+鼓进×2+连谋×2)·不拿奖励', { extraCards: ['T015', 'T015', 'T021', 'T021'] }],
 ];
 const md = [`# #241 sim 复测（种子基 ${seed}，每组 ${n} 局 × ${pairs.length} 组武将，k=0，第 1 章地图模式）`, ''];
 for (const mode of ['legacy', 'budget'] as const) {

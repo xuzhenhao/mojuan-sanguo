@@ -121,34 +121,22 @@ const RAR: Record<string, number> = { N: 0, R: 0.2, E: 0.4, L: 0.6 };
  * 循环牌按牌组的「缺令程度」（有费牌占比）估值，过牌 / 待令另加分。
  */
 export function cardScore(id: string, deck: string[], cfg: RewardCfg = rewardCfg()): number {
+  // 口径（#241 单卡注入实验校准，种子 777/1777/2777 × 200 局）：起手 12 张、每回合 3 令时
+  // 令是瓶颈，任何“不能自我替换”的牌都会稀释牌组（无中生有 -13pt、传令 -23pt）。
+  // 只有“自我替换”的牌（摸 ≥1 且产令 + 本回合减费 ≥ 自身费用，如 鼓进/连谋）与空防具位的防具为正收益。
   const c = CONFIG.cards[id];
   if (!c) return 0;
-  const n = deck.length || 1;
-  const frac = (f: (x: string) => boolean) => deck.filter(f).length / n;
-  const tags = c.tags ?? [];
-  const atoms = dos(id).map((d) => d.do);
-  let s = RAR[c.rarity] ?? 0;
   const draw = drawsOf(id);
   if (isLoopCard(id)) {
     const loops = deck.filter(isLoopCard).length;
-    const costly = frac((x) => (CONFIG.cards[x]?.cost ?? 0) >= 1 && !isLoopCard(x));
-    const netGain = gainOf(id) - c.cost;
-    s += draw * 1.0 + pendingOf(id) * 0.4 + Math.max(0, netGain) * costly * 1.2;
-    const red = reduceOf(id);
-    if (red && red.endsWith('_turn')) {
-      const sha = red.startsWith('sha');
-      s += frac((x) => (sha ? !!CONFIG.cards[x]?.tags?.includes('sha') : !!CONFIG.cards[x]?.tags?.includes('trick') && !isLoopCard(x))) * 2;
-    }
+    const red = reduceOf(id) ? 1 : 0;
+    const selfReplace = draw >= 1 && gainOf(id) + red >= c.cost;
+    let s = selfReplace ? 2.5 + 0.2 * red : 0.5 + 0.2 * (gainOf(id) - c.cost) + 0.2 * pendingOf(id);
     if (loops >= cfg.loopMaxInDeck) s *= 0.4;
-    return s + 0.3;
+    return s;
   }
-  if (draw > 0 && !c.slot) s += draw * 0.8;
-  if (c.slot) s += frac((x) => CONFIG.cards[x]?.slot === c.slot) > 0 ? -0.5 : 0.9;
-  if (tags.includes('delay') || atoms.includes('skip_turn')) s += 0.9;
-  if (tags.includes('shan')) s += 0.6;
-  if (atoms.includes('damage') && !tags.includes('sha')) s += 0.3;
-  if (tags.includes('sha')) s += 0.2;
-  return s + 0.3;
+  if (c.slot === 'armor') return deck.some((x) => CONFIG.cards[x]?.slot === 'armor') ? 0.5 : 2.2;
+  return 0.5 + (RAR[c.rarity] ?? 0) + (draw > 0 ? 0.3 : 0);
 }
 
 /** 三选一：返回下标；全部不高于 skipBelow 返回 -1（跳过） */

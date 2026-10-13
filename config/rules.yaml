@@ -84,7 +84,7 @@ sim:
     takeHitHpRatio: 0.7
   # #241：模拟卡牌奖励 / 商店的选牌 AI（分越高越想拿；不高于 skipBelow 则跳过，防止稀释牌组）
   reward:
-    skipBelow: 1.0
+    skipBelow: 2.0
     loopMaxInDeck: 4 # 循环牌超过此数后边际价值递减
     shopBuyMinGold: 0 # 买完后至少剩的铜钱
     shopMaxCards: 1 # 每次进店最多买几张卡

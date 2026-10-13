@@ -66,6 +66,8 @@ export interface MapRunOpts {
   shan?: Partial<ShanCfg>;
   /** #241：出牌 AI 是否用循环牌逻辑（默认 true） */
   loopAi?: boolean;
+  /** #241：开局额外塞入的牌（固定循环牌组对照 / 单卡注入实验；需 rewards 模式，走 inventory 牌组） */
+  extraCards?: string[];
 }
 
 export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef, o: MapRunOpts = {}): Promise<MapRunResult> {
@@ -90,6 +92,7 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef, o: Ma
     mods: [],
   }));
   const inv = newInventory({ deck: deck0, main: mainId, sub: h.sub ?? CONFIG.rules.defaultHeroes.sub, chapter: 1 });
+  for (const x of o.extraCards ?? []) addCard(inv, x, 'H', 7);
   const ids = () => inv.deck.map((c) => c.id);
   let activePlays = 0;
   let turns = 0;
@@ -145,7 +148,7 @@ export async function runMap(seed: number, h0: HeroOpts, coef: RewardCoef, o: Ma
       battleIdx: boss ? BATTLES.length - 1 : 0,
       encounter: { name: enemies.name, en: enemies.enemies },
       maxHp,
-      deck: o.rewards ? inv.deck : undefined,
+      deck: o.rewards || o.extraCards?.length ? inv.deck : undefined,
       shan: o.shan,
       loopAi: o.loopAi,
     };
