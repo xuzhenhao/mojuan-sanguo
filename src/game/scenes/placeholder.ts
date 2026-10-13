@@ -16,6 +16,7 @@ export const PAGE_TITLE: Record<Page, string> = {
   shop: '集市',
   chest: '宝箱',
   rest: '营地',
+  event: '奇遇',
   result: '结算',
 };
 
@@ -36,6 +37,7 @@ export const PAGE_ACTIONS: Record<Page, { label: string; event: FlowEvent }[]> =
   shop: [{ label: '离开', event: { type: 'shop_done' } }],
   chest: [{ label: '收入', event: { type: 'chest_done' } }],
   rest: [{ label: '离开', event: { type: 'rest_done' } }],
+  event: [{ label: '继续', event: { type: 'event_done' } }],
   result: [{ label: '再来一局', event: { type: 'result_done' } }],
 };
 

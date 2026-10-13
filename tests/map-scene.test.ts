@@ -169,10 +169,7 @@ describe('P3 地图页', () => {
   });
 });
 
-describe('营地/奇遇（营地走营地页，奇遇地图内最小版）', () => {
-  const flush = async () => {
-    for (let i = 0; i < 4; i++) await Promise.resolve();
-  };
+describe('营地/奇遇（营地走营地页，奇遇走奇遇页 #91）', () => {
   /** 走到第一个可达营地/奇遇的父节点，返回该节点 */
   const reach = (session: MapSession, type: 'REST' | 'EVENT') => {
     for (let guard = 0; guard < 9; guard++) {
@@ -212,18 +209,17 @@ describe('营地/奇遇（营地走营地页，奇遇地图内最小版）', () 
     session.save({ hp: 1, maxHp: 10 });
     expect(session.restPreview()).toEqual({ hp: 4, healed: 3, maxHp: 10 });
   });
-  it('奇遇：提示后跳过，记为完成并前进', async () => {
+  it('奇遇（#91）：进奇遇页（kind=event），写进节点快照 pendingNode=EVENT', () => {
     for (let seed = 1; seed < 50; seed++) {
-      const { scene, session, overlays, sent } = setup(seed);
+      const { scene, session, sent, store } = setup(seed);
       const ev = reach(session, 'EVENT');
       if (!ev) continue;
       scene.tapNode(ev);
       tick(scene, 520);
-      overlays.gesture({ type: 'tap', at: { x: 195, y: 844 / 2 + 90 - 40 } });
-      await flush();
       expect(session.state.current).toBe(ev.id);
-      expect(sent).toHaveLength(0);
-      expect(scene.log).toContain('event_skip');
+      expect(sent.at(-1)!.e).toEqual({ type: 'enter_node', node: 'event' });
+      expect(sent.at(-1)!.p).toMatchObject({ kind: 'event', nodeId: ev.id, layer: ev.layer });
+      expect(JSON.parse(store.m.get(RUN_STATE_KEY)!).pendingNode).toEqual({ id: ev.id, type: 'EVENT' });
       return;
     }
     throw new Error('没有找到奇遇');
@@ -243,9 +239,12 @@ describe('营地/奇遇（营地走营地页，奇遇地图内最小版）', () 
 describe('路由约定', () => {
   it('节点类型 → 页面', () => {
     const n = (type: 'SHOP' | 'CHEST' | 'REST' | 'EVENT') => ({ id: 'L2C0', layer: 2, col: 0, type });
-    expect(isComingSoon('EVENT')).toBe(true);
+    expect(isComingSoon('EVENT')).toBe(false);
     expect(isComingSoon('REST')).toBe(false);
-    expect(() => routeFor(1, n('EVENT'))).toThrow(/地图内处理/);
+    expect(routeFor(1, n('EVENT'))).toEqual({
+      event: { type: 'enter_node', node: 'event' },
+      params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'event' },
+    });
     expect(routeFor(1, n('REST'))).toEqual({
       event: { type: 'enter_node', node: 'rest' },
       params: { from: 'map', chapter: 1, nodeId: 'L2C0', layer: 2, kind: 'rest', fixed: false },

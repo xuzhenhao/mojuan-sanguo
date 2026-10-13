@@ -60,6 +60,8 @@ export interface RewardEnv extends Env {
   done(): void;
   /** 未传 params 时的战斗类型（直入 ?reward=elite 等） */
   defaultKind?: BattleKind;
+  /** 本场铜钱倍率（V13 剿灭 ×2，#91）；卡牌奖励不变 */
+  goldMult?(): number;
 }
 export interface RewardParams {
   kind?: BattleKind;
@@ -95,10 +97,12 @@ export class RewardScene implements Scene<RewardParams | undefined> {
   enter(ctx: SceneContext, p?: RewardParams) {
     this.ctx = ctx;
     const kind = p?.kind ?? this.env.defaultKind ?? 'normal';
-    const offer = p?.offer ?? rollReward(this.env.rng(), this.inv, kind);
+    const mult = this.env.goldMult?.() ?? 1;
+    const rolled = p?.offer ?? rollReward(this.env.rng(), this.inv, kind);
+    const offer = mult > 1 && !p?.offer ? { ...rolled, gold: rolled.gold * mult } : rolled;
     this.st = enterReward(this.inv, offer);
     this.fromChest = !!p?.fromChest;
-    this.tag = p?.tag ?? `第${['一', '二', '三'][Math.min(3, this.inv.chapter) - 1]}章 · 黄巾`;
+    this.tag = p?.tag ?? (mult > 1 ? '铜钱奖励翻倍' : `第${['一', '二', '三'][Math.min(3, this.inv.chapter) - 1]}章 · 黄巾`);
     this.t = this.fromChest ? REWARD_ANIM.seal : 0;
     this.selected = -1;
     this.finished = false;

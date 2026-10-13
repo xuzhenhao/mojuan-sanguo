@@ -253,6 +253,9 @@ export class RunSession {
     g.tianming = s.tianming;
     g.battleIdx = b.nodeType === 'BOSS' ? BATTLES.length - 1 : 0;
     this.battleStart = { hp: s.hp, kind: b.nodeType === 'BOSS' ? 'boss' : b.nodeType === 'ELITE' ? 'elite' : 'normal' };
+    // V13 收编（#91）：下一场战斗开场护甲，进战斗即清零（进节点快照在此之前，刷新重进仍生效）
+    g.startArmorBonus = s.nextBattleArmor ?? 0;
+    if (s.nextBattleArmor) this.update((d) => void (d.nextBattleArmor = 0));
     this.game = g;
     if (start) g.startBattle();
     return g;

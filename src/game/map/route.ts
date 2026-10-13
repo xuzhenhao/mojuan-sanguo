@@ -37,7 +37,11 @@ export interface RestRouteParams extends Base {
   kind: 'rest';
   fixed: boolean;
 }
-export type MapRouteParams = BattleRouteParams | ShopRouteParams | ChestRouteParams | RestRouteParams;
+/** 奇遇页（#91）params：事件由奇遇页用局内 event 流抽取 */
+export interface EventRouteParams extends Base {
+  kind: 'event';
+}
+export type MapRouteParams = EventRouteParams | BattleRouteParams | ShopRouteParams | ChestRouteParams | RestRouteParams;
 
 /** 节点类型 → 页面；null = 页面未实现，在地图内处理（奇遇跳过；不走任何奖励类页面，避免误发奖励） */
 export const PAGE_OF: Record<NodeType, NodePage | null> = {
@@ -47,7 +51,7 @@ export const PAGE_OF: Record<NodeType, NodePage | null> = {
   SHOP: 'shop',
   CHEST: 'chest',
   REST: 'rest',
-  EVENT: null,
+  EVENT: 'event',
 };
 export const isComingSoon = (t: NodeType) => PAGE_OF[t] === null;
 
@@ -68,6 +72,7 @@ export function routeFor(
       params: { ...base, kind: 'battle', nodeType: node.type, encounterId: enc.encounterId, encounterName: enc.name, enemies: enc.enemies, intro },
     };
   }
+  if (node.type === 'EVENT') return { event, params: { ...base, kind: 'event' } };
   if (node.type === 'SHOP') return { event, params: { ...base, kind: 'shop' } };
   if (node.type === 'REST') return { event, params: { ...base, kind: 'rest', fixed: node.layer === 8 } };
   return { event, params: { ...base, kind: 'chest' } };

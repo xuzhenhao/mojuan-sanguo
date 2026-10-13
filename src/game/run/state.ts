@@ -102,6 +102,12 @@ export interface RunState {
   /** 各随机流的内部状态（mulberry32 uint32） */
   rng: Record<RngStream, number>;
   stats: RunStats;
+  /** 奇遇（#91）：本局已遇到的事件 id（无放回抽取，§13.1） */
+  eventsSeen?: string[];
+  /** V13 收编：下一场战斗开场护甲（进战斗后清零；刷新 / 续玩不丢，§6.3-6） */
+  nextBattleArmor?: number;
+  /** V13 剿灭：本场战斗奖励铜钱倍率（奖励页收入后清除） */
+  eventGoldMult?: number;
   /** 本局已结束（战斗失败）：续玩直接进结算页，不再重进节点（#122 PR2 「结束本局」） */
   ended?: { reason: 'defeat'; nodeId: string | null } | null;
 }
