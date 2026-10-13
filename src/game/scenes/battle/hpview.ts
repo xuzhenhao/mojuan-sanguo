@@ -105,3 +105,29 @@ export function dyingAlpha(nowMs: number): number {
   const amp = (DYING_ALPHA_MAX - DYING_ALPHA_MIN) / 2;
   return mid + amp * Math.sin((nowMs / DYING_PERIOD_MS) * Math.PI * 2);
 }
+
+/** #141：体力回到 ≥2 时红边 200ms 淡出到 0（不瞬间消失） */
+export const DYING_FADE_MS = 200;
+export type DyingEdgeState = { a: number; fadeAt: number | null; fromA: number };
+export const newDyingEdge = (): DyingEdgeState => ({ a: 0, fadeAt: null, fromA: 0 });
+export function dyingEdgeAlpha(st: DyingEdgeState, hp: number, now: number): number {
+  if (isDying(hp)) {
+    st.a = dyingAlpha(now);
+    st.fadeAt = null;
+    return st.a;
+  }
+  if (st.a <= 0) return 0;
+  if (st.fadeAt == null) {
+    st.fadeAt = now;
+    st.fromA = st.a;
+  }
+  const k = 1 - (now - st.fadeAt) / DYING_FADE_MS;
+  if (k <= 0) {
+    st.a = 0;
+    st.fadeAt = null;
+    return 0;
+  }
+  return st.fromA * k;
+}
+/** 正在淡出（需继续重绘） */
+export const dyingFading = (st: DyingEdgeState) => st.a > 0;

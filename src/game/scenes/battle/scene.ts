@@ -4,7 +4,7 @@
  * 弹层（响应窗口、长按详情、灵光一闪）走 hooks.ts 的接入点，由 P1b 注入。
  */
 import { CARDS } from '../../../data/cards';
-import { BEAD_D, DYING_EDGE_COLOR, DYING_EDGE_W, dyingAlpha, enemyHpView, isDying, fitNameCached, heroHpView } from './hpview';
+import { BEAD_D, DYING_EDGE_COLOR, DYING_EDGE_W, dyingEdgeAlpha, dyingFading, newDyingEdge, enemyHpView, isDying, fitNameCached, heroHpView } from './hpview';
 import { textWidth } from '../../overlays/theme';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
@@ -110,6 +110,7 @@ export class BattleScene implements Scene<BattleParams> {
   private lp: LongPressDetail | null = null;
   private respondImpl: BattleIO['respond'] | null = null;
 
+  private dyingEdge = newDyingEdge();
   constructor(private deps: BattleDeps = {}) {
     const ov = deps.overlays;
     if (ov) {
@@ -682,7 +683,8 @@ export class BattleScene implements Scene<BattleParams> {
       this.confirmT > 0 ||
       this.shakeT > 0 ||
       !!lethalPulse ||
-      (!!this.g && isDying(this.g.p.hp) && this.g.p.hp > 0);
+      (!!this.g && isDying(this.g.p.hp) && this.g.p.hp > 0) ||
+      dyingFading(this.dyingEdge);
     this.q.update(dt);
     if (this.hintT > 0) this.hintT -= dt;
     if (this.confirmT > 0) this.confirmT -= dt;
@@ -1052,9 +1054,10 @@ export class BattleScene implements Scene<BattleParams> {
     if (!only || only === 'main') {
       const r = { ...L.main, x: L.main.x + shake };
       // dying（§3.3）：朱砂 2px 外轮廓脉动，只给主将
-      if (isDying(g.p.hp)) {
+      const ea = dyingEdgeAlpha(this.dyingEdge, g.p.hp, this.deps.now?.() ?? performance.now());
+      if (ea > 0) {
         const a = ctx.globalAlpha;
-        ctx.globalAlpha = a * dyingAlpha(this.deps.now?.() ?? performance.now());
+        ctx.globalAlpha = a * ea;
         frame(ctx, inset(r, -DYING_EDGE_W), DYING_EDGE_COLOR, DYING_EDGE_W); // 只描外轮廓，不动牌面
         ctx.globalAlpha = a;
       }
