@@ -32,7 +32,6 @@ export function enemyHpView(hp: number, max: number, boss: boolean): EnemyHpView
 
 // ───────── 牌名自适应（§8.8.3） ─────────
 export const NAME_MAX_PX = 20;
-export const NAME_MIN_PX = 11;
 export const NAME_SIDE = 3;
 /** 按字数分档（「·」不计字数）：1–3 / 4 / ≥5 */
 export const NAME_TIERS = { small: [20, 16, 13], large: [26, 21, 17] } as const;
@@ -45,31 +44,23 @@ export function nameTierPx(name: string, size: 'small' | 'large' = 'small') {
   const t = NAME_TIERS[size];
   return n <= 3 ? t[0] : n === 4 ? t[1] : t[2];
 }
+export const NAME_SCALE_MIN = 0.85;
+export type NameFit = { text: string; px: number; scaleX: number; overflow: boolean };
 /**
  * #141 卡名字号：按字数分档（小牌 20/16/13，大牌 26/21/17），左右各留 3px。
- * ≥5 字：字距 0、保留「·」、不换行不省略，放不下最小缩到 12。
- * 1–4 字放不下时逐 1px 缩到 11，仍放不下才省略（兜底）。
+ * 任何字数都不低于 12px、不省略（字距 0、保留「·」、不换行）：
+ * 12px 仍放不下 → scaleX 横向压缩，最小 0.85；再放不下就溢出（dev 下 console.warn）。
  */
-export function fitName(
-  name: string,
-  cardW: number,
-  measure: (t: string, px: number) => number,
-  size: 'small' | 'large' = 'small',
-): { text: string; px: number; truncated: boolean } {
+export function fitName(name: string, cardW: number, measure: (t: string, px: number) => number, size: 'small' | 'large' = 'small'): NameFit {
   const maxW = cardW - NAME_SIDE * 2;
-  const start = nameTierPx(name, size);
-  const long = nameChars(name) >= 5;
-  const min = long ? NAME_LONG_MIN_PX : NAME_MIN_PX;
-  for (let px = start; px >= min; px--) if (measure(name, px) <= maxW) return { text: name, px, truncated: false };
-  if (long) return { text: name, px: NAME_LONG_MIN_PX, truncated: false };
-  const chars = [...name];
-  for (let n = chars.length - 1; n > 0; n--) {
-    const t = chars.slice(0, n).join('') + '…';
-    if (measure(t, NAME_MIN_PX) <= maxW) return { text: t, px: NAME_MIN_PX, truncated: true };
-  }
-  return { text: '…', px: NAME_MIN_PX, truncated: true };
+  for (let px = nameTierPx(name, size); px >= NAME_LONG_MIN_PX; px--) if (measure(name, px) <= maxW) return { text: name, px, scaleX: 1, overflow: false };
+  const w = measure(name, NAME_LONG_MIN_PX);
+  const k = maxW / w;
+  if (k >= NAME_SCALE_MIN) return { text: name, px: NAME_LONG_MIN_PX, scaleX: k, overflow: false };
+  if (import.meta.env.DEV) console.warn(`[#141] 牌名「${name}」在 ${cardW}px 卡上 12px×${NAME_SCALE_MIN} 仍放不下，已溢出`);
+  return { text: name, px: NAME_LONG_MIN_PX, scaleX: NAME_SCALE_MIN, overflow: true };
 }
-const nameCache = new Map<string, { text: string; px: number; truncated: boolean }>();
+const nameCache = new Map<string, NameFit>();
 /** 同名牌只算一次（按 名字 + 卡宽 缓存） */
 export function fitNameCached(name: string, cardW: number, measure: (t: string, px: number) => number, size: 'small' | 'large' = 'small') {
   const k = `${size}|${cardW}|${name}`;

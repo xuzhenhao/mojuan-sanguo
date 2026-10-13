@@ -7,18 +7,16 @@ const cjk = (t: string, px: number) => [...t].length * px;
 
 describe('#129 卡名适配（§8.8.3）', () => {
   it('放得下保持 20px', () => {
-    expect(fitName('杀', 76, cjk)).toEqual({ text: '杀', px: 20, truncated: false });
+    expect(fitName('杀', 76, cjk)).toEqual({ text: '杀', px: 20, scaleX: 1, overflow: false });
   });
   it('逐 1px 缩小到刚好放得下', () => {
     const r = fitName('无中生有', 60, cjk); // 4 字档 16；54/4=13.5 → 13
-    expect(r).toEqual({ text: '无中生有', px: 13, truncated: false });
+    expect(r).toEqual({ text: '无中生有', px: 13, scaleX: 1, overflow: false });
   });
-  it('1–4 字最小 11px 仍放不下则省略号，且宽度不超过卡内宽', () => {
+  it('放不下也不低于 12px、不省略', () => {
     const r = fitName('借刀杀人', 40, cjk);
-    expect(r.px).toBe(11);
-    expect(r.truncated).toBe(true);
-    expect(r.text.endsWith('…')).toBe(true);
-    expect(cjk(r.text, 11)).toBeLessThanOrEqual(34);
+    expect(r.px).toBe(12);
+    expect(r.text).toBe('借刀杀人');
   });
   it('缓存：同名同宽只量一次', () => {
     let n = 0;
@@ -39,9 +37,9 @@ describe('#129 霞鹜文楷加载后重算牌名', () => {
   it('fonts.load 完成后清缓存并重绘，下次按新宽度量', async () => {
     let wide = true;
     const m = (t: string, px: number) => [...t].length * px * (wide ? 1.5 : 1);
-    expect(fitNameCached('无中生有', 76, m).px).toBe(11); // 回退字体量得偏宽（16×4×1.5 > 70）
+    expect(fitNameCached('无中生有', 76, m).px).toBe(12); // 回退字体量得偏宽（16×4×1.5 > 70）
     wide = false;
-    expect(fitNameCached('无中生有', 76, m).px).toBe(11); // 仍是缓存
+    expect(fitNameCached('无中生有', 76, m).px).toBe(12); // 仍是缓存
     let redraws = 0;
     let loaded = '';
     await refitAfterBrush({ load: (f: string) => ((loaded = f), Promise.resolve([])) } as never, () => redraws++);

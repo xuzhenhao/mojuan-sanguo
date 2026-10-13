@@ -867,9 +867,17 @@ export class BattleScene implements Scene<BattleParams> {
     text(ctx, SUIT_CH[c.suit], x + 11, r.y + 31, { size: 12, color: red ? C.cinnabar : C.ink, align: 'center' });
     text(ctx, RANK_CH[c.rank], x + 11, r.y + 45, { size: 11, color: red ? C.cinnabar : C.ink, font: FONT.num, align: 'center', bold: true });
     // 卡名（底部书法）
-    // #141：按字数分档 20/16/13（·不计），≥5 字最小 12、不省略；全名见长按详情
+    // #141：按字数分档 20/16/13（·不计），最小 12、不省略，再不够 scaleX≥0.85；全名见长按详情
     const nm = this.cardName(ctx, d.name, r.w);
-    text(ctx, nm.text, x + r.w / 2, r.y + r.h - 15, { size: nm.px, color: C.ink, font: FONT.brush, align: 'center' });
+    const sx = ctx as unknown as { save?(): void; restore?(): void; translate?(x: number, y: number): void; scale?(x: number, y: number): void };
+    if (nm.scaleX < 1 && sx.save && sx.translate && sx.scale && sx.restore) {
+      // 12px 仍放不下：以卡中线为轴横向压缩（≥0.85）
+      sx.save();
+      sx.translate(x + r.w / 2, 0);
+      sx.scale(nm.scaleX, 1);
+      text(ctx, nm.text, 0, r.y + r.h - 15, { size: nm.px, color: C.ink, font: FONT.brush, align: 'center' });
+      sx.restore();
+    } else text(ctx, nm.text, x + r.w / 2, r.y + r.h - 15, { size: nm.px, color: C.ink, font: FONT.brush, align: 'center' });
     if (c.mods.length) {
       rect(ctx, { x: x + 3, y: r.y + r.h - 16, w: 12, h: 12 }, C.cinnabar);
       frame(ctx, { x: x + 3, y: r.y + r.h - 16, w: 12, h: 12 }, C.gold, 1);

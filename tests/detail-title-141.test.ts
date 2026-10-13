@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { badgeWidth, cardDetail, DETAIL, layoutDetail, layoutHead, TITLE_MIN_PX } from '../src/game/overlays/detail';
 import { fitName, nameChars, nameTierPx } from '../src/game/scenes/battle/hpview';
 
@@ -52,14 +52,43 @@ describe('#141 牌名按字数分档（· 不计）', () => {
   });
   it('≥5 字放得下用 13，保留「·」、不省略，左右各 3px', () => {
     const r = fitName('方天戟·破阵', 80, cjk);
-    expect(r).toEqual({ text: '方天戟·破阵', px: 13, truncated: false });
+    expect(r).toEqual({ text: '方天戟·破阵', px: 13, scaleX: 1, overflow: false });
     expect(cjk(r.text, r.px)).toBeLessThanOrEqual(80 - 6);
   });
   it('≥5 字放不下缩到 12，仍不省略', () => {
-    expect(fitName('方天戟·破阵', 60, cjk)).toEqual({ text: '方天戟·破阵', px: 12, truncated: false });
-    expect(fitName('借刀杀人之长名测试牌', 60, cjk)).toEqual({ text: '借刀杀人之长名测试牌', px: 12, truncated: false });
+    expect(fitName('方天戟·破阵', 76, cjk)).toEqual({ text: '方天戟·破阵', px: 12, scaleX: 1, overflow: false }); // 66.6 ≤ 70
   });
   it('大牌 ≥5 字从 17 起', () => {
     expect(fitName('方天戟·破阵', 120, cjk, 'large').px).toBe(17);
+  });
+});
+
+describe('#141 牌名下限：永不 <12px、永不「…」', () => {
+  const W = ['杀', '决斗', '无中生有', '方天戟·破阵', '借刀杀人之长名测试牌'];
+  it('任何字数、任何卡宽都不低于 12、不含「…」', () => {
+    for (const n of W)
+      for (const w of [30, 50, 64, 76, 120]) {
+        const r = fitName(n, w, cjk);
+        expect(r.px).toBeGreaterThanOrEqual(12);
+        expect(r.text).toBe(n);
+        expect(r.scaleX).toBeGreaterThanOrEqual(0.85);
+      }
+  });
+  it('12px 放不下 → scaleX 压缩到刚好放下（≥0.85）', () => {
+    const r = fitName('方天戟·破阵', 64, cjk); // 66.6 → 58
+    expect(r.px).toBe(12);
+    expect(r.overflow).toBe(false);
+    expect(r.scaleX).toBeCloseTo(58 / 66.6, 6);
+    const s = fitName('无中生有', 52, cjk); // 4 字也走压缩，不省略
+    expect(s).toMatchObject({ text: '无中生有', px: 12, overflow: false });
+    expect(s.scaleX).toBeCloseTo(46 / 48, 6);
+  });
+  it('0.85 仍放不下 → 溢出并在 dev 下 warn 牌名', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const r = fitName('借刀杀人之长名测试牌', 60, cjk);
+    expect(r).toEqual({ text: '借刀杀人之长名测试牌', px: 12, scaleX: 0.85, overflow: true });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('借刀杀人之长名测试牌');
+    warn.mockRestore();
   });
 });
