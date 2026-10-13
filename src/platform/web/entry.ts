@@ -128,7 +128,8 @@ engine.scenes.register(
         const pend = run.inNode;
         if (run.active && run.game) {
           run.settleBattle(win);
-          run.completeNode(platform.storage);
+          if (win) run.completeNode(platform.storage);
+          else run.endRun(platform.storage); // 失败：存档标记「结束本局」，刷新直接进结算页
           // 胜利 → 奖励页也是一个节点：先存进节点快照，刷新后奖励候选一致
           if (win && pend) run.enterNode({ id: `${pend.id}#reward`, type: 'REWARD' }, platform.storage);
         }
@@ -188,6 +189,15 @@ async function checkResume() {
   if (flow.page !== 'select') return;
   const s = slot.peek();
   if (!s) return;
+  const raw0 = slot.raw() as { ended?: unknown } | null;
+  if (raw0?.ended) {
+    // 已「结束本局」（战斗失败后刷新）：不弹续玩，直接进结算页
+    resultBridge.outcome = { ...outcomeFromSave(s, raw0, Date.now()), abandoned: false };
+    flow.page = 'result';
+    flow.history.push('result');
+    await engine.scenes.go('result', undefined, { durationMs: 0 });
+    return;
+  }
   const r = await resumeFlow(engine.overlays, engine, s, heroName);
   if (r === 'abandon') {
     abandoned = outcomeFromSave(s, slot.raw(), Date.now());

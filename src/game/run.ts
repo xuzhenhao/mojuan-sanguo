@@ -261,6 +261,18 @@ export class RunSession {
       d.deck = cloneDeck(g.deckMaster.filter((c) => !isTempUid(c.uid)));
     });
   }
+  /** 战斗失败：标记「结束本局」并清 pendingNode，立即写档；刷新 / 续玩直接进结算页，不能重打 */
+  endRun(store: RunStateStore | null = this.store) {
+    this.update((d) => {
+      d.ended = { reason: 'defeat', nodeId: d.pendingNode?.id ?? null };
+      d.pendingNode = null;
+    });
+    this.checkpoint = null;
+    if (store) writeRunStateTo(store, this.synced());
+  }
+  get ended() {
+    return this.st?.ended ?? null;
+  }
   /** 删除本局存档（结算离开 / 放弃）：新旧键都删 */
   wipe(store: RunStateStore | null = this.store) {
     if (store) clearRunStateIn(store);
