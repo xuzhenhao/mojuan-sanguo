@@ -105,6 +105,8 @@ export class RunSession {
     this.game = new Game(this.rng('battle'), io, { autoShan: false, main: p.main, sub: p.sub });
     // 初始体力 / 牌组取 core 开局结果（拷贝，不共享引用；PR2 再让 Game 读写 RunState）
     const g = this.game;
+    g.reviveLeft = st0.reviveLeft;
+    g.tianming = st0.tianming;
     this.update((s) => {
       s.hp = g.p.hp;
       s.maxHp = g.p.maxHp;
@@ -246,6 +248,9 @@ export class RunSession {
     g.p.hp = s.hp;
     g.p.maxHp = s.maxHp;
     g.encounter = { name: b.encounterName, en: [...b.enemies] };
+    // 复活（#106）：次数与天命取自 RunState；战中扣的次数在 settleBattle 写回（复活层不是存档点）
+    g.reviveLeft = s.reviveLeft;
+    g.tianming = s.tianming;
     g.battleIdx = b.nodeType === 'BOSS' ? BATTLES.length - 1 : 0;
     this.battleStart = { hp: s.hp, kind: b.nodeType === 'BOSS' ? 'boss' : b.nodeType === 'ELITE' ? 'elite' : 'normal' };
     this.game = g;
@@ -264,6 +269,7 @@ export class RunSession {
       d.stats = mergeStats(d.stats, delta);
       d.hp = win ? betweenBattleHeal(Math.max(0, g.p.hp), g.p.maxHp, CONFIG.rules.map.betweenBattleHeal) : Math.max(0, g.p.hp);
       d.maxHp = g.p.maxHp;
+      d.reviveLeft = Math.max(0, g.reviveLeft);
       d.deck = cloneDeck(g.deckMaster.filter((c) => !isTempUid(c.uid)));
     });
   }
