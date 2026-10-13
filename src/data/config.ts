@@ -63,6 +63,7 @@ export interface HeroCfg {
 export interface EnemyCfg {
   id: string;
   name: string;
+  chapter?: number;
   tier: '小怪' | '精英' | 'Boss';
   hp: number;
   row: 'front' | 'back';
