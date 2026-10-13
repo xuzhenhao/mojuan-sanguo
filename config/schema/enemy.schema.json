@@ -175,6 +175,21 @@
         },
         "additionalProperties": false
       }
+    },
+    "intro": {
+      "type": "object",
+      "description": "首领登场台词（#107，仅 Boss）：line = 登场墨带台词；phaseLine = 阶段 2 切换台词。用「」包裹；书法字表会收这两个字段",
+      "properties": {
+        "line": {
+          "type": "string",
+          "maxLength": 18
+        },
+        "phaseLine": {
+          "type": "string",
+          "maxLength": 24
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

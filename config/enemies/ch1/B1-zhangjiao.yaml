@@ -11,6 +11,10 @@ hp: 18
 row: front
 flashMarksPerTurn: 0
 glyph: 角
+# 登场演出（#107）：line 首次/再次登场墨带台词；phaseLine 阶段 2（体力 ≤ 9，召唤黄巾弓手）时显示
+intro:
+  line: 「苍天已死，黄天当立！」
+  phaseLine: 「天雷在此——黄巾儿郎，随我死战！」
 cardMods:
   杀+: [E_S01]
 trickOverrides:
