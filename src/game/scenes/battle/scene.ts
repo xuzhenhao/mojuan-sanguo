@@ -24,7 +24,8 @@ import { textWidth } from '../../overlays/theme';
 import { hitInside } from '../../../engine/hit';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
-import { def, enemyIntent, isRed, RANK_CH, SUIT_CH } from '../../../core/rules';
+import { def, enemyIntent, isRed, RANK_CH } from '../../../core/rules';
+import { drawSuit } from '../../overlays/icons';
 import type { CardInst, Enemy } from '../../../core/types';
 import type { GestureEvent } from '../../../engine/input';
 import type { OverlayStack } from '../../../engine/modal';
@@ -913,7 +914,7 @@ export class BattleScene implements Scene<BattleParams> {
     circle(ctx, x + 11, r.y + 11, 10, st === 'unaffordable' ? C.cinnabar : C.jade);
     text(ctx, String(cost), x + 11, r.y + 12, { size: 14, color: C.paper, font: FONT.num, align: 'center', bold: true });
     const red = isRed(c);
-    text(ctx, SUIT_CH[c.suit], x + 11, r.y + 31, { size: 12, color: red ? C.cinnabar : C.ink, align: 'center' });
+    drawSuit(ctx, c.suit, x + 11, r.y + 27, 11, red ? C.cinnabar : C.ink);
     text(ctx, RANK_CH[c.rank], x + 11, r.y + 45, { size: 11, color: red ? C.cinnabar : C.ink, font: FONT.num, align: 'center', bold: true });
     // 卡名（底部书法）
     // #141：按字数分档 20/16/13（·不计），最小 12、不省略，再不够 scaleX≥0.85；全名见长按详情
@@ -1280,7 +1281,14 @@ export class BattleScene implements Scene<BattleParams> {
     const cr = { x: r.x + r.w / 2 - cw / 2, y: r.y + 8, w: Math.max(2, cw), h: 68 };
     if (face) {
       goldFrame(ctx, cr, 'bronze', 2);
-      text(ctx, j.face, cr.x + cr.w / 2, cr.y + 34, { size: 16, color: j.red ? C.cinnabar : C.ink, align: 'center', bold: true });
+      // 花色矢量形 + 点数（Brush 无 ♠♥♣♦ 字形）
+      drawSuit(ctx, j.suit, cr.x + cr.w / 2 - 9, cr.y + 29, 14, j.red ? C.cinnabar : C.ink);
+      text(ctx, RANK_CH[j.rank] ?? String(j.rank), cr.x + cr.w / 2 + 8, cr.y + 34, {
+        size: 16,
+        color: j.red ? C.cinnabar : C.ink,
+        align: 'center',
+        bold: true,
+      });
       if (j.name) text(ctx, j.name, cr.x + cr.w / 2, cr.y + 56, { size: 11, color: C.ink, align: 'center' });
       if (j.effective != null)
         text(ctx, j.effective ? '✗' : '✓', r.x + r.w - 26, r.y + 40, { size: 22, color: j.effective ? C.cinnabar : C.jade, align: 'center', bold: true });

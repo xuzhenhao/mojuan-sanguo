@@ -4,7 +4,8 @@
  * 大牌和圆章经 BakeCache 烘焙成位图（§12.2），每帧 1 次 drawImage。
  */
 import { markHit } from '../../engine/hit';
-import { def, RANK_CH, SUIT_CH } from '../../core/rules';
+import { def, RANK_CH } from '../../core/rules';
+import { drawSuit } from '../overlays/icons';
 import type { Rarity } from '../../core/types';
 import { CONFIG } from '../../data/config';
 import type { GestureEvent } from '../../engine/input';
@@ -254,7 +255,7 @@ export function paintCard(c: Ctx2DLike, f: CardFace) {
   label(c, d.name.slice(0, 1), W / 2, 72, BRUSH(44), 'rgba(243,235,216,.85)', 'center');
   label(c, d.name.length > 3 ? d.name.slice(0, 4) : d.name, W / 2, H - 18, BRUSH(d.name.length > 3 ? 18 : 24), T.ink, 'center');
   const red = f.suit === 'H' || f.suit === 'D';
-  label(c, SUIT_CH[f.suit], 8, 40, SANS(13, true), red ? T.cinnabar : T.ink);
+  drawSuit(c, f.suit, 14, 35, 12, red ? T.cinnabar : T.ink);
   label(c, RANK_CH[f.rank] ?? String(f.rank), 8, 54, SANS(12, true), red ? T.cinnabar : T.ink);
   diamond(c, W - 10, 10, 7, RARITY_COLOR[rar]);
 }
