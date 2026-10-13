@@ -31,7 +31,8 @@
     "build:wechat": "tsc && vite build --mode wechat && tsx scripts/build-wechat.ts",
     "prebuild:wechat": "npm run config:build",
     "atlas:build": "tsx scripts/build-ui-atlas.ts",
-    "font:build": "tsx scripts/build-wenkai-subset.ts"
+    "font:build": "tsx scripts/build-wenkai-subset.ts",
+    "font:build:wechat": "tsx scripts/build-wenkai-subset.ts --wechat"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
