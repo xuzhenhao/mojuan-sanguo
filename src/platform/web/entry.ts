@@ -7,6 +7,7 @@ import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
 import { FlowMachine, PAGES, viewOf, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
+import { BattleScene } from '../../game/scenes/battle/scene';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
 import { initialState } from '../../game/select/model';
@@ -90,6 +91,22 @@ if (typeof FontFace !== 'undefined') {
 }
 // P4 奖励 / 集市 / 宝箱（#45）：替换占位页
 const economy = registerP4({ engine, query, safe: () => platform.systemInfo().safeArea, send, run });
+// P1a：战斗页正式场景（已接入 P1b #64：响应弹窗 makeRespond + LongPressDetail）
+const info = platform.systemInfo();
+engine.scenes.register(
+  'battle',
+  () =>
+    new BattleScene({
+      overlays: engine.overlays,
+      now: () => platform.now(),
+      safe: info.safeArea,
+      measure: () => engine.surfaces.main.ctx,
+      paused: () => engine.scenes.isPaused,
+      debugDefaults: import.meta.env.MODE === 'debug',
+      warn: (m) => platform.warn(m),
+      onEnd: (win) => send({ type: 'battle_end', win }),
+    }),
+);
 const router = new Router(flow, engine.scenes);
 // P1b 演示页（?page=battle-overlay-demo）：响应弹窗 + 长按详情
 engine.scenes.register(
@@ -116,7 +133,7 @@ if (showStatusBar(platform.launchQuery(), location.pathname))
       s.ctx.fillText?.(
         `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
         16,
-        engine.height - 24,
+        flow.page === 'battle' ? 52 : engine.height - 24,
       );
     },
   });
@@ -126,8 +143,9 @@ const q = query.page as Page | undefined;
 if (q && pages.includes(q)) {
   flow.page = q;
 }
+const seed = Number(query.seed);
 if (query.page === 'battle-overlay-demo') void engine.scenes.go('battle-overlay-demo');
-else void router.start().then(checkResume);
+else void router.start(flow.page === 'battle' && Number.isFinite(seed) ? { seed } : undefined).then(checkResume);
 engine.start();
 
 /** H5 启动：在点将页上检查存档，弹「继续本局 / 放弃本局」（flow.md §1，PRD 5.13） */
