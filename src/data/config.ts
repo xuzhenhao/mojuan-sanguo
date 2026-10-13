@@ -27,6 +27,10 @@ export interface CardCfg {
   tags?: string[];
   cost: number;
   rarity: string;
+  /** 奖励池权重（默认 1，0 = 不进奖励池） */
+  rewardWeight?: number;
+  /** 商店基础价（不填按 rules.shop.cardPrice） */
+  shopPrice?: number;
   target?: 'none' | 'range' | 'any' | 'self';
   desc: string;
   abilities: Ability[];
@@ -91,6 +95,7 @@ export interface ConfigBundle {
     rarityWeight: Record<'N' | 'R' | 'E' | 'L', number>;
     pendingValues?: Record<string, number>;
     defaultHeroes: { main: string; sub: string };
+    shop?: { cardPrice: Record<'N' | 'R' | 'E' | 'L', number> };
     /** 3 战回归基线（自动对局 / bstat）专用 */
     sim: { baselineBetweenBattleHeal: number };
     /** 真实游戏 / 正式地图 */
@@ -107,6 +112,14 @@ export interface ConfigBundle {
 }
 
 export const CONFIG = raw as unknown as ConfigBundle;
+
+/** 奖励池权重（PRD 6.8：同稀有度内按权重抽取，默认 1） */
+export const rewardWeight = (id: string) => CONFIG.cards[id]?.rewardWeight ?? 1;
+/** 商店基础价（PRD 14.2，浮动前） */
+export const shopPrice = (id: string) => {
+  const c = CONFIG.cards[id];
+  return c?.shopPrice ?? CONFIG.rules.shop?.cardPrice[c?.rarity as 'N' | 'R' | 'E' | 'L'];
+};
 
 /** 在能力列表里找某个效果原子的数值（如 armor 的 amount） */
 export function atomAmount(abilities: Ability[] | undefined, atom: string): number | undefined {

@@ -40,7 +40,7 @@ mechanics:
   judgeSource: pool # V1 M1：独立「天机签筒」，52 张标准花色，红 50%（deck = 从玩家摸牌堆判定，旧行为）
   passiveQuotaPerEnemyTurn: 2 # V1 M2：每个敌方回合 limit.passiveQuota 能力（护主、八卦阵…）合计最多生效 2 次；null = 不限
   moying: false # 墨影（M3）：用户决定不加（design-v1 第 7 节），保留开关
-  zeroCostPerTurn: 1 # V1 M4：0 费非响应牌每回合每种限 1 次
+  zeroCostPerTurn: 1 # V1 M4：0 费非响应牌每回合每种限 1 次（闪与带 response 标签的牌不计）
 
 # 业务校验开关：第①步保持原型数值，第③步套 V1 时开启
 checks:
@@ -58,6 +58,10 @@ sim:
 # map：真实游戏与正式地图流程，H5 不加战后回复（回复由营地、丹药、桃提供）
 map:
   betweenBattleHeal: 0
+
+# 商店卡牌基础价（PRD 14.2，浮动前；卡牌 shopPrice 可单独覆盖）
+shop:
+  cardPrice: { N: 40, R: 60, E: 90, L: 130 }
 
 # 回归预设：只用于自动对局对照，不影响正式选将
 presets:

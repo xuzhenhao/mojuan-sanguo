@@ -1,11 +1,11 @@
 /**
- * H5 发布入口：Canvas 引擎 + 页面流程框架（B 金漆屏风 6 个页面先用占位场景）。
- * 可玩的 DOM 版部署在 Pages 根目录 /mojuan-sanguo/，本 Canvas 版在 /mojuan-sanguo/next/（P5 #46 对调）。
+ * H5 发布入口：Canvas 引擎 + 页面流程框架（B 金漆屏风；未完成的页面先用占位场景）。
+ * P5（#46）起本 Canvas 版部署在 Pages 根目录 /mojuan-sanguo/，DOM 可玩版移到 /mojuan-sanguo/debug/。
  */
 import './style.css';
 import { Engine } from '../../engine/engine';
 import { DEFAULT_RENDER_CONFIG } from '../../engine/settings';
-import { FlowMachine, viewOf, type FlowEvent, type Page } from '../../game/flow';
+import { FlowMachine, PAGES, viewOf, type FlowEvent, type Page } from '../../game/flow';
 import { Router } from '../../game/router';
 import { PlaceholderScene } from '../../game/scenes/placeholder';
 import { RunSession } from '../../game/run';
@@ -25,7 +25,7 @@ const engine = new Engine(platform, {}, cfg);
 const run = new RunSession();
 const flow = new FlowMachine(() => (run.game ? viewOf(run.game) : null));
 const send = (e: FlowEvent) => void router.send(e);
-const pages: Page[] = ['select', 'map', 'battle', 'reward', 'shop', 'result'];
+const pages: Page[] = PAGES;
 for (const p of pages) engine.scenes.register(p, () => new PlaceholderScene(p, send, engine.overlays));
 // P1 点将（#43）：出征 → core 新建局 → FlowMachine start_run → 地图
 const query = platform.launchQuery();
@@ -68,22 +68,23 @@ engine.scenes.register(
     }),
 );
 
-// 状态栏（非模态系统层）：渲染路径与纹理内存
-engine.overlays.push({
-  id: 'status',
-  kind: 'system',
-  modal: false,
-  draw(s) {
-    const mb = (n: number) => (n / 1048576).toFixed(1);
-    s.ctx.fillStyle = '#8c7448';
-    s.ctx.font = '11px sans-serif';
-    s.ctx.fillText?.(
-      `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
-      16,
-      engine.height - 24,
-    );
-  },
-});
+// 状态栏（非模态系统层）：渲染路径与纹理内存。正式入口默认隐藏，`?debug=1` 或 /debug/ 路径下显示（#79）
+if (showStatusBar(platform.launchQuery(), location.pathname))
+  engine.overlays.push({
+    id: 'status',
+    kind: 'system',
+    modal: false,
+    draw(s) {
+      const mb = (n: number) => (n / 1048576).toFixed(1);
+      s.ctx.fillStyle = '#8c7448';
+      s.ctx.font = '11px sans-serif';
+      s.ctx.fillText?.(
+        `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
+        16,
+        engine.height - 24,
+      );
+    },
+  });
 
 // 启动页可用 ?page=map 等直接进入（截图与测试用）
 const q = query.page as Page | undefined;

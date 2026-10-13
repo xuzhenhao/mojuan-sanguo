@@ -97,12 +97,12 @@ export function withContract(io: BattleIO, getGame: () => Game | undefined, rep:
       add(checkJudgeEvent(ev));
       return io.showJudge(ev);
     },
-    respond(text, legal, pass, timed) {
+    respond(text, legal, pass, timed, kind) {
       hit('respond');
       if (!text || !pass) add(['respond: 缺少提示文字']);
       const g = getGame();
       if (g) for (const c of g.hand) if (legal(c)) add(checkCard(c, 'respond.legal'));
-      return io.respond(text, legal, pass, timed);
+      return io.respond(text, legal, pass, timed, kind);
     },
     epiphany(c, opts, reroll) {
       hit('epiphany');

@@ -7,7 +7,7 @@ import { seeded } from '../core/rng';
 import { def, isRed, isShaPlay } from '../core/rules';
 import { BATTLES } from '../data/enemies';
 import { CONFIG } from '../data/config';
-import { heroAiTurn, heroDiscards, heroRespond } from './hero-ai';
+import { heroAiTurn, heroDiscards, heroRespond, heroWuxie } from './hero-ai';
 import type { CardInst, Enemy } from '../core/types';
 import { withContract, type ContractReport } from './io-contract';
 
@@ -16,6 +16,8 @@ export const LAYERS: Layer[] = ['huzhu', 'bagua', 'shan', 'armor', 'tao'];
 export const LAYER_CH: Record<Layer, string> = { huzhu: '护主', bagua: '八卦', shan: '闪', armor: '护甲', tao: '桃/酒回复' };
 
 export interface GameStats {
+  /** 无懈可击决策点上 AI 选择打出的次数 */
+  wuxie?: number;
   battleIdx: number;
   seed: number;
   win: boolean;
@@ -202,12 +204,19 @@ export interface RunOpts extends HeroOpts {
 /** 单场战斗：从给定体力开始，AI 打到结束 */
 export async function runBattle(o: RunOpts): Promise<GameStats> {
   let win = false;
+  let wuxie = 0;
   const io = silentIO((w) => (win = w));
   const ai = o.ai ?? 'hero';
   const ref: { g?: Game } = {};
   const gameIO = o.contract ? withContract(io, () => ref.g, o.contract).io : io;
   const g = new StatGame(seeded(o.seed), gameIO, { autoShan: ai === 'greedy', main: o.main, sub: o.sub, preset: o.preset });
-  io.respond = async (text, legal, _pass, timed) => {
+  io.respond = async (text, legal, _pass, timed, kind) => {
+    // 无懈可击决策点：两种 AI 都用（敌方锦囊目前只有妖咒，抵消即保住一张手牌）
+    if (kind === 'wuxie') {
+      const w = ai === 'hero' ? heroWuxie(g, legal) : (g.hand.find(legal) ?? null);
+      if (w) wuxie++;
+      return w;
+    }
     // timed = 闪响应窗口；非 timed = 濒死自救
     if (ai === 'hero' && timed) return heroRespond(g, Number(/伤害 (\d+)/.exec(text)?.[1] ?? 1), legal);
     return g.hand.find(legal) ?? null;
@@ -244,6 +253,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
     firstTurnLoss: g.st.turnHit.get(1) ?? 0,
     firstTurnEnemySha: g.st.sha1,
     plays,
+    wuxie,
   };
 }
 

@@ -177,6 +177,10 @@ export const ATOMS: Record<string, Atom> = {
   gain_ling(g, a, ctx) {
     g.p.ling += amt(a, ctx);
   },
+  negate_trick(_g, _a, ctx, src) {
+    ctx.negatedBy = src.ab.id;
+    ctx.negatedName = src.ab.name;
+  },
   negate_sha(_g, _a, ctx, src) {
     ctx.negatedBy = src.ab.id;
     ctx.negatedName = src.ab.name;
