@@ -781,6 +781,16 @@ export class BattleScene implements Scene<BattleParams> {
     return { left: `第${this.deps.battleNo?.() ?? g.battleIdx + 1}战 · ${g.battle?.name ?? ''}`, right: `第 ${g.turn} 回合 · 牌堆 ${g.draw.length}` };
   }
 
+  /** 金山影矩形（#118 测试用）：全部在 0…W 内 */
+  mountainRects(): Rect[] {
+    const w = this.W;
+    return Array.from({ length: 5 }, (_, i) => {
+      const x0 = Math.max(0, i * (w / 5) - 10);
+      const x1 = Math.min(w, i * (w / 5) + w / 5 + 20);
+      return { x: x0, y: 150 + (i % 2) * 30, w: x1 - x0, h: 220 };
+    });
+  }
+
   drawBg(ctx: Ctx2DLike) {
     const w = this.W;
     const h = this.H;
@@ -792,7 +802,8 @@ export class BattleScene implements Scene<BattleParams> {
     }
     // 金山影
     ctx.globalAlpha = 0.18;
-    for (let i = 0; i < 5; i++) rect(ctx, { x: i * (w / 5) - 10, y: 150 + (i % 2) * 30, w: w / 5 + 30, h: 220 }, C.goldDk);
+    // #118：山影限定在内容框内（原 x=-10…w+20 会漏到框外），首尾两块贴边截齐
+    for (const r of this.mountainRects()) rect(ctx, r, C.goldDk);
     ctx.globalAlpha = 1;
     frame(ctx, { x: 6, y: 6, w: w - 12, h: h - 12 }, C.goldLo, 1);
     frame(ctx, { x: 9, y: 9, w: w - 18, h: h - 18 }, C.goldDk, 1);
