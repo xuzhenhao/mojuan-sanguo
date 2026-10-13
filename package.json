@@ -22,8 +22,6 @@
     "pretest": "npm run config:build",
     "preautoplay": "npm run config:build",
     "boss-sim": "tsx scripts/boss-sim.ts",
-    "map-sim": "tsx scripts/map-sim.ts",
-    "premap-sim": "npm run config:build",
     "preboss-sim": "npm run config:build",
     "dev:debug": "vite --mode debug --open /mojuan-sanguo/debug/debug.html",
     "build:debug": "tsc && vite build --mode debug",

@@ -194,6 +194,8 @@ export interface RunOpts extends HeroOpts {
   battleIdx: number;
   seed: number;
   hp?: number;
+  /** 开场额外护甲（地图模式奖励折算 / 复活 +3），在 startBattle 之后加上 */
+  startArmor?: number;
   maxTurns?: number;
   /** 传入则用 headless 表现层契约消费者校验所有 core → 表现层事件（见 io-contract.ts） */
   contract?: ContractReport;
@@ -228,6 +230,7 @@ export async function runBattle(o: RunOpts): Promise<GameStats> {
   const hpStart = g.p.hp;
   const plays = { attack: 0, defense: 0, other: 0 };
   g.startBattle();
+  if (o.startArmor) g.p.armor += o.startArmor;
   const maxTurns = o.maxTurns ?? 40;
   while (!g.over && g.turn <= maxTurns) {
     if (ai === 'hero') await heroAiTurn(g, plays);
