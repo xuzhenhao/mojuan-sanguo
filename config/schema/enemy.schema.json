@@ -77,7 +77,7 @@
     },
     "phases": {
       "type": "array",
-      "description": "阶段切换",
+      "description": "阶段切换（按顺序只进不退；切换时意图换表、步数归零，可召唤）",
       "items": {
         "type": "object",
         "required": [
@@ -87,18 +87,44 @@
         "properties": {
           "when": {
             "type": "string",
-            "description": "如 hp_below_50%"
+            "pattern": "^hp_below_\\d{1,2}%$",
+            "description": "hp_below_<N>%：体力 ≤ 上限 × N%（张角 18 × 50% = 9）"
           },
           "intents": {
-            "type": "array"
+            "$ref": "#/properties/intents"
           },
           "abilities": {
             "type": "array",
             "items": {
               "$ref": "effect.schema.json#/$defs/ability"
             }
+          },
+          "summon": {
+            "type": "array",
+            "maxItems": 2,
+            "description": "切换时召唤的敌人（召唤上限见 rules.summon）",
+            "items": {
+              "type": "object",
+              "required": [
+                "enemy"
+              ],
+              "properties": {
+                "enemy": {
+                  "type": "string"
+                },
+                "row": {
+                  "enum": [
+                    "front",
+                    "back"
+                  ],
+                  "default": "back"
+                }
+              },
+              "additionalProperties": false
+            }
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "abilities": {

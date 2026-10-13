@@ -349,6 +349,11 @@
           "description": "正式地图战间回复体力（PRD 0.5.4 §10.4：H5 为 0）"
         }
       }
+    },
+    "maxEnemiesAlive": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "场上同时存活敌人上限（召唤受此约束，达到上限时召唤落空；PRD 未写，取最保守 = 组包最大人数 3）"
     }
   },
   "additionalProperties": false
