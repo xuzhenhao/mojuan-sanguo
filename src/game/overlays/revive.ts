@@ -83,5 +83,5 @@ export function drawRevive(c: Ctx, L: ReviveLayout, info: ReviveInfo) {
   fill(c, L.revive, C.jade);
   frame(c, L.revive, C.gold, 1.5);
   textCenter(c, '复活', L.revive.x + L.revive.w / 2, L.revive.y + 31, '20px "Brush"', C.paper, 20);
-  textCenter(c, `本局 ${info.perRun} 次`, cx, L.revive.y + L.revive.h + 20, '12px sans-serif', '#a89c84', 12);
+  textCenter(c, `本局 ${info.perRun} 次`, cx, L.revive.y + L.revive.h + 20, '12px "Brush"', '#a89c84', 12);
 }
