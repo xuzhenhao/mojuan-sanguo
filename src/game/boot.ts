@@ -34,7 +34,7 @@ import { pauseFlow } from './result/pause';
 import { SettingsStore, battleSettings } from './prefs/settings';
 import type { Platform } from '../platform/types';
 import type { RenderConfig } from '../engine/settings';
-import { loadGameFonts, setFontPlatform } from './fonts';
+import { brushFont, loadGameFonts, setFontPlatform } from './fonts';
 import { FONTS } from '../data/config';
 import { refitFonts } from './scenes/battle/hpview';
 import { setReducedMotionSource } from './motion';
@@ -231,7 +231,7 @@ export function bootGame(platform: Platform, opts: BootOptions) {
       draw(s) {
         const mb = (n: number) => (n / 1048576).toFixed(1);
         s.ctx.fillStyle = '#8c7448';
-        s.ctx.font = '11px "Brush", serif';
+        s.ctx.font = brushFont(11);
         s.ctx.fillText?.(
           `WebGL ${engine.webgl.enabled ? '开' : '关'}（${engine.webgl.reason}） · dpr ${engine.dpr} · 纹理 ${mb(engine.budget.used)}/${mb(engine.budget.totalLimit)}MB · ${flow.page}`,
           16,

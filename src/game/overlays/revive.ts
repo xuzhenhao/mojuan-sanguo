@@ -7,6 +7,7 @@ import type { OverlayStack } from '../../engine/modal';
 import type { Rect, Vec2 } from '../../engine/types';
 import { C, frame, inside, textCenter } from './theme';
 import { drawPortrait } from '../portrait';
+import { brushFont, sansFont } from '../fonts';
 
 export interface ReviveInfo {
   hero: string;
@@ -82,16 +83,16 @@ export function drawRevive(c: Ctx, L: ReviveLayout, info: ReviveInfo) {
   fill(c, fig, '#3a3430');
   // 立绘（#177）：小图 cover + 顶对齐；没图保留名字占位
   if (!drawPortrait(c, fig, info.portrait, 'small', { onReady: info.onPortraitReady }))
-    textCenter(c, info.hero, cx, fig.y + fig.h / 2, '22px "Brush", serif', '#a89c84', 22);
+    textCenter(c, info.hero, cx, fig.y + fig.h / 2, brushFont(22), '#a89c84', 22);
   frame(c, fig, C.goldLo, 1); // 立绘 1px 金描边（#177 UI 复核）
-  textCenter(c, '将星未陨', cx, fig.y + fig.h + 40, '30px "Brush", serif', '#e0705a', 30);
+  textCenter(c, '将星未陨', cx, fig.y + fig.h + 40, brushFont(30), '#e0705a', 30);
   textCenter(c, `体力 +${info.hp}  护甲 +${info.armor}`, cx, fig.y + fig.h + 76, '18px sans-serif', C.paper, 18);
   textCenter(c, `敌下回合  ${Array.from({ length: info.enemies }, () => '闪+1').join(' ')}`, cx, fig.y + fig.h + 104, '13px sans-serif', '#a89c84', 13);
   fill(c, L.giveUp, '#2a1f16');
   frame(c, L.giveUp, C.goldDeep, 1.5);
-  textCenter(c, '放弃', L.giveUp.x + L.giveUp.w / 2, L.giveUp.y + 31, '20px "Brush", serif', C.paper, 20);
+  textCenter(c, '放弃', L.giveUp.x + L.giveUp.w / 2, L.giveUp.y + 31, brushFont(20), C.paper, 20);
   fill(c, L.revive, C.jade);
   frame(c, L.revive, C.gold, 1.5);
-  textCenter(c, '复活', L.revive.x + L.revive.w / 2, L.revive.y + 31, '20px "Brush", serif', C.paper, 20);
-  textCenter(c, reviveCountText(info.left ?? info.perRun), cx, L.revive.y + L.revive.h + 20, '12px "Brush", serif', '#a89c84', 12);
+  textCenter(c, '复活', L.revive.x + L.revive.w / 2, L.revive.y + 31, brushFont(20), C.paper, 20);
+  textCenter(c, reviveCountText(info.left ?? info.perRun), cx, L.revive.y + L.revive.h + 20, sansFont(12), '#a89c84', 12);
 }

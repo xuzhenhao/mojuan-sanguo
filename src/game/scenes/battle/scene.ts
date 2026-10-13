@@ -894,7 +894,7 @@ export class BattleScene implements Scene<BattleParams> {
     // 顶条
     const tb = this.topBar();
     text(ctx, tb.left, 16, L.top.y + 13, { size: 18, color: C.gold, font: FONT.brush });
-    text(ctx, tb.right, w - 16, L.top.y + 13, { size: 14, color: C.goldLo, align: 'right' });
+    text(ctx, tb.right, w - 16, L.top.y + 13, { size: 14, color: C.goldLo, font: FONT.num, align: 'right' });
     // 敌阵：后排 → 前排 → 附件
     const back = this.g.en.filter((e) => e.row === 'back');
     const front = this.g.en.filter((e) => e.row === 'front');
@@ -913,7 +913,7 @@ export class BattleScene implements Scene<BattleParams> {
       rect(ctx, { x: 0, y, w, h: 30 }, 'rgba(10,4,2,0.82)');
       rect(ctx, { x: 0, y, w, h: 1 }, C.goldLo);
       rect(ctx, { x: 0, y: y + 29, w, h: 1 }, C.goldLo);
-      text(ctx, this.hint, w / 2, y + 15, { size: 16, color: C.paper, font: FONT.brush, align: 'center' });
+      text(ctx, this.hint, w / 2, y + 15, { size: 16, color: C.paper, font: FONT.body, align: 'center' });
       ctx.globalAlpha = 1;
     }
     if (this.press && this.press.p > 0.15) {
@@ -1067,7 +1067,7 @@ export class BattleScene implements Scene<BattleParams> {
     circle(ctx, cr.x + 15, cr.y + 15, 14, C.lac0);
     ring(ctx, cr.x + 15, cr.y + 15, 14, C.cinnabar, 2);
     text(ctx, '1', cr.x + 15, cr.y + 16, { size: 13, color: C.paper, font: FONT.num, align: 'center', bold: true });
-    if (e.marks > 0) text(ctx, `闪×${e.marks}`, r.x + r.w / 2, r.y + r.h + 10, { size: 11, color: C.defIntent, align: 'center' });
+    if (e.marks > 0) text(ctx, `闪×${e.marks}`, r.x + r.w / 2, r.y + r.h + 10, { size: 11, color: C.defIntent, font: FONT.num, align: 'center' });
     if (e.judge.length) text(ctx, e.judge.map((c) => def(c).name[0]).join(''), r.x + r.w - 8, r.y + r.h + 10, { size: 11, color: C.gold, align: 'right' });
     ctx.globalAlpha = a0;
   }
@@ -1340,7 +1340,7 @@ export class BattleScene implements Scene<BattleParams> {
       const on = this.skill?.b.id === b.id;
       if (on) rect(ctx, inset(r, -3), C.goldHi);
       button(ctx, r, b.name + (Number.isFinite(b.remaining) ? ` ${b.remaining}` : ''), 'secondary', b.disabled, 16);
-      if (b.disabled && b.reason) text(ctx, b.reason, r.x + r.w / 2, r.y + r.h + 1, { size: 9, color: C.goldLo, align: 'center' });
+      if (b.disabled && b.reason) text(ctx, b.reason, r.x + r.w / 2, r.y + r.h + 1, { size: 9, color: C.goldLo, font: FONT.body, align: 'center' });
     }
   }
 
@@ -1349,9 +1349,9 @@ export class BattleScene implements Scene<BattleParams> {
     const b = L.bar;
     rect(ctx, b, 'rgba(15,7,5,0.95)');
     rect(ctx, { x: 0, y: b.y, w: b.w, h: 1 }, C.gold);
-    text(ctx, `牌堆 ${this.g.draw.length}`, 18, b.y + 26, { size: 13, color: C.paper });
-    text(ctx, `弃牌 ${this.g.discard.length}`, 92, b.y + 26, { size: 13, color: C.paper });
-    text(ctx, `手牌 ${this.g.hand.length}/${this.g.handLimit()}`, 166, b.y + 26, { size: 13, color: C.goldLo });
+    text(ctx, `牌堆 ${this.g.draw.length}`, 18, b.y + 26, { size: 13, color: C.paper, font: FONT.num });
+    text(ctx, `弃牌 ${this.g.discard.length}`, 92, b.y + 26, { size: 13, color: C.paper, font: FONT.num });
+    text(ctx, `手牌 ${this.g.hand.length}/${this.g.handLimit()}`, 166, b.y + 26, { size: 13, color: C.goldLo, font: FONT.num });
     const enemyTurn = this.mode === 'busy' || this.mode === 'over';
     const label = this.mode === 'discard' ? `弃 ${this.discardPicks.length}/${this.discardNeed}` : this.confirmT > 0 ? '确定？' : '结束回合';
     const attention = this.mode === 'idle' && this.g.p.ling === 0;
@@ -1393,7 +1393,7 @@ export class BattleScene implements Scene<BattleParams> {
     if (this.mode === 'target' && this.selected) {
       const i = this.g.hand.indexOf(this.selected);
       const r = hl.rects[i];
-      if (r) text(ctx, '选择目标', r.x + r.w / 2, r.y - 10, { size: 12, color: C.goldHi, align: 'center' });
+      if (r) text(ctx, '选择目标', r.x + r.w / 2, r.y - 10, { size: 12, color: C.goldHi, font: FONT.body, align: 'center' });
     }
     if (fly) {
       const p = this.q.progress(fly);

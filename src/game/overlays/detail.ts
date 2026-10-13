@@ -15,11 +15,12 @@ import { numFont } from './numfont';
 import { AFFIXES } from '../../data/affixes';
 import type { Ability } from '../../data/config';
 import { C, ext, frame, text, textWidth, wrap } from './theme';
+import { brushFont, sansFont } from '../fonts';
 
 export const INTENT_ROW = 26;
 export const DETAIL = { w: 180, maxH: 200, pad: 12, titlePx: 24, bodyPx: 13, lineH: 19.5, gap: 12 } as const;
-export const TITLE_FONT = `${DETAIL.titlePx}px "Brush", serif`;
-export const BODY_FONT = `${DETAIL.bodyPx}px "Brush", serif`;
+export const TITLE_FONT = () => brushFont(DETAIL.titlePx);
+export const BODY_FONT = () => sansFont(DETAIL.bodyPx);
 
 export interface DetailContent {
   title: string;
@@ -75,7 +76,7 @@ export function placeDetail(at: Vec2, h: number, safe: Rect): Rect {
 }
 
 export const TITLE_MIN_PX = 20;
-const titleFont = (px: number) => `${px}px "Brush", serif`;
+const titleFont = (px: number) => brushFont(px);
 /** 右上费用珠 + 花色点数所占宽度 */
 export function badgeWidth(ctx: Surface['ctx'], c: DetailContent) {
   let w = 0;
@@ -101,7 +102,7 @@ export function layoutHead(ctx: Surface['ctx'], c: DetailContent): DetailHead {
   while (px > 14 && tw(px) > inner) px--; // 全宽仍超才继续缩（兜底）
   let subW = 0;
   if (c.sub) {
-    ctx.font = BODY_FONT;
+    ctx.font = BODY_FONT();
     subW = textWidth(ctx, c.sub, DETAIL.bodyPx);
   }
   const subSplit = !!c.sub && subW + 8 + bw > inner;
@@ -139,10 +140,10 @@ function drawBadges(g: Surface['ctx'], c: DetailContent, right: number, y: numbe
 /** 排版：返回行与总高（≤ maxH，超出截断加省略号） */
 export function layoutDetail(ctx: Surface['ctx'], c: DetailContent) {
   const inner = DETAIL.w - DETAIL.pad * 2;
-  ctx.font = BODY_FONT;
+  ctx.font = BODY_FONT();
   let lines = c.lines.flatMap((l) => wrap(ctx, l, inner, DETAIL.bodyPx));
   const hd = layoutHead(ctx, c);
-  ctx.font = BODY_FONT;
+  ctx.font = BODY_FONT();
   const head = DETAIL.pad + DETAIL.titlePx + (c.sub ? 18 : 6) + hd.extra + (c.intents?.length ? INTENT_ROW : 0);
   const maxLines = Math.floor((DETAIL.maxH - head - DETAIL.pad) / DETAIL.lineH);
   if (lines.length > maxLines) lines = [...lines.slice(0, maxLines - 1), lines[maxLines - 1].slice(0, -1) + '…'];
@@ -157,21 +158,21 @@ export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[
   frame(g, { x: r.x + 3, y: r.y + 3, w: r.w - 6, h: r.h - 6 }, 'rgba(217,180,106,.35)', 1);
   let y = r.y + DETAIL.pad + DETAIL.titlePx - 4;
   const hd = layoutHead(g, c);
-  text(g, c.title, r.x + DETAIL.pad, y, hd.titlePx === DETAIL.titlePx ? TITLE_FONT : titleFont(hd.titlePx), C.gold);
+  text(g, c.title, r.x + DETAIL.pad, y, hd.titlePx === DETAIL.titlePx ? TITLE_FONT() : titleFont(hd.titlePx), C.gold);
   // 右上：费用珠 + 花色（矢量印章图标）+ 点数（数字字体）；放不下时移到下一行
   const right = r.x + r.w - DETAIL.pad;
   if (!hd.badgesBelow) {
     drawBadges(g, c, right, y);
     if (c.sub) {
       y += 18;
-      text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT, 'rgba(243,235,216,.6)');
+      text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT(), 'rgba(243,235,216,.6)');
     }
   } else {
     y += 20; // 标题下一行：徽记右对齐，副标题同行左对齐
     drawBadges(g, c, right, y + 1);
     if (c.sub) {
       if (hd.subSplit) y += 18;
-      text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT, 'rgba(243,235,216,.6)');
+      text(g, c.sub, r.x + DETAIL.pad, y, BODY_FONT(), 'rgba(243,235,216,.6)');
     }
   }
   const nf = numFont();
@@ -184,8 +185,8 @@ export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[
       if (id) icons().draw(g, id, { x: ix, y: iy, w: 18, h: 18 });
       ix += 21;
       const lab = ACT_LABEL[act] ?? act;
-      text(g, lab, ix, iy + 14, BODY_FONT, C.paper);
-      g.font = BODY_FONT;
+      text(g, lab, ix, iy + 14, BODY_FONT(), C.paper);
+      g.font = BODY_FONT();
       ix += textWidth(g, lab, DETAIL.bodyPx) + 2;
       if (n > 1) ix += nf.draw(g, `×${n}`, ix, iy + 14, 13, C.gold);
       ix += 8;
@@ -195,7 +196,7 @@ export function drawDetail(s: Surface, c: DetailContent, r: Rect, lines: string[
   y += 6;
   for (const l of lines) {
     y += DETAIL.lineH;
-    text(g, l, r.x + DETAIL.pad, y - 5, BODY_FONT, C.paper);
+    text(g, l, r.x + DETAIL.pad, y - 5, BODY_FONT(), C.paper);
   }
 }
 

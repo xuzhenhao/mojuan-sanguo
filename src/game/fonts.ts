@@ -6,7 +6,7 @@
  * - gate 字体晚到、非 gate 字体后台加载完成：调 onLoaded 清量宽缓存并重绘。
  * 加载经 platform.fonts.load，永不抛错。
  */
-import type { FontRoleName, FontsConfig } from '../data/config';
+import { FONTS, type FontRoleName, type FontsConfig } from '../data/config';
 import type { Platform, PlatformFonts } from '../platform/types';
 
 type PlatformName = Platform['name'];
@@ -72,11 +72,18 @@ export function fontStack(cfg: FontsConfig, platform: PlatformName, role: FontRo
   return r === 'system' ? cfg.fallback[role] : `"${r.family}", ${cfg.fallback[role]}`;
 }
 
-/** 运行时字体栈（boot 按平台设置；未设置时按 web）。sans 在微信端为系统字体，所以 game 层正文字体须经此取 */
-let activePlatform: PlatformName = 'web';
-let activeCfg: FontsConfig | null = null;
+/**
+ * 运行时字体栈（#228：游戏内唯一的字体族名来源）。boot 按平台调 setFontPlatform 一次；未设置时按 web。
+ * 族名只在这里从 rules.fonts 读取并缓存；各绘制点只调 brushFont / sansFont（或 brushStack / sansStack），不得写死族名。
+ * - BRUSH：标题、卡名、武将 / Boss 名、竖排名、按钮字、牌面大字、技能名、势力徽记
+ * - SANS：说明 / 长文、设置项、全部数字、提示条与小字说明
+ */
+let stacks: Record<FontRoleName, string> = { brush: fontStack(FONTS, 'web', 'brush'), sans: fontStack(FONTS, 'web', 'sans') };
 export function setFontPlatform(cfg: FontsConfig, platform: PlatformName) {
-  activeCfg = cfg;
-  activePlatform = platform;
+  stacks = { brush: fontStack(cfg, platform, 'brush'), sans: fontStack(cfg, platform, 'sans') };
 }
-export const activeFontStack = (role: FontRoleName, fallbackCfg: FontsConfig) => fontStack(activeCfg ?? fallbackCfg, activePlatform, role);
+export const activeFontStack = (role: FontRoleName) => stacks[role];
+export const brushStack = () => stacks.brush;
+export const sansStack = () => stacks.sans;
+export const brushFont = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px ${stacks.brush}`;
+export const sansFont = (px: number, bold = false) => `${bold ? 'bold ' : ''}${px}px ${stacks.sans}`;
