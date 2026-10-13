@@ -163,6 +163,10 @@ export interface HeroDef {
   hp: number;
   mainSkills: { name: string; desc: string }[];
   subSkill: { name: string; desc: string };
+  /** 立绘 OSS 相对路径（#177，config 里的 portrait；缺省走程序占位） */
+  portrait?: string;
+  /** 立绘脸部中心（512×712 像素） */
+  portraitFocus?: { x: number; y: number };
 }
 
 export interface BattleDef {

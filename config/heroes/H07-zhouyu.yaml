@@ -8,6 +8,8 @@ hp: 8
 role: 火烧连环：先连环再火攻，一次清场
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/zhouyu.webp
+portraitFocus: { x: 192, y: 183 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: yingfa

@@ -76,7 +76,7 @@ describe('结算页 8 项（PRD 14.5）', () => {
     expect(v.title).toBe('大捷');
     expect(v.reach).toBe('第一章 · 黄巾 · Boss');
     expect(v.duration).toBe('31:12');
-    expect(v.lineup).toEqual({ main: '赵云', sub: '刘备', combo: undefined });
+    expect(v.lineup).toEqual({ main: '赵云', sub: '刘备', combo: undefined, mainId: 'H03' });
     expect(v.report.map((r) => r.label)).toEqual(['战斗胜利', '总回合数', '造成伤害', '承受伤害', '最大单回合掉血', '灵光一闪', '复活']);
     expect(v.report[0].value).toBe('7（普通 4 / 精英 2 / Boss 1）');
     expect(v.evolved.map((c) => c.name)).toEqual(['杀', '闪', '桃']);

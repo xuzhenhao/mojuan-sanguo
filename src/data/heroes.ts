@@ -8,7 +8,16 @@ const skills = (as: Ability[]) => as.filter((a, i) => as.findIndex((b) => b.name
 export const HEROES: Record<string, HeroDef> = Object.fromEntries(
   Object.values(CONFIG.heroes).map((h) => [
     h.id,
-    { id: h.id, name: h.name, faction: h.faction, hp: h.hp, mainSkills: skills(h.mainSkills), subSkill: skill(h.subSkill) },
+    {
+      id: h.id,
+      name: h.name,
+      faction: h.faction,
+      hp: h.hp,
+      mainSkills: skills(h.mainSkills),
+      subSkill: skill(h.subSkill),
+      portrait: h.portrait,
+      portraitFocus: h.portraitFocus,
+    },
   ]),
 );
 

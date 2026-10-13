@@ -8,6 +8,8 @@ hp: 9
 role: 零费连击：手牌打空就补，一回合打很多张
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/luxun.webp
+portraitFocus: { x: 320, y: 180 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: lianying

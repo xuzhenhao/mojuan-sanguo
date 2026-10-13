@@ -8,6 +8,8 @@ hp: 7
 role: 卖血过牌：越疼越强，手牌巨大
 unlock: 初始（全部免费）
 roster: true
+portrait: portraits/heroes/guojia.webp
+portraitFocus: { x: 195, y: 218 } # 脸部中心（512×712 像素）
 
 mainSkills:
   - id: tiance

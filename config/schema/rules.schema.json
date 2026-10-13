@@ -24,7 +24,8 @@
     "economy",
     "event",
     "settlement",
-    "settings"
+    "settings",
+    "assets"
   ],
   "properties": {
     "lingPerTurn": {
@@ -1125,6 +1126,21 @@
               }
             }
           }
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseUrl"
+      ],
+      "description": "美术资源位置（#177）：立绘不打进包，放阿里云 OSS",
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "pattern": "^https://[^\\s]+/$",
+          "description": "资源根目录 URL（https，以 / 结尾）；yaml 里的 portrait 等相对路径拼在它后面。切换测试 / 正式桶只改这一项"
         }
       }
     }

@@ -10,9 +10,16 @@ import type { OverlayStack } from '../../engine/modal';
 import type { Scene, SceneContext } from '../../engine/scene';
 import type { Surface, SurfaceName } from '../../engine/surfaces';
 import type { Ctx2DLike, Rect, Vec2 } from '../../engine/types';
-import { frame, inside, wrap } from '../overlays/theme';
-import { B, body, brush, button, center, num, panel, right, silhouette, strike, vertical } from './paint';
+import { frame, inside, textWidth, wrap } from '../overlays/theme';
+import { B, body, brush, button, center, num, panel, portraitEdges, right, silhouette, strike, vertical } from './paint';
 import type { ResultView } from './settlement';
+import { HEROES } from '../../data/heroes';
+import { drawPortrait } from '../portrait';
+
+/** 立绘软边：左右下淡出宽度、底部压暗高度、阵容行基线距立绘顶（dp，#177 UI 复核） */
+const PORTRAIT_EDGE = 40;
+const PORTRAIT_SHADE = 96;
+const LINEUP_GAP = 8;
 
 /** 设计稿坐标（dp，390×844） */
 export const RESULT_LAYOUT = {
@@ -39,6 +46,8 @@ export interface ResultDeps {
 export class ResultScene implements Scene {
   readonly id = 'result';
   private ctx!: SceneContext;
+  /** 立绘加载完成后重绘（#177） */
+  private repaint = () => this.ctx?.invalidate('main');
   private v!: ResultView;
   private t = 0;
   private left = false;
@@ -113,30 +122,35 @@ export class ResultScene implements Scene {
     const k = this.k;
     const L = RESULT_LAYOUT;
     const win = this.win;
-    // 1. 立绘（占位剪影；败北半透明）+ 竖排大字
+    // 1. 立绘（#177：主将大图 cover + 顶对齐；没图回退剪影；败北半透明；左右下 40px 淡出到底色、底部 96px 压暗）+ 竖排大字
     const p = this.rect(L.portrait);
     c.globalAlpha = win ? 0.9 : 0.45;
-    silhouette(c, { x: p.x + 20 * k, y: p.y + 10 * k, w: p.w - 40 * k, h: p.h - 10 * k }, win ? '#120807' : '#1c1714');
+    const art = { x: p.x + 20 * k, y: p.y + 10 * k, w: p.w - 40 * k, h: p.h - 10 * k };
+    const hero = v.lineup.mainId ? HEROES[v.lineup.mainId] : undefined;
+    if (!drawPortrait(c, art, hero?.portrait, 'large', { onReady: this.repaint })) silhouette(c, art, win ? '#120807' : '#1c1714');
     c.globalAlpha = 1;
+    portraitEdges(c, art, PORTRAIT_EDGE * k, PORTRAIT_SHADE * k, win ? B.portraitBgWin : B.portraitBgLose, win ? B.portraitBgWinClear : B.portraitBgLoseClear);
     const tp = this.pt(L.titleX, L.titleY);
     vertical(c, v.title, tp.x, tp.y, 64 * k, win ? B.gold : B.cinnHi);
     vertical(c, v.chapterName.slice(0, 4), tp.x, tp.y + 170 * k, 20 * k, B.paper3);
-    // 结果信息：章与层、用时、runSeed；阵容
+    // 结果信息：章与层、用时、runSeed（留在立绘底部压暗区内）
     const info = this.pt(28, 300);
     c.font = body(12 * k);
     c.fillStyle = B.paper3;
     c.fillText?.(`${v.reach} · 用时 ${v.duration}`, info.x, info.y);
     c.fillText?.(`种子 ${v.seed}${v.abandoned ? ' · 放弃本局' : ''}`, info.x, info.y + 16 * k);
-    const lu = this.pt(28, 60);
+    // 阵容：一行放在立绘上方（基线 = 立绘顶 − 8），不压图（#177 UI 复核）
     c.font = brush(18 * k);
-    c.fillStyle = B.gold;
-    c.fillText?.(`主 ${v.lineup.main}`, lu.x, lu.y);
-    c.fillStyle = '#CFD6D9';
-    c.fillText?.(`副 ${v.lineup.sub}`, lu.x, lu.y + 24 * k);
-    if (v.lineup.combo) {
-      c.fillStyle = B.cinnHi;
-      c.fillText?.(`珠联 · ${v.lineup.combo}`, lu.x, lu.y + 48 * k);
-    }
+    let lx = this.pt(28, 0).x;
+    const ly = art.y - LINEUP_GAP * k;
+    const seg = (s: string, color: string) => {
+      c.fillStyle = color;
+      c.fillText?.(s, lx, ly);
+      lx += textWidth(c, s, 18 * k) + 14 * k;
+    };
+    seg(`主 ${v.lineup.main}`, B.gold);
+    seg(`副 ${v.lineup.sub}`, B.silver);
+    if (v.lineup.combo) seg(`珠联 · ${v.lineup.combo}`, B.cinnHi);
     if (!win && v.killer) this.killerCard(c, v.killer);
 
     // 3. 统计 4 图标（长按看完整战报）
@@ -227,9 +241,14 @@ export class ResultScene implements Scene {
   private killerCard(c: Ctx2DLike, name: string) {
     const k = this.k;
     const r = this.rect({ x: 28, y: 170, w: 56, h: 78 });
+    // 底不透明（#177 UI 复核：≥ .95，压在立绘上也看得清），朱砂边外再加 1px paper3 环（灰度下朱砂边会消失）
+    const a = c.globalAlpha;
+    c.globalAlpha = 1;
     c.fillStyle = B.lac1;
     c.fillRect(r.x, r.y, r.w, r.h);
     frame(c, r, B.cinnabar, 1.5);
+    frame(c, { x: r.x - 1.25, y: r.y - 1.25, w: r.w + 2.5, h: r.h + 2.5 }, B.paper3, 1);
+    c.globalAlpha = a;
     center(c, name.slice(0, 4), r.x + r.w / 2, r.y + 44 * k, brush(14 * k), B.paper, 14 * k);
     center(c, '致命', r.x + r.w / 2, r.y + r.h + 14 * k, body(10 * k), B.cinnHi, 10 * k);
   }
