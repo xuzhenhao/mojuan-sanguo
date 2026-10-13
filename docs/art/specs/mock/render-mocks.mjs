@@ -83,12 +83,15 @@ const e107b = battleBg + `c.fillStyle='rgba(5,2,1,.72)';c.fillRect(0,0,390,844);
 {const g=c.createLinearGradient(0,0,390,0);g.addColorStop(0,'rgba(21,10,8,0)');g.addColorStop(.18,'rgba(21,10,8,.96)');g.addColorStop(.82,'rgba(21,10,8,.96)');g.addColorStop(1,'rgba(21,10,8,0)');c.fillStyle=g;c.fillRect(0,320,390,140);
  c.fillStyle=T.goldLo;c.fillRect(40,320,310,1);c.fillRect(40,459,310,1);}
 text('第一章 · 首领',195,342,B(14),T.paper3);
-c.save();c.shadowColor='rgba(212,96,76,.8)';c.shadowBlur=24;text('张角·墨魇',195,392,B(56),T.goldHi);c.restore();
+c.save();c.font=B(56);c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';[[12,.15],[7,.30],[3,.60]].forEach(([w,al])=>{c.globalAlpha=al;c.lineWidth=w;c.strokeStyle=T.cinnHi;c.strokeText('张角·墨魇',195,392);});c.restore();text('张角·墨魇',195,392,B(56),T.goldHi);
 text('「苍天已死，黄天当立！」',195,438,B(20),T.paper);
-text('点击跳过',195,800,B(13),'rgba(191,174,136,.6)');`;
+text('点击跳过',195,800,B(13),'rgba(191,174,136,.6)'); // T.paper3 @ .6`;
+const e107c = battleBg + `c.fillStyle='rgba(5,2,1,.5)';c.fillRect(0,0,390,844);
+{const g=c.createLinearGradient(0,0,390,0);g.addColorStop(0,'rgba(5,2,1,0)');g.addColorStop(.15,'rgba(5,2,1,.6)');g.addColorStop(.85,'rgba(5,2,1,.6)');g.addColorStop(1,'rgba(5,2,1,0)');c.fillStyle=g;c.fillRect(0,357,390,70);}
+text('苍天已死——',195,379,B(20),T.cinnHi);text('黄天当立！',195,405,B(20),T.cinnHi);`;
 
 const b = await chromium.launch();
-for (const [name, body] of [['spec-105-default', e105a], ['spec-105-full', e105b], ['spec-107-confirm', e107a], ['spec-107-intro', e107b]]) {
+for (const [name, body] of [['spec-105-default', e105a], ['spec-105-full', e105b], ['spec-107-confirm', e107a], ['spec-107-intro', e107b], ['spec-107-phase', e107c]]) {
   const p = await b.newPage({ viewport: { width: 390, height: 844 } }); p.on('pageerror', (e) => console.error(name, e.message));
   const f = path.join(out, name + '.html'); fs.writeFileSync(f, page(body));
   await p.goto('file://' + f); await p.waitForFunction(() => window.__done === 1); await p.waitForTimeout(200); fs.unlinkSync(f);
