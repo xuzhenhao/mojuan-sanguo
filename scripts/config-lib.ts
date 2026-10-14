@@ -18,6 +18,7 @@ export interface Built {
   events: Record<string, any>;
   relics: Record<string, any>;
   potions: Record<string, any>;
+  text: Record<string, Record<string, string>>;
 }
 
 const ICONS: string[] = iconSchema.enum;
@@ -32,6 +33,7 @@ const SCHEMA_OF: Record<string, string> = {
   events: 'event',
   relics: 'relic',
   potions: 'potion',
+  text: 'text',
 };
 const AFFIX_ORDER = ['sha', 'shan', 'tao', 'jiu', 'trick', 'equip'];
 
@@ -65,7 +67,19 @@ export function loadConfig(root: string): { config: Built; errors: string[] } {
     }
   };
 
-  const config: Built = { rules: {}, cards: {}, affixes: [], heroes: {}, enemies: {}, encounters: {}, decks: {}, events: {}, relics: {}, potions: {} };
+  const config: Built = {
+    rules: {},
+    cards: {},
+    affixes: [],
+    heroes: {},
+    enemies: {},
+    encounters: {},
+    decks: {},
+    events: {},
+    relics: {},
+    potions: {},
+    text: {},
+  };
   const rulesFile = join(root, 'rules.yaml');
   config.rules = read(rulesFile) ?? {};
   check('rules', config.rules, 'rules.yaml');
@@ -89,7 +103,7 @@ export function loadConfig(root: string): { config: Built; errors: string[] } {
         bucket.push(d);
       } else {
         if (bucket[key]) errors.push(`${rel}: id 重复 ${key}`);
-        bucket[key] = d;
+        bucket[key] = dir === 'text' ? d.strings : d;
       }
     }
   }

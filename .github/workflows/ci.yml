@@ -14,6 +14,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run config:check
+      - name: 书法收字校验（#182：字表同步 / 微信字体缺字 / 文本表 key）
+        run: npm run font:check
       - run: npm run lint
       - run: npm test
       - name: 覆盖率报告（只出报告，不设门槛）

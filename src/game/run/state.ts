@@ -14,6 +14,7 @@
  * 存档时机（#122 组长定稿）：进任何节点前写一份完整 RunState（pendingNode = 该节点，含三条 rng 状态），
  * 节点内中途不写；节点结算完成立即写档（pendingNode = null）。读到 pendingNode 非空 = 节点内中途刷新，一律回到这份快照重进。
  */
+import { t } from '../../data/text';
 import type { CardInst } from '../../core/types';
 import type { MapState } from '../../core/run/map';
 import { newEncounterState, type EncounterState } from '../../core/run/encounters';
@@ -219,9 +220,9 @@ export type RunNotice = 'migrate_battle_restart' | 'migrate_node_rollback' | 'no
 const BATTLE_NODES = ['BATTLE', 'ELITE', 'BOSS'];
 /** 提示文案（runstate-migration.md §4/§5）；config_confirm 走 §21.4 确认框，无 toast → null */
 export function noticeText(n: RunNotice | null, pending: PendingNode | null = null): string | null {
-  if (n === 'migrate_battle_restart') return '存档已更新，本场战斗重新开始';
-  if (n === 'migrate_node_rollback') return '存档已更新，已回到上一处';
-  if (n === 'node_restart') return pending && BATTLE_NODES.includes(pending.type) ? '已回到本场战斗开打前' : '已回到进入此处前';
+  if (n === 'migrate_battle_restart') return t('notice.migrate_battle_restart');
+  if (n === 'migrate_node_rollback') return t('notice.migrate_node_rollback');
+  if (n === 'node_restart') return t(pending && BATTLE_NODES.includes(pending.type) ? 'notice.node_restart_battle' : 'notice.node_restart_other');
   return null;
 }
 
