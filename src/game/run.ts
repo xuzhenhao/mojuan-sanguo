@@ -35,6 +35,7 @@ import {
   TEMP_UID_BASE,
   clearRunStateIn,
 } from './run/state';
+import { battleEndFields, battleTagOf, trackMatch } from './telemetry';
 
 /** 进战斗：地图节点 + 组包 */
 export interface BattleNode {
@@ -80,7 +81,9 @@ export class RunSession {
   /** 绑定的存储（页面接入后由入口设置；所有写档都走新键 mojuan.runstate.v1） */
   store: RunStateStore | null = null;
   /** 本场战斗开打时的体力与节点类型（结算统计增量用，不进存档：进节点快照里本来就是开打前状态） */
-  private battleStart: { hp: number; kind: 'normal' | 'elite' | 'boss' } | null = null;
+  private battleStart: { hp: number; kind: 'normal' | 'elite' | 'boss'; nodeId?: string; nodeType?: string } | null = null;
+  /** 埋点出口（#181）：默认写 telemetry 缓冲，单测可替换 */
+  sink?: (ev: string, d: Record<string, unknown>) => void;
 
   start(p: RunParams, io: BattleIO = NULL_IO, o: StartOpts = {}): Game {
     if (p.main === p.sub) throw new Error('主副将不能是同一人');
@@ -119,6 +122,8 @@ export class RunSession {
   /** 点将出征（#215）：建局后立即写档（地图未生成，map = null），出征后到进首个节点前刷新也不丢局 */
   begin(p: RunParams, store: RunStateStore, o: StartOpts = {}): Game {
     const g = this.start(p, NULL_IO, o);
+    const st = this.need();
+    trackMatch('run_start', { hero_main: p.main, hero_sub: p.sub, tianming: st.tianming, chapter: st.chapter }, this.sink);
     this.save(store);
     return g;
   }
@@ -168,6 +173,8 @@ export class RunSession {
     });
     this.checkpoint = serializeRunState(this.synced());
     store?.set(RUN_STATE_KEY, this.checkpoint);
+    const s = this.need();
+    trackMatch('node_enter', { node_id: node.id, node_type: node.type, layer: this.layerOf(node.id), chapter: s.chapter }, this.sink);
   }
   /** 节点结算完成：清 pendingNode 并立即写档 */
   completeNode(store?: RunStateStore) {
@@ -258,7 +265,7 @@ export class RunSession {
     g.reviveLeft = s.reviveLeft;
     g.tianming = s.tianming;
     g.battleIdx = b.nodeType === 'BOSS' ? BATTLES.length - 1 : 0;
-    this.battleStart = { hp: s.hp, kind: b.nodeType === 'BOSS' ? 'boss' : b.nodeType === 'ELITE' ? 'elite' : 'normal' };
+    this.battleStart = { hp: s.hp, kind: b.nodeType === 'BOSS' ? 'boss' : b.nodeType === 'ELITE' ? 'elite' : 'normal', nodeId: b.nodeId, nodeType: b.nodeType };
     // V13 收编（#91）：下一场战斗开场护甲，进战斗即清零（进节点快照在此之前，刷新重进仍生效）
     g.startArmorBonus = s.nextBattleArmor ?? 0;
     if (s.nextBattleArmor) this.update((d) => void (d.nextBattleArmor = 0));
@@ -274,6 +281,17 @@ export class RunSession {
     const g = this.game;
     if (!g) return;
     const delta = this.battleDelta(g, win);
+    const bs = this.battleStart;
+    const s0 = this.need();
+    const tag = battleTagOf(g.en);
+    const layer = this.layerOf(bs?.nodeId);
+    const f = battleEndFields(g, { win, tag, hpBefore: bs?.hp ?? g.p.hp, nodeId: bs?.nodeId, layer, chapter: s0.chapter });
+    trackMatch('battle_end', f, this.sink);
+    const killer = win ? undefined : g.en.find((e) => e.hp > 0)?.id;
+    if ((f.dmg_taken as number) > 0)
+      trackMatch('damage_taken', { source: win ? f.enemies : (killer ?? f.enemies), amount: f.dmg_taken, battle_tag: tag, layer }, this.sink);
+    if (!win)
+      trackMatch('death', { node_id: bs?.nodeId, node_type: bs?.nodeType, layer, chapter: s0.chapter, source: killer, tianming: s0.tianming }, this.sink);
     this.update((d) => {
       d.stats = mergeStats(d.stats, delta);
       d.hp = win ? betweenBattleHeal(Math.max(0, g.p.hp), g.p.maxHp, CONFIG.rules.map.betweenBattleHeal) : Math.max(0, g.p.hp);
@@ -329,6 +347,13 @@ export class RunSession {
   /** 删除本局存档（结算离开 / 放弃）：新旧键都删 */
   wipe(store: RunStateStore | null = this.store) {
     if (store) clearRunStateIn(store);
+  }
+
+  /** 地图节点层数（埋点用；无地图 / 未知节点为 undefined） */
+  private layerOf(id: string | undefined): number | undefined {
+    if (!id) return undefined;
+    const base = id.replace(/#reward$/, '');
+    return this.st?.map?.nodes.find((n) => n.id === base)?.layer;
   }
 
   private need(): RunState {

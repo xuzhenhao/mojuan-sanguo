@@ -39,7 +39,7 @@ import { brushFont, loadGameFonts, setFontPlatform } from './fonts';
 import { FONTS } from '../data/config';
 import { refitFonts } from './scenes/battle/hpview';
 import { setReducedMotionSource } from './motion';
-import { bindTelemetry, flushTelemetry } from './telemetry';
+import { bindTelemetry, flushTelemetry, trackMatch } from './telemetry';
 
 export interface BootOptions {
   /** 渲染配置（入口按构建变量决定，如 VITE_WEBGL） */
@@ -97,6 +97,21 @@ export function bootGame(platform: Platform, opts: BootOptions) {
         leave(to) {
           const o = outcome();
           if (!isDemo()) meta.settle(o);
+          if (!isDemo() && !abandoned) {
+            const st = run.active ? run.state : null;
+            const boss = st?.map?.nodes.find((n) => n.type === 'BOSS')?.id;
+            trackMatch('run_end', {
+              result: o.win ? 'victory' : 'defeat',
+              abandoned: false,
+              chapter: o.chapter,
+              layer: o.layer,
+              tianming: o.tianming,
+              boss_node: boss,
+              death_node: o.win ? undefined : (st?.ended?.nodeId ?? undefined),
+              duration_ms: o.durationMs,
+              runSeed: o.runSeed,
+            });
+          }
           slot.remove();
           run.clear();
           abandoned = null;

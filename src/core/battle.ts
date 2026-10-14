@@ -24,7 +24,17 @@ import {
   SUIT_CH,
 } from './rules';
 import type { AffixDef, BattleDef, CardInst, Enemy, EnemyAct, JudgeCard, JudgeEvent, PlayerDelayed, Slot } from './types';
-import { cardHasExemptTag, costFloor, julingCfg, lingPerTurn, maxPlaysPerTurn, reduceStackMax, zeroCostPerTurn, type LingSlotSnapshot } from './juling';
+import {
+  cardHasExemptTag,
+  cardHasTag,
+  costFloor,
+  julingCfg,
+  lingPerTurn,
+  maxPlaysPerTurn,
+  reduceStackMax,
+  zeroCostPerTurn,
+  type LingSlotSnapshot,
+} from './juling';
 
 /** 战间回复后的体力（core 与自动试玩共用同一规则，#56） */
 /** 战间回复：amount 默认取 rules.map.betweenBattleHeal（游戏，H5 = 0，PRD §10.4）；模拟传 rules.sim.baselineBetweenBattleHeal */
@@ -171,6 +181,9 @@ export class Game {
   lingGainedThisTurn = 0;
   /** 本回合主动出牌次数（不含响应；受 loop.maxPlaysPerTurn） */
   playsThisTurn = 0;
+  /** 埋点（#181）：每回合主动出牌数（下标 = 回合 − 1）与本场循环牌（loop tag）出牌数 */
+  playsByTurn: number[] = [];
+  loopPlays = 0;
   /** 最近一次军令变化，供 lingSlot().delta / 飘字 */
   lingDelta = 0;
   /** 本局宝物 id（战斗内效果最小接线） */
@@ -446,6 +459,8 @@ export class Game {
     this.discard = [];
     this.hand = [];
     this.turn = 0;
+    this.playsByTurn = [];
+    this.loopPlays = 0;
     this.epiCount = 0;
     this.sincePity = 0;
     this.over = false;
@@ -536,7 +551,13 @@ export class Game {
     const cost = this.costOf(c);
     p.ling -= cost;
     this.lingDelta = -cost;
-    if (!d.shan && !d.response) this.playsThisTurn++;
+    if (!d.shan && !d.response) {
+      this.playsThisTurn++;
+      const ti = Math.max(0, this.turn - 1);
+      while (this.playsByTurn.length <= ti) this.playsByTurn.push(0);
+      this.playsByTurn[ti]++;
+      if (cardHasTag(c.id, 'loop')) this.loopPlays++;
+    }
     if (cost === 0 && !d.shan && !d.response && !cardHasExemptTag(c.id)) this.zeroCostPlays.set(c.id, (this.zeroCostPlays.get(c.id) ?? 0) + 1);
     // 消费「下一张」费减
     if (isShaPlay(c) && p.status.sha_cost_next) delete p.status.sha_cost_next;
