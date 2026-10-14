@@ -69,6 +69,8 @@ export const MATCH_EVENTS = {
   death: ['node_id', 'node_type', 'layer', 'chapter', 'source', 'tianming'],
   run_end: ['result', 'abandoned', 'chapter', 'layer', 'tianming', 'boss_node', 'death_node', 'duration_ms', 'soul', 'runSeed'],
   run_abandon: ['entry', 'layer', 'chapter'],
+  /** #183 开发版 FPS 窗口报告（engine.setFpsSink） */
+  perf_sample: ['avg_fps', 'low1_fps', 'verdict', 'frames'],
 } as const;
 export type MatchEvent = keyof typeof MATCH_EVENTS;
 type Fields<E extends MatchEvent> = Partial<Record<(typeof MATCH_EVENTS)[E][number], unknown>>;
