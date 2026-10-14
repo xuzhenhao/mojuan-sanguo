@@ -143,6 +143,16 @@ map:
   layerSpacing: 62 # 卷轴每层高度 dp
   moveMs: 500 # 头像沿路径移动
   pulseMs: 1400 # 可走节点脉冲周期
+  # 首领确认弹层（#188 / spec-107 A1/A4）：设计坐标 390×844；矮屏面板顶 = max(minTop, (H − 面板高)/2)
+  bossConfirm:
+    panel: { x: 28, w: 334, top: 150, minTop: 106, padTop: 22, padBottom: 18 }
+    card: { w: 150, h: 206, gap: 14 }
+    status: { w: 290, h: 52, gap: 14 }
+    button: { w: 112, h: 44, gap: 12 }
+    scrimAlpha: 0.55
+    popInMs: 250
+    fadeOutMs: 180
+    glowPeriodMs: 1600
 
 # 局内经济（#172，原 src/data/economy.ts ECONOMY；PRD 0.5.4 10.7/10.8/12.1/12.2/14.1–14.3/14.8）
 # 卡牌/宝物价格、删牌费、集市槽位见上方 shop:
