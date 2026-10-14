@@ -11,7 +11,7 @@ describe('经济/复活参数挪入 rules.yaml（无数值变更）', () => {
     expect(ECONOMY.removeStep).toBe(25);
   });
   it('复活参数与旧常量一致', () => {
-    expect(CONFIG.rules.revive).toEqual({ count: 1, hpRatio: 0.25, hpMin: 2, armor: 3 });
+    expect(CONFIG.rules.revive).toEqual({ count: 1, hpRatio: 0.25, hpMin: 2, armor: 3, tianmingMax: 5 });
     expect(REVIVES_PER_RUN).toBe(1);
   });
 });
