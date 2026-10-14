@@ -101,8 +101,8 @@ shop:
   # 集市槽位（PRD §14.2 / 10.7【占位】暂按设计稿：2 通用卡 + 1 势力/专属卡 + 1 宝物 + 2 丹药，待总策划定）
   shopSlots: { common: 2, heroCard: 1, relic: 1, potion: 2 }
 
-# 复活（PRD §4.4.1；仅天命<5 时可弹出）：每局次数；体力 = max(hpMin, ceil(上限 × hpRatio))；附带护甲
-revive: { count: 1, hpRatio: 0.25, hpMin: 2, armor: 3 }
+# 复活（PRD §4.4.1；仅天命 < tianmingMax 时可弹出）：每局次数；体力 = max(hpMin, ceil(上限 × hpRatio))；附带护甲
+revive: { count: 1, hpRatio: 0.25, hpMin: 2, armor: 3, tianmingMax: 5 }
 
 # 回归预设：只用于自动对局对照，不影响正式选将
 presets:

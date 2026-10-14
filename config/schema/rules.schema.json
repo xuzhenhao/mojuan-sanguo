@@ -864,12 +864,13 @@
     },
     "revive": {
       "type": "object",
-      "description": "复活（PRD §4.4.1；仅天命<5）",
+      "description": "复活（PRD §4.4.1；仅天命 < tianmingMax）",
       "required": [
         "count",
         "hpRatio",
         "hpMin",
-        "armor"
+        "armor",
+        "tianmingMax"
       ],
       "additionalProperties": false,
       "properties": {
@@ -893,6 +894,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "复活附带护甲"
+        },
+        "tianmingMax": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "可弹出复活层的天命上限（天命 ≥ 此值时不弹复活）"
         }
       }
     },

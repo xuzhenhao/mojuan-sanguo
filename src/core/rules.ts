@@ -110,10 +110,9 @@ export function trickTip(e: Pick<Enemy, 'trickOverrides'>, id: string) {
 }
 
 /** 敌人意图：本回合将出的牌与总伤害（伤害全部来自牌） */
-/** 复活（PRD 4.4.1 / subpages §2.1）：还有次数且天命 < 5 才弹复活层 */
-export const REVIVE_TIANMING_MAX = 5;
-export function reviveAllowed(reviveLeft: number, tianming: number) {
-  return reviveLeft > 0 && tianming < REVIVE_TIANMING_MAX;
+/** 复活（PRD 4.4.1 / subpages §2.1）：还有次数且天命 < rules.revive.tianmingMax 才弹复活层 */
+export function reviveAllowed(reviveLeft: number, tianming: number, max = CONFIG.rules.revive.tianmingMax) {
+  return reviveLeft > 0 && tianming < max;
 }
 /** 复活后体力 = max(hpMin, ceil(maxHp × hpRatio))（rules.revive） */
 export function reviveHp(maxHp: number, rv: { hpRatio: number; hpMin: number } = CONFIG.rules.revive) {
