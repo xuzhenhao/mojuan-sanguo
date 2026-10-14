@@ -26,12 +26,28 @@ describe('#195 战斗内宝物效果由 abilities 配置驱动', () => {
     expect(mk(1).epiphanyRate()).toBe(EPIPHANY.baseRate);
   });
 
-  it('R06 战斗开始护甲 + 配置值', () => {
+  it('R06 战斗开始护甲：未到上限时 + 配置值', () => {
+    const add = relicAbility(['R06'], 'battle_start', 'armor');
     const a = mk(5);
     a.startBattle();
     const b = mk(5, ['R06']);
     b.startBattle();
-    expect(b.p.armor).toBe(a.p.armor + relicAbility(['R06'], 'battle_start', 'armor'));
+    expect(a.p.armor + add).toBeLessThanOrEqual(CONFIG.rules.event.startArmorCap);
+    expect(b.p.armor).toBe(a.p.armor + add);
+  });
+
+  it('R06 战斗开始护甲：接近上限时截断到 startArmorCap（与事件护甲共用上限）', () => {
+    const cap = CONFIG.rules.event.startArmorCap;
+    const a = mk(5);
+    a.startBattle();
+    const b = mk(5, ['R06']);
+    b.startArmorBonus = cap; // 事件收编护甲 + R06 叠加必超上限
+    b.startBattle();
+    expect(b.p.armor).toBe(Math.max(a.p.armor, cap));
+    const g = mk(5);
+    g.p.armor = cap - 1;
+    g.addStartArmor(relicAbility(['R06'], 'battle_start', 'armor'));
+    expect(g.p.armor).toBe(cap); // cap-1 + 3 截断为 cap
   });
 
   it('R08 手牌上限 + 配置值；与 R02 叠加', () => {
