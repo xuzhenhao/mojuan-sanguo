@@ -88,6 +88,14 @@ export interface EnemyCfg {
   /** 首领登场台词（#107）：line = 登场墨带；phaseLine = 阶段 2 切换 */
   intro?: { line?: string; phaseLine?: string };
 }
+/** rules.battlePause（#196） */
+export interface BattlePauseCfg {
+  pauseBtn: { r: number; hit: number; right: number; textGap: number };
+  confirm: { w: number; h: number; btnW: number; btnH: number; btnGap: number; padBottom: number };
+  panel: { w: number; padTop: number; padBottom: number };
+  button: { w: number; h: number; gap: number };
+  scrimAlpha: number;
+}
 export interface ConfigBundle {
   /** UI 文本表（#182）：config/text/<ns>.yaml → text[ns][key] */
   text: Record<string, Record<string, string>>;
@@ -132,6 +140,8 @@ export interface ConfigBundle {
       toggles: Record<string, { label: string; default: boolean; hidden?: boolean }>;
       choices: Record<string, { label: string; options: string[]; default: string; hidden?: boolean }>;
     };
+    /** 战斗内暂停（#196）：暂停钮与面板布局 */
+    battlePause?: BattlePauseCfg;
     /** 3 战回归基线（自动对局 / bstat）专用 */
     sim: {
       baselineBetweenBattleHeal: number;
@@ -331,3 +341,12 @@ export function abilitySum(list: readonly AbilityCfg[] | undefined, on: AbilityT
 export function relicEffect(relics: readonly string[], key: keyof RelicEffects): number {
   return relics.reduce((n, id) => n + (CONFIG.relics[id]?.effects?.[key] ?? 0), 0);
 }
+
+/** rules.battlePause（#196）；缺省值与 rules.yaml 一致 */
+export const BATTLE_PAUSE: BattlePauseCfg = CONFIG.rules.battlePause ?? {
+  pauseBtn: { r: 17, hit: 44, right: 12, textGap: 8 },
+  confirm: { w: 320, h: 210, btnW: 120, btnH: 48, btnGap: 16, padBottom: 24 },
+  panel: { w: 260, padTop: 70, padBottom: 24 },
+  button: { w: 200, h: 48, gap: 12 },
+  scrimAlpha: 0.85,
+};
