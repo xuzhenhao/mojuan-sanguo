@@ -13,12 +13,24 @@ import { createWechatStorage } from './storage';
 import { createWechatTelemetry } from './telemetry';
 import type { WxApi, WxTouch, WxTouchEvent, WxWindowInfo } from './wx-api';
 
-const toPts = (list: WxTouch[]): TouchPoint[] =>
-  list.map((t) => ({
-    id: t.identifier,
-    x: t.clientX ?? t.x ?? 0,
-    y: t.clientY ?? t.y ?? 0,
-  }));
+/**
+ * 触摸 → 逻辑像素（CSS px）。引擎再经 toDesign 转到设计坐标。
+ * 真机上部分基础库在 canvas 设为物理像素后，clientX/y 仍可能按物理像素回报（#257）：
+ * 若坐标明显超出窗口逻辑尺寸，则按 dpr 折回逻辑像素。
+ */
+export function touchToPoint(t: WxTouch, win: { windowWidth: number; windowHeight: number; pixelRatio: number }): TouchPoint {
+  let x = t.clientX ?? t.x ?? t.pageX ?? 0;
+  let y = t.clientY ?? t.y ?? t.pageY ?? 0;
+  const w = win.windowWidth || 1;
+  const h = win.windowHeight || 1;
+  const dpr = win.pixelRatio || 1;
+  if (dpr > 1 && (x > w * 1.25 || y > h * 1.25)) {
+    x /= dpr;
+    y /= dpr;
+  }
+  return { id: t.identifier, x, y };
+}
+const toPts = (list: WxTouch[], win: WxWindowInfo): TouchPoint[] => list.map((t) => touchToPoint(t, win));
 
 function mapPlatform(raw: string | undefined): SystemInfo['platform'] {
   const p = (raw ?? '').toLowerCase();
@@ -167,10 +179,11 @@ export function createWechatPlatform(api: WxApi, opts?: { benchmarkLevel?: numbe
   };
 
   const bindTouch = (h: TouchHandlers) => {
-    const start = (e: WxTouchEvent) => h.start(toPts(e.changedTouches?.length ? e.changedTouches : e.touches));
-    const move = (e: WxTouchEvent) => h.move(toPts(e.touches?.length ? e.touches : e.changedTouches));
-    const end = (e: WxTouchEvent) => h.end(toPts(e.changedTouches?.length ? e.changedTouches : e.touches));
-    const cancel = (e: WxTouchEvent) => h.cancel(toPts(e.changedTouches?.length ? e.changedTouches : e.touches));
+    const win = () => readWindow(api);
+    const start = (e: WxTouchEvent) => h.start(toPts(e.changedTouches?.length ? e.changedTouches : e.touches, win()));
+    const move = (e: WxTouchEvent) => h.move(toPts(e.touches?.length ? e.touches : e.changedTouches, win()));
+    const end = (e: WxTouchEvent) => h.end(toPts(e.changedTouches?.length ? e.changedTouches : e.touches, win()));
+    const cancel = (e: WxTouchEvent) => h.cancel(toPts(e.changedTouches?.length ? e.changedTouches : e.touches, win()));
     api.onTouchStart(start);
     api.onTouchMove(move);
     api.onTouchEnd(end);

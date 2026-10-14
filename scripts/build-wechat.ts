@@ -14,6 +14,8 @@ import { walk } from './size-check';
 import { CHARSET_FILE, charsetText, diffCharset, checkCoverage, collectGlyphs, formatMissing, readCmap, writeReport } from './font-glyphs';
 
 export const DEFAULT_APPID = 'wx3dd635e3cc359d30';
+/** 开发者工具 / 真机胶囊旁展示用中文名（勿用 package.name，避免显示 null/英文包名） */
+export const WECHAT_PROJECT_NAME = '墨卷三国';
 export const APPID_ENV = 'WX_APPID';
 /** 小游戏书法字体源（由 npm run font:build:wechat 生成并入库；CI 无源字体，只做覆盖检查） */
 export const WECHAT_FONT_SRC = 'wechat-assets/fonts/wenkai.ttf';
@@ -55,6 +57,7 @@ export function projectConfig(appid: string, projectname: string) {
   return {
     appid,
     projectname,
+    description: projectname,
     compileType: 'game',
     setting: { es6: false, enhance: false, minified: false, postcss: false, urlCheck: true },
     packOptions: { ignore: [], include: [] },
@@ -71,9 +74,8 @@ export function buildWechat(dir: string, root: string, env: Record<string, strin
   if (!existsSync(gameJs)) throw new Error(`${gameJs} 不存在，先跑 vite build --mode wechat`);
   const hits = findBrowserGlobals(readFileSync(gameJs, 'utf8'));
   if (hits.length) throw new Error(`game.js 含浏览器全局访问：${[...new Set(hits)].join(', ')}`);
-  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { name: string };
   writeFileSync(join(dir, 'game.json'), JSON.stringify(gameJson(), null, 2) + '\n');
-  writeFileSync(join(dir, 'project.config.json'), JSON.stringify(projectConfig(resolveAppId(env), pkg.name), null, 2) + '\n');
+  writeFileSync(join(dir, 'project.config.json'), JSON.stringify(projectConfig(resolveAppId(env), WECHAT_PROJECT_NAME), null, 2) + '\n');
 
   const urls = wechatFontPackageUrls(root);
   if (!urls.length) throw new Error('rules.fonts.platforms.wechat.brush 未配置 faces（微信端须加载书法字）');

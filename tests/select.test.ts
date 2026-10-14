@@ -8,7 +8,8 @@ import { RunSession } from '../src/game/run';
 import { PAGE_ACTIONS, PlaceholderScene } from '../src/game/scenes/placeholder';
 import { gridCell, SELECT_LAYOUT as L, skillSeals } from '../src/game/select/layout';
 import { canStart, canSwap, clearSlot, comboOf, initialState, mainSkillsOf, pickHero, roster, starterDeckSize, swap } from '../src/game/select/model';
-import { isLocked, SelectScene, wrapChars, wrapWidth } from '../src/game/select/scene';
+import { detailCloseRect, isLocked, SelectScene, wrapChars, wrapWidth } from '../src/game/select/scene';
+import { t } from '../src/data/text';
 
 const center = (r: { x: number; y: number; w: number; h: number }) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
 
@@ -145,6 +146,28 @@ describe('点将：场景交互', () => {
     expect(overlays.ids()).toEqual(['detail:hero:H04']);
     sc.exit();
     expect(overlays.size).toBe(0);
+  });
+  it('#257 详情浮层：关闭按钮可关；点外部可关；文案走文本表', () => {
+    const { sc, overlays } = mkScene({ initial: { main: 'H03', sub: 'H04' } });
+    sc.gesture({ type: 'longpress', at: center(gridCell(0)) }); // 曹操 H01
+    expect(overlays.ids()).toEqual(['detail:hero:H01']);
+    const top = overlays.top()!;
+    expect(top.rect).toBeTruthy();
+    const btn = detailCloseRect(top.rect!);
+    expect(btn.w).toBeGreaterThanOrEqual(44);
+    expect(btn.h).toBeGreaterThanOrEqual(44);
+    // 点面板内非按钮区域：不关（仍 modal 吞掉）
+    expect(overlays.gesture({ type: 'tap', at: { x: top.rect!.x + 30, y: top.rect!.y + 40 } })).toBe(true);
+    expect(overlays.size).toBe(1);
+    // 点关闭按钮
+    expect(overlays.gesture({ type: 'tap', at: center(btn) })).toBe(true);
+    expect(overlays.size).toBe(0);
+    // 再开：点外部关闭
+    sc.gesture({ type: 'longpress', at: center(gridCell(0)) });
+    expect(overlays.gesture({ type: 'tap', at: { x: 2, y: 840 } })).toBe(true);
+    expect(overlays.size).toBe(0);
+    expect(t('select.detail_close')).toBe('关闭');
+    expect(t('select.detail_close_hint')).toBe('点外部关闭');
   });
   it('空闲时停帧；选满后「出征」呼吸光只持续 2.4s', () => {
     const { sc } = mkScene();
