@@ -29,7 +29,7 @@ import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH } from '../../../core/rules';
 import { drawSuit } from '../../overlays/icons';
-import type { CardInst, Enemy } from '../../../core/types';
+import type { CardInst, Enemy, EnemyAct } from '../../../core/types';
 import type { GestureEvent } from '../../../engine/input';
 import type { OverlayStack } from '../../../engine/modal';
 import type { Scene, SceneContext } from '../../../engine/scene';
@@ -40,6 +40,7 @@ import { cardDetail, enemyDetail, LongPressDetail, openDetail, skillDetail, type
 import { makeRespond } from '../../overlays/response';
 import { openRevive } from '../../overlays/revive';
 import { reviveFxDone, reviveFxFrame, type ReviveFx } from './revive-fx';
+import { drawEnemyPlayCard, enemyPlayCardRect, enemyPlayInfo } from './enemy-play-card';
 import { CONFIG } from '../../../data/config';
 import { drawBossIntro, INTRO_MS, introFrame, SKIP_FADE_MS, type IntroData, type IntroKind } from './boss-intro';
 import type { SeenBosses } from '../../prefs/seen-bosses';
@@ -90,6 +91,10 @@ export interface BattleDevOverrides {
   /** `?intro=first|repeat|phase[&introT=<ms>]`：预览首领登场 / 阶段台词（#107）；introT 定格在该时刻供截图 */
   intro?: IntroKind;
   introT?: number;
+  /** `?enemyPlay=1`：定格敌方出牌牌面供截图（#157） */
+  enemyPlay?: boolean;
+  /** `?enemyPlayInk=1`：定格复活作废化墨到出牌牌面（#157） */
+  enemyPlayInk?: boolean;
 }
 
 export interface BattleDeps {
@@ -158,6 +163,8 @@ export class BattleScene implements Scene<BattleParams> {
   mode: BattleMode = 'idle';
   /** 复活后的化墨 / 意图交叉淡入（PRD 4.4.1） */
   reviveFx: ReviveFx | null = null;
+  /** DEV 截图：定格复活化墨，不按时长清除（#157） */
+  private reviveFxFrozen = false;
   /** 灵光一闪弹层打开中（关闭后再开排队的响应窗口，#105 规格 §2） */
   private epiOpen: Promise<void> | null = null;
   readonly q = new PresentationQueue();
@@ -473,6 +480,35 @@ export class BattleScene implements Scene<BattleParams> {
   intentRect(e: Enemy): Rect | null {
     const r = this.enemyRect(e);
     return r && { x: r.x + r.w - 40, y: r.y - 14, w: 50, h: 28 };
+  }
+  /** 敌方出牌牌面矩形（#157；布局来自 rules.battleEnemyPlay） */
+  enemyPlayRect(): Rect {
+    const safe = this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H };
+    return enemyPlayCardRect(this.W, safe.y);
+  }
+  /**
+   * 当前应显示的敌方出牌：优先复活作废化墨，其次 enemy_act 出手表现。
+   * 只读现有意图 / reviveFx / 表现队列，不改 core。
+   */
+  enemyPlayState(): { uid: number; acts: EnemyAct[]; dmg: number; ink: number; alpha: number; bob: number } | null {
+    const fx = this.reviveFx;
+    if (fx) {
+      for (const uid of fx.cancelled) {
+        // DEV 定格截图：固定化墨中段，避免真实时钟跑完后 oldAlpha 归零
+        const frame = this.reviveFxFrozen ? { newAlpha: 0.5, oldAlpha: 0.85, ink: 0.7 } : reviveFxFrame(fx, uid, this.fxNow(), this.reducedMotion());
+        if (frame.oldAlpha <= 0) continue;
+        const prev = fx.prev.get(uid);
+        if (!prev) continue;
+        return { uid, acts: prev.acts, dmg: prev.dmg, ink: frame.ink, alpha: frame.oldAlpha, bob: 0 };
+      }
+    }
+    const cur = this.q.current;
+    const uid = cur?.id === 'enemy_act' ? (cur.data?.uid as number | undefined) : undefined;
+    if (uid == null) return null;
+    const e = this.g.en.find((x) => x.uid === uid);
+    if (!e) return null;
+    const it = enemyIntent(e);
+    return { uid, acts: it.acts, dmg: it.dmg, ink: 0, alpha: 1, bob: this.q.progress(cur!) };
   }
   countdownRect(e: Enemy): Rect | null {
     const r = this.enemyRect(e);
@@ -887,7 +923,7 @@ export class BattleScene implements Scene<BattleParams> {
     return this.deps.reducedMotion?.() ?? prefersReducedMotion();
   }
   reviveFxActive() {
-    if (this.reviveFx && reviveFxDone(this.reviveFx, this.fxNow(), this.reducedMotion())) this.reviveFx = null;
+    if (!this.reviveFxFrozen && this.reviveFx && reviveFxDone(this.reviveFx, this.fxNow(), this.reducedMotion())) this.reviveFx = null;
     return !!this.reviveFx;
   }
   animating() {
@@ -977,6 +1013,7 @@ export class BattleScene implements Scene<BattleParams> {
     const back = this.g.en.filter((e) => e.row === 'back');
     const front = this.g.en.filter((e) => e.row === 'front');
     for (const e of [...back, ...front]) this.drawEnemy(ctx, e);
+    this.drawEnemyPlayCard(ctx);
     this.drawJudge(ctx);
     this.drawHeroes(ctx);
     this.drawTally(ctx);
@@ -1166,6 +1203,14 @@ export class BattleScene implements Scene<BattleParams> {
     ctx.globalAlpha = a0;
   }
 
+  /** 敌方出牌牌面（#157） */
+  drawEnemyPlayCard(ctx: Ctx2DLike) {
+    const st = this.enemyPlayState();
+    if (!st) return;
+    const info = enemyPlayInfo(st.acts, st.dmg);
+    drawEnemyPlayCard(ctx, this.enemyPlayRect(), info, { alpha: st.alpha, ink: st.ink, bob: st.bob });
+  }
+
   /** 意图框（图标 + 数字） */
   drawIntent(ctx: Ctx2DLike, ir: Rect, it: ReturnType<typeof enemyIntent>, lethal: boolean) {
     rect(ctx, ir, lethal ? C.cinnabar : C.lac1);
@@ -1302,6 +1347,25 @@ export class BattleScene implements Scene<BattleParams> {
         const r = this.handLayoutAt(-1).rects[i];
         const safe = this.deps.safe ?? { x: 0, y: 0, w: this.W, h: this.H };
         if (r) openDetail(ov, cardDetail(g.hand[i]), { x: r.x + r.w / 2, y: r.y + r.h / 2 }, safe, this.deps.measure());
+      }
+    }
+    // #157 截图：定格敌方出牌牌面 / 复活化墨到牌面
+    if (d.enemyPlay || d.enemyPlayInk) {
+      const e = g.alive()[0];
+      if (e) {
+        e.pat = [['杀', '杀']];
+        e.step = 0;
+        e.reviveFlash = false;
+        if (d.enemyPlayInk) {
+          this.reviveFxFrozen = true;
+          this.reviveFx = {
+            start: this.fxNow() - 150,
+            prev: new Map([[e.uid, { acts: ['杀', '杀'], dmg: 2 }]]),
+            cancelled: new Set([e.uid]),
+          };
+        } else {
+          void this.q.push('enemy_act', 1e9, true, { uid: e.uid });
+        }
       }
     }
   }

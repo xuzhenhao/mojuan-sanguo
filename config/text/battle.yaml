@@ -9,3 +9,4 @@ strings:
   abandon_confirm_body: 确定放弃？本局进度将清空
   abandon_cancel: 取消
   abandon_ok: 放弃
+  enemy_play_label: 敌方出牌
