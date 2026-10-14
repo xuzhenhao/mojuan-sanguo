@@ -1,0 +1,46 @@
+# 小游戏体验版预览二维码（#207 / M2 W8）。独立 workflow，不改主 CI（ci.yml）。
+# 私钥只从 Actions secret WX_UPLOAD_PRIVATE_KEY 读；未配置时预览步骤跳过并给出提示，job 不失败。
+name: WeChat Preview
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: wechat-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    env:
+      HAS_WX_KEY: ${{ secrets.WX_UPLOAD_PRIVATE_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build:wechat
+      - name: 未配置私钥提示
+        if: env.HAS_WX_KEY != 'true'
+        run: |
+          echo "::notice title=体验版预览已跳过::未配置 Actions secret WX_UPLOAD_PRIVATE_KEY（Settings → Secrets and variables → Actions）"
+          echo '### 体验版预览：已跳过（未配置 WX_UPLOAD_PRIVATE_KEY）' >> "$GITHUB_STEP_SUMMARY"
+      - name: 安装 miniprogram-ci（不写入 package.json）
+        if: env.HAS_WX_KEY == 'true'
+        run: npm i --no-save miniprogram-ci@2.1.31
+      - name: 生成预览二维码
+        if: env.HAS_WX_KEY == 'true'
+        env:
+          WX_UPLOAD_PRIVATE_KEY: ${{ secrets.WX_UPLOAD_PRIVATE_KEY }}
+        run: npx tsx scripts/wechat-preview.ts dist-wechat wechat-preview/qrcode.jpg
+      - name: 上传二维码 artifact
+        if: env.HAS_WX_KEY == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wechat-preview-qrcode
+          path: wechat-preview/qrcode.jpg
+          if-no-files-found: error
+          retention-days: 14
