@@ -5,9 +5,17 @@ import { t } from '../src/data/text';
 import { OverlayStack } from '../src/engine/modal';
 import type { Surface } from '../src/engine/surfaces';
 import { pauseLayout } from '../src/game/result/pause';
-import { ABANDON_H, dialogButtons } from '../src/game/result/resume';
 import { defaultSettings, type Settings } from '../src/game/prefs/settings';
-import { BATTLE_PAUSE_ID, battlePauseFlow, battlePauseLayout, drawBattlePause, pauseIconLayout } from '../src/game/scenes/battle/pause-menu';
+import {
+  abandonConfirmLayout,
+  BATTLE_ABANDON_ID,
+  drawAbandonConfirm,
+  BATTLE_PAUSE_ID,
+  battlePauseFlow,
+  battlePauseLayout,
+  drawBattlePause,
+  pauseIconLayout,
+} from '../src/game/scenes/battle/pause-menu';
 import { BattleScene } from '../src/game/scenes/battle/scene';
 
 const f = { width: 390, height: 844 };
@@ -71,20 +79,41 @@ describe('#196 战斗内暂停面板', () => {
     tap(ov, L.resume);
     expect(await p).toBe('continue');
   });
-  it('放弃本局 → 二次确认；返回回到暂停面板，确定 → abandon', async () => {
+  it('放弃本局 → 弹二次确认，不直接结算；取消回到暂停面板，放弃 → abandon', async () => {
     const { ov, deps } = mk();
-    const p = battlePauseFlow(ov, f, deps);
+    let done: string | null = null;
+    const p = battlePauseFlow(ov, f, deps).then((r) => (done = r));
     tap(ov, battlePauseLayout(f).abandon);
     await flush();
-    expect(ov.ids()).toEqual(['abandon']);
-    const btn = dialogButtons(f, ABANDON_H);
-    tap(ov, btn.left);
+    expect(ov.ids()).toEqual([BATTLE_ABANDON_ID]);
+    expect(done).toBeNull(); // 点放弃不直接结算
+    // 点外部不关闭
+    ov.gesture({ type: 'tap', at: { x: 5, y: 5 } });
     await flush();
+    expect(ov.ids()).toEqual([BATTLE_ABANDON_ID]);
+    const C = abandonConfirmLayout(f);
+    for (const r of [C.cancel, C.ok]) {
+      expect(r.w).toBeGreaterThanOrEqual(44);
+      expect(r.h).toBeGreaterThanOrEqual(44);
+    }
+    expect(C.cancel.x + C.cancel.w).toBeLessThanOrEqual(C.ok.x);
+    tap(ov, C.cancel);
+    await flush();
+    expect(done).toBeNull();
     expect(ov.ids()).toEqual([BATTLE_PAUSE_ID]);
     tap(ov, battlePauseLayout(f).abandon);
     await flush();
-    tap(ov, btn.right);
-    expect(await p).toBe('abandon');
+    tap(ov, C.ok);
+    await p;
+    expect(done).toBe('abandon');
+    expect(ov.size).toBe(0);
+  });
+  it('二次确认文案走文本表：确定放弃？本局进度将清空 + 取消 / 放弃', () => {
+    const texts: string[] = [];
+    const c = { fillStyle: '', font: '', globalAlpha: 1, fillRect() {}, fillText: (s: string) => texts.push(s) };
+    drawAbandonConfirm(c as never, f);
+    expect(texts).toEqual(['放弃本局', '确定放弃？本局进度将清空', '取消', '放弃']);
+    expect(t('battle.abandon_confirm_body')).toBe('确定放弃？本局进度将清空');
   });
 });
 
@@ -105,7 +134,7 @@ describe('#196 战斗页暂停钮', () => {
     expect(n).toBe(1);
     expect(scene().pauseHit()).toBeNull();
   });
-  it('顶条右侧回合文字给暂停钮让位', () => {
+  it('暂停钮视觉直径 34、热区 44×44；回合文字右缘与热区留 textGap 不重叠', () => {
     const fills: { s: string; x: number }[] = [];
     const ctx = {
       globalAlpha: 1,
@@ -119,7 +148,14 @@ describe('#196 战斗页暂停钮', () => {
     };
     const sc = scene(() => {});
     sc.draw('main', { name: 'main', canvas: {} as never, ctx, scale: 1, dirty: true } as unknown as Surface);
-    const right = fills.find((x) => x.s.includes('回合'))!;
-    expect(right.x).toBeLessThan(sc.pauseHit()!.x + 44 / 2 - BATTLE_PAUSE.pauseBtn.r);
+    const hit = sc.pauseHit()!;
+    expect(BATTLE_PAUSE.pauseBtn.r * 2).toBe(34);
+    expect(hit.w).toBe(44);
+    expect(hit.h).toBe(44);
+    expect(hit.x + hit.w).toBeLessThanOrEqual(390);
+    expect(hit.y).toBeGreaterThanOrEqual(0);
+    const right = fills.find((x) => x.s.includes('回合'))!; // 右对齐：x 即文字右缘
+    expect(right.x).toBe(hit.x - BATTLE_PAUSE.pauseBtn.textGap);
+    expect(right.x).toBeLessThan(hit.x);
   });
 });

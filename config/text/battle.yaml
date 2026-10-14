@@ -5,3 +5,7 @@ strings:
   pause_continue: 继续
   pause_settings: 设置
   pause_abandon: 放弃本局
+  abandon_confirm_title: 放弃本局
+  abandon_confirm_body: 确定放弃？本局进度将清空
+  abandon_cancel: 取消
+  abandon_ok: 放弃

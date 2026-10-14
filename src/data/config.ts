@@ -90,7 +90,8 @@ export interface EnemyCfg {
 }
 /** rules.battlePause（#196） */
 export interface BattlePauseCfg {
-  pauseBtn: { r: number; hit: number; right: number };
+  pauseBtn: { r: number; hit: number; right: number; textGap: number };
+  confirm: { w: number; h: number; btnW: number; btnH: number; btnGap: number; padBottom: number };
   panel: { w: number; padTop: number; padBottom: number };
   button: { w: number; h: number; gap: number };
   scrimAlpha: number;
@@ -322,7 +323,8 @@ export function relicEffect(relics: readonly string[], key: keyof RelicEffects):
 
 /** rules.battlePause（#196）；缺省值与 rules.yaml 一致 */
 export const BATTLE_PAUSE: BattlePauseCfg = CONFIG.rules.battlePause ?? {
-  pauseBtn: { r: 14, hit: 44, right: 16 },
+  pauseBtn: { r: 17, hit: 44, right: 12, textGap: 8 },
+  confirm: { w: 320, h: 210, btnW: 120, btnH: 48, btnGap: 16, padBottom: 24 },
   panel: { w: 260, padTop: 70, padBottom: 24 },
   button: { w: 200, h: 48, gap: 12 },
   scrimAlpha: 0.85,

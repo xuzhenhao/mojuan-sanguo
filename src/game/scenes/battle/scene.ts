@@ -971,7 +971,7 @@ export class BattleScene implements Scene<BattleParams> {
     const tb = this.topBar();
     text(ctx, tb.left, 16, L.top.y + 13, { size: 18, color: C.gold, font: FONT.brush });
     const pi = this.deps.onPause ? pauseIconLayout(w, L.top.y) : null;
-    text(ctx, tb.right, pi ? pi.cx - pi.r - 10 : w - 16, L.top.y + 13, { size: 14, color: C.goldLo, font: FONT.num, align: 'right' });
+    text(ctx, tb.right, pi ? pi.textRight : w - 16, L.top.y + 13, { size: 14, color: C.goldLo, font: FONT.num, align: 'right' });
     if (pi) drawPauseIcon(ctx, w, L.top.y);
     // 敌阵：后排 → 前排 → 附件
     const back = this.g.en.filter((e) => e.row === 'back');
