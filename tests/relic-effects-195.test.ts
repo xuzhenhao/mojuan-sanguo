@@ -55,7 +55,7 @@ describe('#195 战斗内宝物效果由 abilities 配置驱动', () => {
     a.startBattle();
     const b = mk(5, ['R08', 'R02']);
     b.startBattle();
-    expect(b.handLimit()).toBe(a.handLimit() + 2 - 1);
+    expect(b.handLimit()).toBe(a.handLimit() + relicAbility(['R08', 'R02'], 'passive', 'handLimit'));
   });
 
   it('所有 abilities 均为已知触发时机且有数值；core 不按宝物 id 判断', () => {
