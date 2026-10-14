@@ -1,8 +1,8 @@
 import { CARDS, starterDeck } from '../data/cards';
 import { BATTLES, ENEMIES, ENEMY_CARDS, MAX_FLASH_MARKS } from '../data/enemies';
 import { HEROES, RULES } from '../data/heroes';
-import { abilitySum, atomAmount, CONFIG, relicAbility } from '../data/config';
-import { cardMatches, Effects, judgeFromCard, standardJudgeDeck, type Source } from './effects';
+import { abilitySum, CONFIG, relicAbility } from '../data/config';
+import { cardMatches, Effects, judgeFromCard, judgeOk, standardJudgeDeck, type Source } from './effects';
 import { AFFIXES, EPIPHANY } from '../data/affixes';
 import { rndInt, shuffle, type Rng } from './rng';
 import {
@@ -13,9 +13,9 @@ import {
   enemyDodges,
   enemyIntent,
   epiphanyRoll,
+  delayTrickCombat,
   isRed,
   isShaPlay,
-  lebuSkips,
   pick3,
   playerShaDamage,
   RANK_CH,
@@ -797,24 +797,17 @@ export class Game {
     if (discards.length) this.log('回合结束弃牌');
     await this.enemyTurn();
   }
-  /** 敌人判定区：乐不思蜀（持续 N 回合）、闪电（命中移除，最多 N 次） */
+  /** 敌人判定区：通用延时锦囊结算（跳过出牌 / 命中移除均由卡牌 abilities 驱动，#176） */
   async resolveJudgeArea(e: Enemy) {
     let skipAtk = false;
     for (const c of e.judge.slice()) {
       if (e.hp <= 0 || this.over) break;
       const left = (e.delayLeft?.[c.uid] ?? 1) - 1;
       let done = left <= 0;
-      if (c.id === 'D001') {
-        const r = await this.judge(`${e.name}·乐不思蜀`);
-        if (lebuSkips(r)) {
-          skipAtk = true;
-          this.log(`${e.name}乐不思蜀生效，不出杀/锦囊`);
-        } else this.log('判定为♥，乐不思蜀本回合失效');
-      } else {
-        const srcs: Source[] = this.effects.cardSources(c, false).filter((s) => s.ab.trigger.when === 'enemy_turn_start');
-        const r = await this.effects.emit('enemy_turn_start', srcs, { owner: e, card: c });
-        if (r.judged) done = true;
-      }
+      const srcs: Source[] = this.effects.cardSources(c, false).filter((s) => s.ab.trigger.when === 'enemy_turn_start');
+      const r = await this.effects.emit('enemy_turn_start', srcs, { owner: e, card: c });
+      if (r.skipEnemyActs) skipAtk = true;
+      if (r.removeDelayed) done = true;
       e.delayLeft = { ...(e.delayLeft ?? {}), [c.uid]: left };
       if (done) {
         e.judge = e.judge.filter((x) => x !== c);
@@ -984,11 +977,12 @@ export class Game {
     this.io.enemySummon?.({ type: 'enemy_summon', source: src, enemyId: id, summoned: n });
     return n;
   }
-  /** 敌方锦囊（意图「锦囊:<id>」）。目前只有 D003 闪电：放入玩家判定区（同一时间最多 1 张）。 */
+  /** 敌方锦囊（意图「锦囊:<id>」）：延时伤害类放入玩家判定区（同 id 同时最多 1 张；数值来自卡牌配置，#176） */
   async enemyTrick(e: Enemy, id: string) {
     const card = CONFIG.cards[id];
     const name = card?.name ?? id;
-    if (id !== 'D003') {
+    const combat = card ? delayTrickCombat(card) : null;
+    if (!combat?.hasDamage || combat.amount == null || combat.duration == null) {
       this.log(`${e.name}的锦囊【${name}】未实装，跳过`);
       return;
     }
@@ -998,10 +992,8 @@ export class Game {
     }
     this.log(`${e.name}对你使用【${name}】`);
     if (await this.trickNegated(name, e)) return;
-    const judgeAb = card.abilities.find((a) => a.trigger.when === 'enemy_turn_start');
-    const amount = e.trickOverrides?.[id]?.amount ?? atomAmount(judgeAb ? [judgeAb] : [], 'damage') ?? 3;
-    const left = (card.abilities.flatMap((a) => a.do).find((x) => x.do === 'apply_status')?.duration as number | undefined) ?? 4;
-    const t: PlayerDelayed = { id, name, from: e.uid, amount, left };
+    const amount = e.trickOverrides?.[id]?.amount ?? combat.amount;
+    const t: PlayerDelayed = { id, name, from: e.uid, amount, left: combat.duration };
     this.pJudge.push(t);
     this.io.playerDelayed?.({ type: 'player_delayed', action: 'place', trick: t, source: e });
   }
@@ -1017,20 +1009,22 @@ export class Game {
       this.io.playerDelayed?.({ type: 'player_delayed', action: 'remove', trick: t, source: e });
     }
   }
-  /** 玩家判定区：施放者每个回合开始判定 1 次（♠2–9 命中受雷伤并移除；未命中次数用完移除） */
+  /** 玩家判定区：施放者每个回合开始判定 1 次（命中条件 / 伤害属性来自卡牌配置，#176） */
   async resolvePlayerJudge(e: Enemy) {
     for (const t of this.pJudge.filter((x) => x.from === e.uid)) {
       if (this.over) return;
+      const combat = CONFIG.cards[t.id] ? delayTrickCombat(CONFIG.cards[t.id]) : null;
       const r = await this.judge(t.name);
       t.left--;
-      const hit = r.suit === 'S' && r.rank >= 2 && r.rank <= 9;
+      const hit = combat?.success ? judgeOk(r, combat.success) : false;
       if (hit || t.left <= 0) {
         this.pJudge = this.pJudge.filter((x) => x !== t);
         this.io.playerDelayed?.({ type: 'player_delayed', action: hit ? 'hit' : 'expire', trick: t, source: e });
       }
       if (hit) {
         this.log(`【${t.name}】命中`);
-        await this.dmgPlayer(t.amount, e, '雷');
+        const el = combat?.element === 'thunder' ? '雷' : combat?.element === 'fire' ? '火' : undefined;
+        await this.dmgPlayer(t.amount, e, el);
       } else this.log(t.left > 0 ? `【${t.name}】未命中（还剩 ${t.left} 次）` : `【${t.name}】判定次数用完，移除`);
       this.io.update();
     }

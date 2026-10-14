@@ -2,7 +2,7 @@ import { AFFIXES, EPIPHANY, RARITY_WEIGHT } from '../data/affixes';
 import { CARDS } from '../data/cards';
 import { ENEMY_CARDS } from '../data/enemies';
 import { RULES } from '../data/heroes';
-import { CONFIG } from '../data/config';
+import { CONFIG, type Ability } from '../data/config';
 import type { AffixDef, CardInst, Enemy, EnemyAct } from './types';
 import type { Rng } from './rng';
 
@@ -27,7 +27,6 @@ export function applyDamage(t: { hp: number; armor: number }, n: number) {
 
 /** 判定结果（PRD 5.10）：返回该判定是否“生效” */
 export const judgeRed = (c: Pick<CardInst, 'suit'>) => isRed(c);
-export const lebuSkips = (c: Pick<CardInst, 'suit'>) => c.suit !== 'H';
 
 /** 玩家杀的伤害：基础 1 + 牌面加成 + 词条 + 酒/傲骨/义勇 */
 export function playerShaDamage(c: CardInst, buffs: { jiu: number; aogu: number; yiyong: number }, bonus = 0, extra = 0) {
@@ -43,14 +42,71 @@ export function enemyDodges(e: Enemy, unblockable: boolean, need = 1) {
   return false;
 }
 
-/** 敌方锦囊意图的说明（闪电：放入你的判定区） */
-export function trickTip(e: Pick<Enemy, 'trickOverrides'>, id: string) {
-  const name = CARDS[id]?.name ?? id;
-  if (id === 'D003') {
-    const n = e.trickOverrides?.D003?.amount ?? 3;
-    return `${name}：放入你的判定区，其每回合开始判定 ♠2–9 则你受${n}点雷电伤害，最多判定 4 次`;
+/** 判定成功条件（与 effect.schema success 对齐） */
+export type JudgeSuccess = {
+  color?: 'red' | 'black';
+  suit?: ('S' | 'H' | 'C' | 'D')[];
+  rankRange?: number[];
+  not?: boolean;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DelayDo = Record<string, any> & { do: string; then?: DelayDo[]; else?: DelayDo[] };
+
+function walkDo(xs: DelayDo[] | undefined, pred: (a: DelayDo) => boolean): DelayDo | undefined {
+  for (const a of xs ?? []) {
+    if (pred(a)) return a;
+    const hit = walkDo(a.then, pred) ?? walkDo(a.else, pred);
+    if (hit) return hit;
   }
-  return `${name}：锦囊`;
+  return undefined;
+}
+
+/** 延时锦囊战斗参数：从卡牌 abilities 读取（#176，不再按 D001/D003 id 特判） */
+export function delayTrickCombat(card: { abilities: Ability[] }) {
+  const dos = card.abilities.flatMap((a) => a.do) as DelayDo[];
+  const duration = dos.find((x) => x.do === 'apply_status')?.duration as number | undefined;
+  const judgeAb = card.abilities.find((a) => a.trigger.when === 'enemy_turn_start');
+  const judgeAct = (judgeAb?.do as DelayDo[] | undefined)?.find((x) => x.do === 'judge');
+  if (!judgeAct?.success) return null;
+  const dmg = walkDo(judgeAct.then, (x) => x.do === 'damage');
+  return {
+    success: judgeAct.success as JudgeSuccess,
+    amount: dmg?.amount as number | undefined,
+    duration,
+    element: dmg?.element as string | undefined,
+    hasDamage: !!dmg,
+    hasSkip: !!walkDo(judgeAct.then, (x) => x.do === 'skip_enemy_acts'),
+  };
+}
+
+/** 把判定条件格式化成提示文案（如 ♠2–9、不为 ♥） */
+export function formatJudgeSuccess(s: JudgeSuccess): string {
+  const bits: string[] = [];
+  if (s.color) bits.push(s.color === 'red' ? '红色' : '黑色');
+  if (s.suit?.length) {
+    const suits = s.suit.map((x) => SUIT_CH[x]).join('');
+    if (s.rankRange?.length === 2) bits.push(`${suits}${RANK_CH[s.rankRange[0]]}–${RANK_CH[s.rankRange[1]]}`);
+    else bits.push(suits);
+  } else if (s.rankRange?.length === 2) {
+    bits.push(`${RANK_CH[s.rankRange[0]]}–${RANK_CH[s.rankRange[1]]}`);
+  }
+  const body = bits.join('') || '条件';
+  return s.not ? `不为 ${body}` : body;
+}
+
+const ELEMENT_TIP: Record<string, string> = { thunder: '雷电', fire: '火焰' };
+
+/** 敌方锦囊意图的说明（延时锦囊：放入你的判定区；文案由卡牌配置生成） */
+export function trickTip(e: Pick<Enemy, 'trickOverrides'>, id: string) {
+  const card = CONFIG.cards[id];
+  const name = card?.name ?? CARDS[id]?.name ?? id;
+  const combat = card ? delayTrickCombat(card) : null;
+  if (!combat?.hasDamage || combat.amount == null || combat.duration == null) return `${name}：锦囊`;
+  const n = e.trickOverrides?.[id]?.amount ?? combat.amount;
+  const cond = formatJudgeSuccess(combat.success);
+  const el = ELEMENT_TIP[combat.element ?? ''] ?? '';
+  return `${name}：放入你的判定区，其每回合开始判定 ${cond} 则你受${n}点${el}伤害，最多判定 ${combat.duration} 次`;
 }
 
 /** 敌人意图：本回合将出的牌与总伤害（伤害全部来自牌） */

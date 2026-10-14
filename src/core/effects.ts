@@ -31,6 +31,10 @@ export interface Ctx {
   hit?: boolean;
   /** 判定成功（主动技用于后续联动） */
   judged?: boolean;
+  /** 延时锦囊：本敌方回合跳过杀/锦囊（乐不思蜀等） */
+  skipEnemyActs?: boolean;
+  /** 延时锦囊：判定命中后移出判定区（闪电等） */
+  removeDelayed?: boolean;
   /** 覆盖原子数值（如张角的闪电 amount 2） */
   amountOverride?: number;
 }
@@ -248,6 +252,16 @@ export const ATOMS: Record<string, Atom> = {
   modify() {},
   /** convert 由 Effects.converts() 查询（出牌 / 响应窗口），无即时效果 */
   convert() {},
+  /** 乐不思蜀等：本敌方回合不出杀/锦囊 */
+  skip_enemy_acts(g, _a, ctx, src) {
+    ctx.skipEnemyActs = true;
+    const who = ctx.owner?.name ?? '';
+    g.log(`${who}${src.ab.name}生效，不出杀/锦囊`);
+  },
+  /** 闪电等：判定命中后移出判定区（由 resolveJudgeArea 执行移除） */
+  remove_delayed(_g, _a, ctx) {
+    ctx.removeDelayed = true;
+  },
   reveal_intent(g, a, ctx, src) {
     const t = ctx.chosen;
     if (!t) return;
@@ -410,6 +424,8 @@ export class Effects {
       }
       ctx.hit = local.hit ?? ctx.hit;
       ctx.judged = local.judged ?? ctx.judged;
+      ctx.skipEnemyActs = local.skipEnemyActs ?? ctx.skipEnemyActs;
+      ctx.removeDelayed = local.removeDelayed ?? ctx.removeDelayed;
       if (local.negatedBy) {
         ctx.negatedBy = local.negatedBy;
         ctx.negatedName = local.negatedName;
