@@ -3,7 +3,7 @@
  * 不引入 weapp-adapter；不采集 openid 或任何用户信息。
  * 字体加载见 createWechatFonts（#205）；benchmark→渲染倍率见 fetchBenchmarkLevel（#206）；埋点 transport 见 telemetry.ts（#208，RealtimeLogManager）。
  */
-export { createWechatPlatform, fetchBenchmarkLevel, paintWechatBackdrop } from './platform';
+export { createWechatPlatform, fetchBenchmarkLevel, paintWechatBackdrop, touchToPoint } from './platform';
 export { createWechatFonts } from './fonts';
 export type { WxFontApi, WechatFonts } from './fonts';
 export { createWechatStorage, estimateBytes, STORAGE_WARN_BYTES } from './storage';

@@ -7,8 +7,11 @@ import type { Canvas2DLike } from '../../engine/types';
 /** 触摸点（逻辑像素；与 engine TouchPoint 字段对应） */
 export interface WxTouch {
   identifier: number;
-  clientX: number;
-  clientY: number;
+  clientX?: number;
+  clientY?: number;
+  pageX?: number;
+  pageY?: number;
+  /** 部分基础库 / 适配器别名；可能是逻辑或物理像素（#257） */
   x?: number;
   y?: number;
 }
