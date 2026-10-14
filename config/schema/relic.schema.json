@@ -91,11 +91,12 @@
       "properties": {
         "on": {
           "enum": [
+            "battle_start",
             "turn_start",
             "use",
             "passive"
           ],
-          "description": "turn_start=每回合开始；use=使用时（丹药）；passive=常驻修正"
+          "description": "battle_start=每场战斗开始；turn_start=每回合开始；use=使用时（丹药）；passive=常驻修正"
         },
         "ling": {
           "type": "integer",
@@ -108,6 +109,17 @@
             "const": 0
           },
           "description": "手牌上限 ±N（passive）"
+        },
+        "armor": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "护甲 +N（battle_start）"
+        },
+        "epiphanyRate": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "灵光一闪基础概率 +比例（passive，多件相加）"
         }
       }
     }

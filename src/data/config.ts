@@ -301,9 +301,13 @@ export interface RelicEffects {
   /** 营地疗伤 +N */
   restHeal?: number;
 }
-/** 战斗内能力（config relics/potions abilities，#238）：on 为触发时机，其余为数值 */
+/** 战斗内能力（config relics/potions abilities，#238/#195）：on 为触发时机，其余为数值 */
 export interface AbilityCfg {
-  on: 'turn_start' | 'use' | 'passive';
+  on: 'battle_start' | 'turn_start' | 'use' | 'passive';
+  /** 护甲 +N（battle_start） */
+  armor?: number;
+  /** 灵光一闪基础概率 +比例（passive） */
+  epiphanyRate?: number;
   /** 军令 +N（走 addLing） */
   ling?: number;
   /** 手牌上限 ±N（passive） */

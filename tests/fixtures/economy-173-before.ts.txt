@@ -6,7 +6,7 @@
   { id: 'R05', name: '草船借箭符', rarity: 'E', desc: '首回合敌方第 1 张杀无效' },
   { id: 'R06', name: '金鳞甲片', rarity: 'R', desc: '战斗开始 3 甲' },
   { id: 'R07', name: '赤壁东风', rarity: 'L', desc: '火伤 +1' },
-  { id: 'R08', name: '铜雀台瓦', rarity: 'E', desc: '手牌上限 +2' },
+  { id: 'R08', name: '铜雀台瓦', rarity: 'E', desc: '手牌上限 +1' },
   { id: 'R09', name: '断袖香囊', rarity: 'R', desc: '商店 −20%' },
   { id: 'R10', name: '狼毫', rarity: 'N', desc: '每场首次摸牌 +1' },
   { id: 'R11', name: '玉玺残印', rarity: 'L', desc: '战斗胜利回 2' },

@@ -3,7 +3,7 @@ import { BATTLES, ENEMIES, ENEMY_CARDS, MAX_FLASH_MARKS } from '../data/enemies'
 import { HEROES, RULES } from '../data/heroes';
 import { abilitySum, atomAmount, CONFIG, relicAbility } from '../data/config';
 import { cardMatches, Effects, judgeFromCard, standardJudgeDeck, type Source } from './effects';
-import { AFFIXES } from '../data/affixes';
+import { AFFIXES, EPIPHANY } from '../data/affixes';
 import { rndInt, shuffle, type Rng } from './rng';
 import {
   addAffix,
@@ -470,7 +470,10 @@ export class Game {
     this.en = this.battle.en.map((id) => this.spawnEnemy(id));
     this.log(`—— 第${this.battleIdx + 1}战：${this.battle.name} ——`);
     this.effects.emitSync('battle_start', this.effects.playerSources());
-    if (this.startArmorBonus > 0) this.p.armor = Math.min(this.p.armor + this.startArmorBonus, Math.max(this.p.armor, CONFIG.rules.event.startArmorCap));
+    // 开场护甲（宝物 battle_start armor 如 R06 + 事件收编护甲）统一受 rules.event.startArmorCap 约束；
+    // 只截断本次加成，不削减已有护甲（#195 / 总策划口径：不绕过开局护甲上限）
+    this.addStartArmor(relicAbility(this.relics, 'battle_start', 'armor'));
+    this.addStartArmor(this.startArmorBonus);
     this.playerTurn();
   }
   playerTurn() {
@@ -745,11 +748,21 @@ export class Game {
     void this.activate('aogu', c);
   }
 
+  /** 开场护甲加成：加后不超过 startArmorCap；已高于上限时不加也不减 */
+  addStartArmor(n: number) {
+    if (n <= 0) return;
+    this.p.armor = Math.min(this.p.armor + n, Math.max(this.p.armor, CONFIG.rules.event.startArmorCap));
+  }
+
   // ---------- 灵光一闪 ----------
+  /** 灵光一闪基础概率 = settings.epiphanyRate ?? 配置基础值，+ 宝物 passive epiphanyRate（如 R01 +5%，#195） */
+  epiphanyRate() {
+    return (this.settings.epiphanyRate ?? EPIPHANY.baseRate) + relicAbility(this.relics, 'passive', 'epiphanyRate');
+  }
   async maybeEpiphany(c: CardInst, ok: boolean, wasSha = false) {
     if (!ok) return;
     this.sincePity++;
-    if (!epiphanyRoll(this.rng, this.epiCount, this.sincePity, this.settings.epiphanyRate)) return;
+    if (!epiphanyRoll(this.rng, this.epiCount, this.sincePity, this.epiphanyRate())) return;
     if (wasSha) return;
     const pool = affixPool(c, this.deckMaster);
     if (!pool.length) return;
