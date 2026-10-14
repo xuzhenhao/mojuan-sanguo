@@ -40,7 +40,7 @@
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
-      "description": "局外经济/营地的参数化效果（战斗内效果由 core 结算，不在此）",
+      "description": "局外经济/营地的参数化效果（战斗内效果见 abilities）",
       "properties": {
         "goldBonus": {
           "type": "integer",
@@ -67,6 +67,47 @@
           "type": "integer",
           "minimum": 1,
           "description": "营地疗伤 +N"
+        }
+      }
+    },
+    "abilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ability"
+      },
+      "description": "战斗内能力列表（#238）"
+    }
+  },
+  "$defs": {
+    "ability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "on"
+      ],
+      "minProperties": 2,
+      "description": "战斗内能力（#238/#195）：on 为触发时机，其余字段为数值，代码不按 id 判断",
+      "properties": {
+        "on": {
+          "enum": [
+            "turn_start",
+            "use",
+            "passive"
+          ],
+          "description": "turn_start=每回合开始；use=使用时（丹药）；passive=常驻修正"
+        },
+        "ling": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "军令 +N（走 addLing，受产令上限）"
+        },
+        "handLimit": {
+          "type": "integer",
+          "not": {
+            "const": 0
+          },
+          "description": "手牌上限 ±N（passive）"
         }
       }
     }

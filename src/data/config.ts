@@ -291,6 +291,16 @@ export interface RelicEffects {
   /** 营地疗伤 +N */
   restHeal?: number;
 }
+/** 战斗内能力（config relics/potions abilities，#238）：on 为触发时机，其余为数值 */
+export interface AbilityCfg {
+  on: 'turn_start' | 'use' | 'passive';
+  /** 军令 +N（走 addLing） */
+  ling?: number;
+  /** 手牌上限 ±N（passive） */
+  handLimit?: number;
+}
+export type AbilityTrigger = AbilityCfg['on'];
+export type AbilityValueKey = Exclude<keyof AbilityCfg, 'on'>;
 export interface RelicCfg {
   id: string;
   name: string;
@@ -298,12 +308,23 @@ export interface RelicCfg {
   desc: string;
   oneShot?: boolean;
   effects?: RelicEffects;
+  abilities?: AbilityCfg[];
 }
 export interface PotionCfg {
   id: string;
   name: string;
   desc: string;
   price: number;
+  abilities?: AbilityCfg[];
+}
+
+/** 持有宝物在某触发时机下某数值能力之和（未知 id 忽略；#238） */
+export function relicAbility(relics: readonly string[], on: AbilityTrigger, key: AbilityValueKey): number {
+  return relics.reduce((n, id) => n + abilitySum(CONFIG.relics[id]?.abilities, on, key), 0);
+}
+/** 能力列表中某触发时机下某数值之和 */
+export function abilitySum(list: readonly AbilityCfg[] | undefined, on: AbilityTrigger, key: AbilityValueKey): number {
+  return (list ?? []).reduce((n, a) => n + (a.on === on ? (a[key] ?? 0) : 0), 0);
 }
 
 /** 持有宝物某项效果之和（未知 id 忽略） */
