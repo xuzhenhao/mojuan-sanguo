@@ -3,3 +3,5 @@ id: R01
 name: 墨灵笔
 rarity: R
 desc: "灵光 +5%"
+abilities:
+  - { on: passive, epiphanyRate: 0.05 } # 灵光 +5%

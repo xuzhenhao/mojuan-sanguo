@@ -3,3 +3,5 @@ id: R06
 name: 金鳞甲片
 rarity: R
 desc: "战斗开始 3 甲"
+abilities:
+  - { on: battle_start, armor: 3 } # 战斗开始 3 甲

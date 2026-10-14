@@ -3,7 +3,7 @@ import { BATTLES, ENEMIES, ENEMY_CARDS, MAX_FLASH_MARKS } from '../data/enemies'
 import { HEROES, RULES } from '../data/heroes';
 import { abilitySum, atomAmount, CONFIG, relicAbility } from '../data/config';
 import { cardMatches, Effects, judgeFromCard, standardJudgeDeck, type Source } from './effects';
-import { AFFIXES } from '../data/affixes';
+import { AFFIXES, EPIPHANY } from '../data/affixes';
 import { rndInt, shuffle, type Rng } from './rng';
 import {
   addAffix,
@@ -470,6 +470,9 @@ export class Game {
     this.en = this.battle.en.map((id) => this.spawnEnemy(id));
     this.log(`—— 第${this.battleIdx + 1}战：${this.battle.name} ——`);
     this.effects.emitSync('battle_start', this.effects.playerSources());
+    // 宝物 battle_start armor（如 R06 3 甲；#195 走 config abilities）
+    const relicArmor = relicAbility(this.relics, 'battle_start', 'armor');
+    if (relicArmor > 0) this.p.armor += relicArmor;
     if (this.startArmorBonus > 0) this.p.armor = Math.min(this.p.armor + this.startArmorBonus, Math.max(this.p.armor, CONFIG.rules.event.startArmorCap));
     this.playerTurn();
   }
@@ -746,10 +749,14 @@ export class Game {
   }
 
   // ---------- 灵光一闪 ----------
+  /** 灵光一闪基础概率 = settings.epiphanyRate ?? 配置基础值，+ 宝物 passive epiphanyRate（如 R01 +5%，#195） */
+  epiphanyRate() {
+    return (this.settings.epiphanyRate ?? EPIPHANY.baseRate) + relicAbility(this.relics, 'passive', 'epiphanyRate');
+  }
   async maybeEpiphany(c: CardInst, ok: boolean, wasSha = false) {
     if (!ok) return;
     this.sincePity++;
-    if (!epiphanyRoll(this.rng, this.epiCount, this.sincePity, this.settings.epiphanyRate)) return;
+    if (!epiphanyRoll(this.rng, this.epiCount, this.sincePity, this.epiphanyRate())) return;
     if (wasSha) return;
     const pool = affixPool(c, this.deckMaster);
     if (!pool.length) return;
