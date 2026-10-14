@@ -1,7 +1,7 @@
 /**
  * 微信小游戏 Platform 实现（#204 / wechat-minigame-m2.md §3.1）：
  * 画布（首个 createCanvas 上屏，其后离屏）、触摸 → TouchPoint、onShow/onHide、
- * raf / now、launchQuery、systemInfo（safeArea + 胶囊）、存储 / 字体 / 埋点。
+ * raf / now、launchQuery、systemInfo（safeArea + 胶囊 + 可选 benchmarkLevel）、存储 / 字体 / 埋点。
  * 不引入 weapp-adapter；不采集 openid 或任何用户信息。
  */
 import type { Canvas2DLike, CanvasLike, Ctx2DLike, TouchPoint } from '../../engine/types';
@@ -67,7 +67,25 @@ export function paintWechatBackdrop(ctx: Ctx2DLike, w: number, h: number) {
   c.fillRect(0, 0, w, h);
 }
 
-export function createWechatPlatform(api: WxApi): Platform {
+/** #206：读取 `wx.getDeviceBenchmarkInfo`（回调包 Promise；缺 API / 失败 → undefined） */
+export function fetchBenchmarkLevel(api: WxApi): Promise<number | undefined> {
+  return new Promise((resolve) => {
+    if (!api.getDeviceBenchmarkInfo) {
+      resolve(undefined);
+      return;
+    }
+    try {
+      api.getDeviceBenchmarkInfo({
+        success: (res) => resolve(typeof res.benchmarkLevel === 'number' ? res.benchmarkLevel : undefined),
+        fail: () => resolve(undefined),
+      });
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+export function createWechatPlatform(api: WxApi, opts?: { benchmarkLevel?: number }): Platform {
   // 首个 createCanvas = 上屏画布（官方约定）；之后的为离屏
   const screen = api.createCanvas();
   sizeMain(screen, api);
@@ -145,7 +163,7 @@ export function createWechatPlatform(api: WxApi): Platform {
           return undefined;
         }
       })();
-    return { width, height, dpr, safeArea, capsule, platform: mapPlatform(plat) };
+    return { width, height, dpr, safeArea, capsule, platform: mapPlatform(plat), benchmarkLevel: opts?.benchmarkLevel };
   };
 
   const bindTouch = (h: TouchHandlers) => {

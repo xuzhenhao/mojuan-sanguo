@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_RENDER_CONFIG } from '../src/engine/settings';
 import { bootGame } from '../src/game/boot';
 import { prefersReducedMotion, setReducedMotionSource } from '../src/game/motion';
-import { createWechatPlatform, createWechatStorage, estimateBytes, STORAGE_WARN_BYTES, type WxApi } from '../src/platform/wechat';
+import { createWechatPlatform, createWechatStorage, estimateBytes, fetchBenchmarkLevel, STORAGE_WARN_BYTES, type WxApi } from '../src/platform/wechat';
 import type { WxTouchEvent } from '../src/platform/wechat/wx-api';
 import { fakeCanvas } from './engine-fakes';
 
@@ -255,5 +255,31 @@ describe('#204 entry 不碰 DOM', () => {
       expect(s, f).not.toMatch(/\bdocument\./);
       expect(s, f).not.toMatch(/\bwindow\./);
     }
+  });
+});
+
+describe('#206 benchmark → systemInfo', () => {
+  it('fetchBenchmarkLevel：有 API 读 success；缺 API / fail → undefined', async () => {
+    expect(await fetchBenchmarkLevel(mockWx())).toBeUndefined();
+    expect(
+      await fetchBenchmarkLevel(
+        mockWx({
+          getDeviceBenchmarkInfo: (opt) => opt.success?.({ benchmarkLevel: 18, modelLevel: 3 }),
+        }),
+      ),
+    ).toBe(18);
+    expect(
+      await fetchBenchmarkLevel(
+        mockWx({
+          getDeviceBenchmarkInfo: (opt) => opt.fail?.(),
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it('createWechatPlatform 把 benchmarkLevel 挂到 systemInfo', () => {
+    const p = createWechatPlatform(mockWx(), { benchmarkLevel: 12 });
+    expect(p.systemInfo().benchmarkLevel).toBe(12);
+    expect(createWechatPlatform(mockWx()).systemInfo().benchmarkLevel).toBeUndefined();
   });
 });
