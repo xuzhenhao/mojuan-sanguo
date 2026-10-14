@@ -653,6 +653,147 @@
           "type": "integer",
           "minimum": 0
         },
+        "bossConfirm": {
+          "type": "object",
+          "description": "首领确认弹层布局与动效（#188 / spec-107 A）",
+          "additionalProperties": false,
+          "required": [
+            "panel",
+            "card",
+            "status",
+            "button",
+            "scrimAlpha",
+            "popInMs",
+            "fadeOutMs",
+            "glowPeriodMs"
+          ],
+          "properties": {
+            "panel": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "x",
+                "w",
+                "top",
+                "minTop",
+                "padTop",
+                "padBottom"
+              ],
+              "properties": {
+                "x": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "top": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "minTop": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "padTop": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "padBottom": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "card": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "w",
+                "h",
+                "gap"
+              ],
+              "properties": {
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "h": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "gap": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "status": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "w",
+                "h",
+                "gap"
+              ],
+              "properties": {
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "h": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "gap": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "button": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "w",
+                "h",
+                "gap"
+              ],
+              "properties": {
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "h": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "gap": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "scrimAlpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "popInMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fadeOutMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "glowPeriodMs": {
+              "type": "number",
+              "minimum": 1
+            }
+          }
+        },
         "pulseMs": {
           "type": "integer",
           "minimum": 100
@@ -1213,6 +1354,19 @@
           "pattern": "^/[A-Za-z0-9_\\-/]*/$",
           "description": "本地模式（仅开发构建，VITE_ASSET_LOCAL=1）：dev server 在此站内路径下提供 art/out/ 静态目录（以 / 开头和结尾）；需先跑 scripts/build-portraits.py"
         }
+      }
+    },
+    "battlePause": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "战斗内暂停钮与暂停面板布局（#196）",
+      "required": ["pauseBtn", "panel", "button", "confirm", "scrimAlpha"],
+      "properties": {
+        "pauseBtn": { "type": "object", "additionalProperties": false, "required": ["r", "hit", "right", "textGap"], "properties": { "r": { "type": "number", "minimum": 0 }, "hit": { "type": "number", "minimum": 44 }, "right": { "type": "number", "minimum": 0 }, "textGap": { "type": "number", "minimum": 0 } } },
+        "panel": { "type": "object", "additionalProperties": false, "required": ["w", "padTop", "padBottom"], "properties": { "w": { "type": "number", "minimum": 0 }, "padTop": { "type": "number", "minimum": 0 }, "padBottom": { "type": "number", "minimum": 0 } } },
+        "confirm": { "type": "object", "additionalProperties": false, "required": ["w", "h", "btnW", "btnH", "btnGap", "padBottom"], "properties": { "w": { "type": "number", "minimum": 0 }, "h": { "type": "number", "minimum": 0 }, "btnW": { "type": "number", "minimum": 0 }, "btnH": { "type": "number", "minimum": 0 }, "btnGap": { "type": "number", "minimum": 0 }, "padBottom": { "type": "number", "minimum": 0 } } },
+        "button": { "type": "object", "additionalProperties": false, "required": ["w", "h", "gap"], "properties": { "w": { "type": "number", "minimum": 0 }, "h": { "type": "number", "minimum": 0 }, "gap": { "type": "number", "minimum": 0 } } },
+        "scrimAlpha": { "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "battleTitle": {

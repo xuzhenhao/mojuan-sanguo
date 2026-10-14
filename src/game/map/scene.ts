@@ -15,6 +15,10 @@ import type { FlowEvent } from '../flow';
 import { isComingSoon, type MapRouteParams } from './route';
 import type { HudInfo, MapSession } from './session';
 import { brushFont, sansFont } from '../fonts';
+import { MAP_CONFIG, type BossConfirmConfig } from '../../data/map';
+import { t } from '../../data/text';
+import { prefersReducedMotion } from '../motion';
+import { T } from '../scenes/p4-kit';
 
 type C2D = CanvasRenderingContext2D;
 
@@ -59,6 +63,8 @@ export interface MapSceneDeps {
   /** 右上暂停钮（#108）：打开暂停/设置浮层 */
   onPause?: () => void;
   layerSpacing?: number;
+  /** 首领确认弹层参数（默认 rules.yaml map.bossConfirm） */
+  bossConfirm?: BossConfirmConfig;
   moveMs?: number;
   pulseMs?: number;
 }
@@ -597,68 +603,135 @@ export class MapScene implements Scene {
     });
   }
 
-  /** 首领确认框（v3/boss.html）：整备 → false，出战 → true */
+  /** 首领确认框（#188 / spec-107 A）：整备 → false，出战 → true；必须点按钮，不能点外部关闭 */
   confirmBoss(): Promise<boolean> {
-    const { width: w, height: h } = this.ctx;
-    const box = { x: 30, y: h / 2 - 150, w: w - 60, h: 300 };
-    const btnW = (box.w - 60) / 2;
-    const prep = { x: box.x + 20, y: box.y + box.h - 66, w: btnW, h: 46 };
-    const fight = { x: box.x + 40 + btnW, y: prep.y, w: btnW, h: 46 };
+    const cfg = this.d.bossConfirm ?? MAP_CONFIG.bossConfirm;
+    const L = bossConfirmLayout(cfg, this.ctx.height);
     const hud = this.d.hud();
-    const inside = (r: Rect, p: Vec2) => hitInside(r, p); // #118：命中框 ≥ 44
+    const reduced = prefersReducedMotion();
+    const popMs = reduced ? Math.min(150, cfg.popInMs) : cfg.popInMs;
+    let el = 0;
+    let closing: { r: boolean; el: number } | null = null;
+    let glowT = 0;
     this.log.push('boss_confirm');
+    const alpha = () => {
+      const a = popMs > 0 ? Math.min(1, el / popMs) : 1;
+      return closing ? a * Math.max(0, 1 - closing.el / Math.max(1, cfg.fadeOutMs)) : a;
+    };
     const handle = this.d.overlays.push<boolean>({
       id: 'popup:boss-confirm',
       kind: 'popup',
       modal: true,
-      rect: box,
-      scrim: { color: 'rgba(0,0,0,.6)' }, // 地图压暗
+      rect: L.panel,
+      scrim: () => ({ color: `rgba(5,2,1,${cfg.scrimAlpha})`, alpha: alpha() }),
+      animating: () => closing !== null || el < popMs || !reduced,
+      update: (dt) => {
+        el += dt;
+        glowT += dt;
+        if (closing) {
+          closing.el += dt;
+          if (closing.el >= cfg.fadeOutMs) handle.close(closing.r);
+        }
+      },
       draw: (sf) => {
         const c = sf.ctx as unknown as C2D;
-        c.fillStyle = '#2a0f0c';
-        c.fillRect(box.x, box.y, box.w, box.h);
-        c.strokeStyle = GOLD;
+        const a = alpha();
+        const k = reduced || closing ? 1 : 0.92 + 0.08 * easeOutBack(popMs > 0 ? Math.min(1, el / popMs) : 1);
+        const cx = L.panel.x + L.panel.w / 2;
+        const cy = L.panel.y + L.panel.h / 2;
+        c.save();
+        c.globalAlpha = a;
+        c.translate(cx, cy);
+        c.scale(k, k);
+        c.translate(-cx, -cy);
+        // 面板：漆底 + 金描边（水墨扁平，无模糊投影）
+        c.fillStyle = T.lac2;
+        c.fillRect(L.panel.x, L.panel.y, L.panel.w, L.panel.h);
+        c.strokeStyle = T.goldMid;
         c.lineWidth = 2;
-        c.strokeRect(box.x, box.y, box.w, box.h);
+        c.strokeRect(L.panel.x, L.panel.y, L.panel.w, L.panel.h);
+        // Boss 牌：朱砂呼吸描边（代替 blur 光晕）
+        const breath = reduced ? 0.45 : 0.3 + 0.25 * (0.5 - 0.5 * Math.cos((glowT / cfg.glowPeriodMs) * Math.PI * 2));
+        c.strokeStyle = `rgba(212,96,76,${breath.toFixed(3)})`;
+        c.lineWidth = 6;
+        c.strokeRect(L.card.x - 4, L.card.y - 4, L.card.w + 8, L.card.h + 8);
+        c.fillStyle = T.paper2;
+        c.fillRect(L.card.x, L.card.y, L.card.w, L.card.h);
+        c.strokeStyle = T.gold;
+        c.lineWidth = 2;
+        c.strokeRect(L.card.x, L.card.y, L.card.w, L.card.h);
+        c.fillStyle = T.cinnabar;
+        c.font = brushFont(72);
         c.textAlign = 'center';
-        c.fillStyle = GOLD_HI;
-        c.font = brushFont(28);
-        c.fillText('进入首领战？', w / 2, box.y + 56);
-        c.fillStyle = PAPER;
-        c.font = sansFont(14);
-        c.fillText('（之后无法返回）', w / 2, box.y + 82);
-        c.fillStyle = '#f0b0a0';
-        c.font = brushFont(22);
-        c.fillText(`首领 · ${this.d.bossName}`, w / 2, box.y + 124);
-        c.fillStyle = PAPER;
-        c.font = sansFont(14);
-        c.fillText(`体力 ${hud.hp}/${hud.maxHp}`, w / 2, box.y + 160);
-        for (let i = 0; i < 3; i++) {
-          const x = w / 2 - 45 + i * 32;
-          c.strokeStyle = GOLD;
-          c.strokeRect(x, box.y + 176, 26, 26);
-          if (hud.potions[i]) {
-            c.fillStyle = '#4f9a7c';
-            c.fillText('丹', x + 13, box.y + 195);
-          }
+        c.textBaseline = 'middle';
+        c.fillText(this.d.bossGlyph, L.card.x + L.card.w / 2, L.card.y + L.card.h / 2 + 8);
+        // 竖排名（左上内缩 12）
+        c.fillStyle = T.ink;
+        c.font = brushFont(26);
+        c.textAlign = 'left';
+        c.textBaseline = 'top';
+        [...this.d.bossName].forEach((ch, i) => c.fillText(ch, L.card.x + 12, L.card.y + 12 + i * 28));
+        // 标题 / 副标题
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillStyle = T.gold;
+        c.font = brushFont(30);
+        c.fillText(t('map.boss_confirm_title'), cx, L.titleY);
+        c.fillStyle = T.paper3;
+        c.font = brushFont(14);
+        c.fillText(t('map.boss_confirm_sub'), cx, L.subY);
+        // 状态条：体力勾玉 → 丹药 3 格 → 铜钱
+        const st = L.status;
+        c.fillStyle = T.lac1;
+        c.fillRect(st.x, st.y, st.w, st.h);
+        c.strokeStyle = T.goldLo;
+        c.lineWidth = 1;
+        c.strokeRect(st.x, st.y, st.w, st.h);
+        const my = st.y + st.h / 2;
+        let x = st.x + 14;
+        for (let i = 0; i < hud.maxHp; i++) {
+          circle(c, x + 7, my, 7, i < hud.hp ? T.jade : '#3a3a3a', null);
+          x += 14 + 3;
         }
-        for (const [r, label, fill] of [
-          [prep, '整备', '#3a2a20'],
-          [fight, '出战', CINNABAR],
+        x += 8;
+        for (let i = 0; i < 3; i++) {
+          circle(c, x + 11, my, 11, T.lac1, T.goldLo, 1.5);
+          if (hud.potions[i]) {
+            c.fillStyle = T.jadeHi;
+            c.font = brushFont(13);
+            c.fillText('丹', x + 11, my + 1);
+          }
+          x += 22 + 6;
+        }
+        c.textAlign = 'right';
+        c.fillStyle = T.gold;
+        c.font = sansFont(14);
+        c.fillText(`${t('map.gold_prefix')}${hud.gold}`, st.x + st.w - 14, my);
+        // 按钮：整备（secondary）/ 出战（primary 朱砂）
+        c.textAlign = 'center';
+        for (const [r, key, fill, stroke] of [
+          [L.prepare, 'map.boss_confirm_prepare', T.lac3, T.goldLo],
+          [L.fight, 'map.boss_confirm_fight', T.cinnabar, T.gold],
         ] as const) {
           c.fillStyle = fill;
           c.fillRect(r.x, r.y, r.w, r.h);
-          c.strokeStyle = GOLD;
+          c.strokeStyle = stroke;
+          c.lineWidth = 1.5;
           c.strokeRect(r.x, r.y, r.w, r.h);
-          c.fillStyle = PAPER;
+          c.fillStyle = T.paper;
           c.font = brushFont(20);
-          c.fillText(label, r.x + r.w / 2, r.y + 30);
+          c.fillText(t(key), r.x + r.w / 2, r.y + r.h / 2 + 1);
         }
+        c.restore();
+        c.textAlign = 'left';
+        c.textBaseline = 'alphabetic';
       },
-      gesture: (e, hd) => {
-        if (e.type !== 'tap') return true;
-        if (inside(prep, e.at)) hd.close(false);
-        else if (inside(fight, e.at)) hd.close(true);
+      gesture: (e) => {
+        if (e.type !== 'tap' || closing) return true; // 模态：吞掉其它输入，不允许点外部关闭
+        if (hitInside(L.prepare, e.at)) closing = { r: false, el: 0 };
+        else if (hitInside(L.fight, e.at)) closing = { r: true, el: 0 };
+        if (closing && cfg.fadeOutMs <= 0) handle.close(closing.r);
+        this.ctx.invalidate('main');
         return true;
       },
     });
@@ -669,6 +742,29 @@ export class MapScene implements Scene {
   }
 }
 
+/** 首领确认弹层布局（spec-107 A1，设计坐标；按钮 112×44 ≥ 44 热区） */
+export function bossConfirmLayout(cfg: BossConfirmConfig, screenH: number) {
+  const p = cfg.panel;
+  const h = p.padTop + cfg.card.h + cfg.card.gap + 30 + 12 + 14 + cfg.status.gap + cfg.status.h + cfg.button.gap + 14 + cfg.button.h + p.padBottom;
+  const top = Math.min(p.top, Math.max(p.minTop, (screenH - h) / 2));
+  const panel: Rect = { x: p.x, y: top, w: p.w, h };
+  const cx = p.x + p.w / 2;
+  const card: Rect = { x: cx - cfg.card.w / 2, y: top + p.padTop, w: cfg.card.w, h: cfg.card.h };
+  const titleY = card.y + card.h + cfg.card.gap + 15;
+  const subY = titleY + 30;
+  const status: Rect = { x: cx - cfg.status.w / 2, y: subY + 7 + cfg.status.gap, w: cfg.status.w, h: cfg.status.h };
+  const by = status.y + status.h + cfg.button.gap + 14;
+  const bw = cfg.button.w;
+  const prepare: Rect = { x: cx - cfg.button.gap / 2 - bw, y: by, w: bw, h: cfg.button.h };
+  const fight: Rect = { x: cx + cfg.button.gap / 2, y: by, w: bw, h: cfg.button.h };
+  return { panel, card, titleY, subY, status, prepare, fight };
+}
+
+function easeOutBack(x: number) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+}
 function clamp(x: number, a: number, b: number) {
   return Math.max(a, Math.min(b, x));
 }

@@ -143,6 +143,16 @@ map:
   layerSpacing: 62 # 卷轴每层高度 dp
   moveMs: 500 # 头像沿路径移动
   pulseMs: 1400 # 可走节点脉冲周期
+  # 首领确认弹层（#188 / spec-107 A1/A4）：设计坐标 390×844；矮屏面板顶 = max(minTop, (H − 面板高)/2)
+  bossConfirm:
+    panel: { x: 28, w: 334, top: 150, minTop: 106, padTop: 22, padBottom: 18 }
+    card: { w: 150, h: 206, gap: 14 }
+    status: { w: 290, h: 52, gap: 14 }
+    button: { w: 112, h: 44, gap: 12 }
+    scrimAlpha: 0.55
+    popInMs: 250
+    fadeOutMs: 180
+    glowPeriodMs: 1600
 
 # 局内经济（#172，原 src/data/economy.ts ECONOMY；PRD 0.5.4 10.7/10.8/12.1/12.2/14.1–14.3/14.8）
 # 卡牌/宝物价格、删牌费、集市槽位见上方 shop:
@@ -197,6 +207,14 @@ settings:
     quality: { label: 画质, options: ['低', '中', '高'], default: '中', hidden: true }
 
 # ───────── 战斗页顶条标题（#216）：{n} = 本局第几战，{name} = 组包 / Boss 名；按节点类型选模板 ─────────
+# ───────── 战斗内暂停（#196）：右上暂停钮 + 暂停面板（继续 / 设置 / 放弃本局） ─────────
+battlePause:
+  pauseBtn: { r: 17, hit: 44, right: 12, textGap: 8 }
+  confirm: { w: 320, h: 210, btnW: 120, btnH: 48, btnGap: 16, padBottom: 24 }
+  panel: { w: 260, padTop: 70, padBottom: 24 }
+  button: { w: 200, h: 48, gap: 12 }
+  scrimAlpha: 0.85
+
 battleTitle:
   normal: '第{n}战 · {name}'
   elite: '第{n}战 · {name}' # 精英组包名自带「精英·」

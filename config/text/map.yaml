@@ -1,0 +1,9 @@
+# 地图页 UI 文案（#188）
+id: map
+strings:
+  boss_confirm_title: 进入首领战？
+  boss_confirm_sub: 之后无法返回
+  boss_confirm_prepare: 整备
+  boss_confirm_fight: 出战
+  boss_label: 首领
+  gold_prefix: '钱 '
