@@ -65,6 +65,11 @@ export function loopCardAllowedInChapter(c: Pick<CardCfg, 'tags' | 'rarity'>, ch
   return allowed.includes(c.rarity as RarityCode);
 }
 
+/** 卡是否带某 tag（config cards[].tags） */
+export function cardHasTag(cardId: string, tag: string): boolean {
+  return (CONFIG.cards[cardId]?.tags ?? []).includes(tag);
+}
+
 export function cardHasExemptTag(cardId: string): boolean {
   const tags = CONFIG.cards[cardId]?.tags ?? [];
   const exempt = zeroCostExemptTags();

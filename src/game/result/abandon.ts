@@ -4,7 +4,7 @@
  * 这里只负责：生成失败结局 + 埋点（run_abandon 入口/层数，run_end 按失败结算）。
  * 存档删除与局外入账仍在离开结算页时做（flow.md §1：结算页展示前进程被杀，下次仍弹续玩）。
  */
-import { track as defaultTrack } from '../telemetry';
+import { track as defaultTrack, trackMatch } from '../telemetry';
 import { outcomeFromSave } from './adapter';
 import { computeSoul, type RunOutcome } from './settlement';
 import type { ResumeSummary } from './store';
@@ -20,8 +20,21 @@ export function abandonRun(
   track: (ev: string, data: Record<string, unknown>) => void = defaultTrack,
 ): RunOutcome {
   const o = outcomeFromSave(s, raw, now);
-  track('run_abandon', { entry, layer: s.layer, chapter: s.chapter });
-  track('run_end', { result: 'defeat', abandoned: true, chapter: o.chapter, layer: o.layer, soul: computeSoul(o).total, runSeed: o.runSeed });
+  trackMatch('run_abandon', { entry, layer: s.layer, chapter: s.chapter }, track);
+  trackMatch(
+    'run_end',
+    {
+      result: 'defeat',
+      abandoned: true,
+      chapter: o.chapter,
+      layer: o.layer,
+      tianming: o.tianming,
+      duration_ms: o.durationMs,
+      soul: computeSoul(o).total,
+      runSeed: o.runSeed,
+    },
+    track,
+  );
   return o;
 }
 
