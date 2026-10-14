@@ -39,6 +39,8 @@ export const IMPLEMENTED = {
     'add_enemy_acts',
     'redirect_sha',
     'chain',
+    'skip_enemy_acts',
+    'remove_delayed',
   ],
   conds: [
     'hp_full',

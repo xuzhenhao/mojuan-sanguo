@@ -218,7 +218,9 @@
             "add_enemy_acts",
             "summon",
             "chain",
-            "reveal_intent"
+            "reveal_intent",
+            "skip_enemy_acts",
+            "remove_delayed"
           ]
         },
         "target": {
