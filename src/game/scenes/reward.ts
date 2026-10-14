@@ -8,6 +8,7 @@
  * 规则只读 core 与 src/data；数值见 src/data/economy.ts。
  */
 import type { Rng } from '../../core/rng';
+import { trackMatch } from '../telemetry';
 import { def } from '../../core/rules';
 import type { BattleKind } from '../../data/economy';
 import type { GestureEvent } from '../../engine/input';
@@ -255,6 +256,14 @@ export class RewardScene implements Scene<RewardParams | undefined> {
     if (this.finished) return;
     this.finished = true;
     if (this.st.potion === 'full') resolvePotion(this.inv, this.st, null); // 离开视同放弃
+    const k = this.st.offer.kind;
+    trackMatch('card_pick', {
+      card_id: this.st.cardTaken?.id ?? null,
+      skipped: !this.st.cardTaken,
+      offered: this.st.offer.cards.map((c) => c.id),
+      battle_tag: k === 'boss' ? 'boss' : k === 'elite' ? 'elite' : 'minion',
+      chapter: this.inv.chapter,
+    });
     this.env.done();
   }
 
