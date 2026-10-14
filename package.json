@@ -35,7 +35,9 @@
     "font:build": "tsx scripts/build-wenkai-subset.ts",
     "font:build:wechat": "tsx scripts/build-wenkai-subset.ts --wechat",
     "sim:241": "tsx scripts/sim-241.ts",
-    "presim:241": "npm run config:build"
+    "presim:241": "npm run config:build",
+    "font:check": "tsx scripts/font-check.ts",
+    "prefont:check": "npm run config:build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

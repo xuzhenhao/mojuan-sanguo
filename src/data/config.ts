@@ -89,6 +89,8 @@ export interface EnemyCfg {
   intro?: { line?: string; phaseLine?: string };
 }
 export interface ConfigBundle {
+  /** UI 文本表（#182）：config/text/<ns>.yaml → text[ns][key] */
+  text: Record<string, Record<string, string>>;
   rules: {
     lingPerTurn: number;
     drawPerTurn: number;

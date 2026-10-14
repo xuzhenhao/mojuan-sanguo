@@ -1,0 +1,8 @@
+# UI 文本表（#182）第一批：读档 / 回滚提示（原 src/game/run/state.ts noticeText）
+# 代码用 t('notice.<key>') 取；书法收字（font-glyphs.ts）自动扫描 config 下全部字符串
+id: notice
+strings:
+  migrate_battle_restart: 存档已更新，本场战斗重新开始
+  migrate_node_rollback: 存档已更新，已回到上一处
+  node_restart_battle: 已回到本场战斗开打前
+  node_restart_other: 已回到进入此处前
