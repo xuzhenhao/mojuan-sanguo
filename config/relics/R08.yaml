@@ -2,6 +2,6 @@
 id: R08
 name: 铜雀台瓦
 rarity: E
-desc: "手牌上限 +2"
+desc: "手牌上限 +1"
 abilities:
-  - { on: passive, handLimit: 2 } # 手牌上限 +2
+  - { on: passive, handLimit: 1 } # 手牌上限 +1
