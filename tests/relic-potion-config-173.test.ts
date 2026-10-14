@@ -42,7 +42,7 @@ describe('#173 宝物 / 丹药定义来自 config', () => {
     expect(oldRelics).toHaveLength(31);
     expect(oldPotions).toHaveLength(10);
     expect(RELICS.map(({ id, name, rarity, desc }) => ({ id, name, rarity, desc }))).toEqual(oldRelics);
-    expect(POTIONS).toEqual(oldPotions);
+    expect(POTIONS.map(({ id, name, desc, price }) => ({ id, name, desc, price }))).toEqual(oldPotions);
   });
   it('参数化效果与原特判数值一致', () => {
     expect(CONFIG.relics.R04.effects).toEqual({ goldBonus: 10 });

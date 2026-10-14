@@ -3,3 +3,6 @@ id: R02
 name: 虎符
 rarity: Boss
 desc: "每回合 +1 令；手牌上限 −1"
+abilities:
+  - { on: turn_start, ling: 1 } # 每回合 +1 令
+  - { on: passive, handLimit: -1 } # 手牌上限 −1
