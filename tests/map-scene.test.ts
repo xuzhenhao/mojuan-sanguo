@@ -1,3 +1,5 @@
+import { bossConfirmLayout } from '../src/game/map/scene';
+import { t } from '../src/data/text';
 import { describe, expect, it } from 'vitest';
 import { MapScene, type MapSceneDeps } from '../src/game/map/scene';
 import { MapSession } from '../src/game/map/session';
@@ -123,24 +125,39 @@ describe('P3 地图页', () => {
     tick(scene, 600);
     expect(sent).toHaveLength(0);
   });
-  it('Boss：弹首领确认框；整备返回地图，出战才进入', async () => {
+  it('Boss：弹首领确认框；整备返回地图，出战才进入（#188：按钮热区、不可点外部关闭）', async () => {
     const { scene, session, overlays, sent } = setup();
     for (let i = 0; i < 8; i++) walk(session);
     expect(session.available).toEqual([BOSS_ID]);
+    const L = bossConfirmLayout(MAP_CONFIG.bossConfirm, 844);
+    for (const r of [L.prepare, L.fight]) {
+      expect(r.w).toBeGreaterThanOrEqual(44);
+      expect(r.h).toBeGreaterThanOrEqual(44);
+    }
+    expect(L.panel).toMatchObject({ x: 28, y: 150, w: 334 });
+    const mid = (r: { x: number; y: number; w: number; h: number }) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
     scene.gesture({ type: 'tap', at: scene.screenPos(session.node(BOSS_ID)!) });
     expect(overlays.ids()).toEqual(['popup:boss-confirm']);
     const sf = surface();
+    overlays.update(300);
     overlays.draw(sf.s, 16);
-    // 整备（左按钮）
-    overlays.gesture({ type: 'tap', at: { x: 30 + 20 + 10, y: 844 / 2 + 150 - 40 } });
+    // 点外部不关闭
+    expect(overlays.gesture({ type: 'tap', at: { x: 5, y: 830 } })).toBe(true);
+    overlays.update(500);
+    expect(overlays.size).toBe(1);
+    // 整备
+    overlays.gesture({ type: 'tap', at: mid(L.prepare) });
+    overlays.update(MAP_CONFIG.bossConfirm.fadeOutMs + 1);
     await Promise.resolve();
     await Promise.resolve();
     expect(overlays.size).toBe(0);
     tick(scene, 600);
     const before = sent.length;
     expect(sent.length).toBe(before);
+    // 出战
     scene.gesture({ type: 'tap', at: scene.screenPos(session.node(BOSS_ID)!) });
-    overlays.gesture({ type: 'tap', at: { x: 390 - 30 - 20 - 10, y: 844 / 2 + 150 - 40 } });
+    overlays.gesture({ type: 'tap', at: mid(L.fight) });
+    overlays.update(MAP_CONFIG.bossConfirm.fadeOutMs + 1);
     await Promise.resolve();
     await Promise.resolve();
     tick(scene, 600);
@@ -148,6 +165,15 @@ describe('P3 地图页', () => {
     expect(last.p).toMatchObject({ kind: 'battle', nodeType: 'BOSS', intro: 'boss', enemies: ['B1'] });
     expect(scene.log).toContain('boss_confirm:prepare');
     expect(scene.log).toContain('boss_confirm:fight');
+  });
+  it('#188 首领确认：矮屏面板上移不低于 minTop；文案走文本表', () => {
+    const cfg = MAP_CONFIG.bossConfirm;
+    const L = bossConfirmLayout(cfg, 640);
+    expect(L.panel.y).toBeGreaterThanOrEqual(cfg.panel.minTop);
+    expect(L.panel.y).toBeLessThanOrEqual(cfg.panel.top);
+    expect(t('map.boss_confirm_title')).toBe('进入首领战？');
+    expect(t('map.boss_confirm_prepare')).toBe('整备');
+    expect(t('map.boss_confirm_fight')).toBe('出战');
   });
   it('拖动滚动带惯性，两端回弹', () => {
     const { scene } = setup();

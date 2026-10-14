@@ -653,6 +653,147 @@
           "type": "integer",
           "minimum": 0
         },
+        "bossConfirm": {
+          "type": "object",
+          "description": "首领确认弹层布局与动效（#188 / spec-107 A）",
+          "additionalProperties": false,
+          "required": [
+            "panel",
+            "card",
+            "status",
+            "button",
+            "scrimAlpha",
+            "popInMs",
+            "fadeOutMs",
+            "glowPeriodMs"
+          ],
+          "properties": {
+            "panel": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "x",
+                "w",
+                "top",
+                "minTop",
+                "padTop",
+                "padBottom"
+              ],
+              "properties": {
+                "x": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "top": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "minTop": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "padTop": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "padBottom": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "card": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "w",
+                "h",
+                "gap"
+              ],
+              "properties": {
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "h": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "gap": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "status": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "w",
+                "h",
+                "gap"
+              ],
+              "properties": {
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "h": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "gap": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "button": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "w",
+                "h",
+                "gap"
+              ],
+              "properties": {
+                "w": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "h": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "gap": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "scrimAlpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "popInMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fadeOutMs": {
+              "type": "number",
+              "minimum": 0
+            },
+            "glowPeriodMs": {
+              "type": "number",
+              "minimum": 1
+            }
+          }
+        },
         "pulseMs": {
           "type": "integer",
           "minimum": 100
