@@ -56,7 +56,7 @@ describe('#183 FPS 计数器接引擎', () => {
     expect(c.last?.avgFps).toBe(40);
     expect(c.last?.verdict).toBe('below_target');
     expect(sink).toHaveBeenCalledTimes(1);
-    run(60, 1000 / 60); // 下一窗口，未到 5s 不再上报
+    run(61, 1000 / 60); // 下一窗口，未到 5s 不再上报
     expect(c.last?.verdict).toBe('ok');
     expect(sink).toHaveBeenCalledTimes(1);
     run(60 * 5, 1000 / 60);
