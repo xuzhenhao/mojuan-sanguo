@@ -25,3 +25,4 @@ abilities:
         success: { suit: [S], rankRange: [2, 9] }
         then:
           - { do: damage, target: self, amount: 3, element: thunder }
+          - { do: remove_delayed }
