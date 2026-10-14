@@ -207,6 +207,17 @@ settings:
     quality: { label: 画质, options: ['低', '中', '高'], default: '中', hidden: true }
 
 # ───────── 战斗页顶条标题（#216）：{n} = 本局第几战，{name} = 组包 / Boss 名；按节点类型选模板 ─────────
+# ───────── 敌方出牌牌面（#157）：出手时战场中央偏上显示牌面；复活作废化墨画在牌面上 ─────────
+battleEnemyPlay:
+  w: 88
+  h: 120
+  cx: 0.5 # 水平中心（相对屏宽）
+  top: 318 # 牌面顶边相对 safe.top
+  rise: 10 # 出手时上下浮动幅度
+  labelSize: 11
+  nameSize: 18
+  iconSize: 22
+
 # ───────── 战斗内暂停（#196）：右上暂停钮 + 暂停面板（继续 / 设置 / 放弃本局） ─────────
 battlePause:
   pauseBtn: { r: 17, hit: 44, right: 12, textGap: 8 }

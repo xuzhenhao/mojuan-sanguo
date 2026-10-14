@@ -211,6 +211,8 @@ export function bootGame(platform: Platform, opts: BootOptions) {
               detail: query.detail || undefined,
               intro: query.intro === 'first' || query.intro === 'repeat' || query.intro === 'phase' ? query.intro : undefined,
               introT: query.introT != null && query.introT !== '' ? Number(query.introT) : undefined,
+              enemyPlay: query.enemyPlay === '1',
+              enemyPlayInk: query.enemyPlayInk === '1',
             }
           : undefined,
         warn: (m) => platform.warn(m),

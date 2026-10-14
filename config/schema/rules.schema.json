@@ -1356,6 +1356,22 @@
         }
       }
     },
+    "battleEnemyPlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "敌方出牌牌面布局（#157）：出手时战场中央偏上显示；复活作废化墨画在牌面上",
+      "required": ["w", "h", "cx", "top", "rise", "labelSize", "nameSize", "iconSize"],
+      "properties": {
+        "w": { "type": "number", "minimum": 1 },
+        "h": { "type": "number", "minimum": 1 },
+        "cx": { "type": "number", "minimum": 0, "maximum": 1, "description": "水平中心（相对屏宽 0..1）" },
+        "top": { "type": "number", "minimum": 0, "description": "牌面顶边相对 safe.top 的偏移" },
+        "rise": { "type": "number", "minimum": 0, "description": "出手浮动幅度" },
+        "labelSize": { "type": "number", "minimum": 1 },
+        "nameSize": { "type": "number", "minimum": 1 },
+        "iconSize": { "type": "number", "minimum": 1 }
+      }
+    },
     "battlePause": {
       "type": "object",
       "additionalProperties": false,

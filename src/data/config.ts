@@ -88,6 +88,17 @@ export interface EnemyCfg {
   /** 首领登场台词（#107）：line = 登场墨带；phaseLine = 阶段 2 切换 */
   intro?: { line?: string; phaseLine?: string };
 }
+/** rules.battleEnemyPlay（#157） */
+export interface BattleEnemyPlayCfg {
+  w: number;
+  h: number;
+  cx: number;
+  top: number;
+  rise: number;
+  labelSize: number;
+  nameSize: number;
+  iconSize: number;
+}
 /** rules.battlePause（#196） */
 export interface BattlePauseCfg {
   pauseBtn: { r: number; hit: number; right: number; textGap: number };
@@ -140,6 +151,8 @@ export interface ConfigBundle {
       toggles: Record<string, { label: string; default: boolean; hidden?: boolean }>;
       choices: Record<string, { label: string; options: string[]; default: string; hidden?: boolean }>;
     };
+    /** 敌方出牌牌面（#157） */
+    battleEnemyPlay?: BattleEnemyPlayCfg;
     /** 战斗内暂停（#196）：暂停钮与面板布局 */
     battlePause?: BattlePauseCfg;
     /** 3 战回归基线（自动对局 / bstat）专用 */
@@ -353,4 +366,16 @@ export const BATTLE_PAUSE: BattlePauseCfg = CONFIG.rules.battlePause ?? {
   panel: { w: 260, padTop: 70, padBottom: 24 },
   button: { w: 200, h: 48, gap: 12 },
   scrimAlpha: 0.85,
+};
+
+/** rules.battleEnemyPlay（#157）；缺省值与 rules.yaml 一致 */
+export const BATTLE_ENEMY_PLAY: BattleEnemyPlayCfg = CONFIG.rules.battleEnemyPlay ?? {
+  w: 88,
+  h: 120,
+  cx: 0.5,
+  top: 318,
+  rise: 10,
+  labelSize: 11,
+  nameSize: 18,
+  iconSize: 22,
 };
