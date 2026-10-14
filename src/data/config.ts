@@ -136,8 +136,8 @@ export interface ConfigBundle {
       removeStep: number;
       shopSlots: { common: number; heroCard: number; relic: number; potion: number };
     };
-    /** 复活（PRD §4.4.1；仅天命<5） */
-    revive: { count: number; hpRatio: number; hpMin: number; armor: number };
+    /** 复活（PRD §4.4.1；仅天命 < tianmingMax） */
+    revive: { count: number; hpRatio: number; hpMin: number; armor: number; tianmingMax: number };
     /** 局内经济（#172） */
     economy: EconomyCfg;
     /** 开放章节数（PRD 10.1；schema 可选，缺省 1） */

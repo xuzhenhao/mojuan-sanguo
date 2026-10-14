@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { mkGame } from './helpers';
 import { enemyIntent, reviveAllowed, reviveHp } from '../src/core/rules';
@@ -26,15 +27,23 @@ function setup(answer: boolean | undefined, reviveLeft = 1, tianming = 0) {
 
 describe('#106 复活规则（rules.revive）', () => {
   it('体力 = max(hpMin, ceil(maxHp × hpRatio))：7/8 → 2，9 → 3', () => {
-    expect(CONFIG.rules.revive).toEqual({ count: 1, hpRatio: 0.25, hpMin: 2, armor: 3 });
+    expect(CONFIG.rules.revive).toEqual({ count: 1, hpRatio: 0.25, hpMin: 2, armor: 3, tianmingMax: 5 });
     expect([7, 8, 9, 10, 12].map((m) => reviveHp(m))).toEqual([2, 2, 3, 3, 3]);
     expect(reviveHp(9, { hpRatio: 0.5, hpMin: 1 })).toBe(5);
   });
-  it('有次数且天命 < 5 才可复活', () => {
+  it('有次数且天命 < tianmingMax 才可复活（#175 读配置）', () => {
+    const max = CONFIG.rules.revive.tianmingMax;
+    expect(max).toBe(5);
     expect(reviveAllowed(1, 0)).toBe(true);
-    expect(reviveAllowed(1, 4)).toBe(true);
-    expect(reviveAllowed(1, 5)).toBe(false);
+    expect(reviveAllowed(1, max - 1)).toBe(true);
+    expect(reviveAllowed(1, max)).toBe(false);
     expect(reviveAllowed(0, 0)).toBe(false);
+    expect(reviveAllowed(1, 3, 3)).toBe(false); // 可注入上限
+  });
+  it('#175 源码不再写死 REVIVE_TIANMING_MAX', () => {
+    const src = readFileSync('src/core/rules.ts', 'utf8');
+    expect(src).not.toMatch(/REVIVE_TIANMING_MAX\s*=\s*\d+/);
+    expect(src).toMatch(/CONFIG\.rules\.revive\.tianmingMax/);
   });
 });
 
@@ -75,10 +84,11 @@ describe('#106 core：复活流程', () => {
     expect(io.ended).toEqual([false]);
     expect(g.reviveLeft).toBe(1);
   });
-  it('无次数 / 天命 ≥5 / 无复活 IO：不弹层，直接战败', async () => {
+  it('无次数 / 天命 ≥ tianmingMax / 无复活 IO：不弹层，直接战败', async () => {
+    const max = CONFIG.rules.revive.tianmingMax;
     for (const [left, tm, ans] of [
       [0, 0, true],
-      [1, 5, true],
+      [1, max, true],
       [1, 0, undefined],
     ] as const) {
       const { g, io, asked } = setup(ans, left, tm);
