@@ -12,3 +12,4 @@ art/src/fonts/LXGWWenKai.ttf
 art/out/
 font-report/*
 !font-report/charset.txt
+wechat-preview/
