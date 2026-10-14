@@ -197,6 +197,13 @@ settings:
     quality: { label: 画质, options: ['低', '中', '高'], default: '中', hidden: true }
 
 # ───────── 战斗页顶条标题（#216）：{n} = 本局第几战，{name} = 组包 / Boss 名；按节点类型选模板 ─────────
+# ───────── 战斗内暂停（#196）：右上暂停钮 + 暂停面板（继续 / 设置 / 放弃本局） ─────────
+battlePause:
+  pauseBtn: { r: 14, hit: 44, right: 16 }
+  panel: { w: 260, padTop: 70, padBottom: 24 }
+  button: { w: 200, h: 48, gap: 12 }
+  scrimAlpha: 0.85
+
 battleTitle:
   normal: '第{n}战 · {name}'
   elite: '第{n}战 · {name}' # 精英组包名自带「精英·」

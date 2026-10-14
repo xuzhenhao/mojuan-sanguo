@@ -24,6 +24,7 @@ import {
 } from './hpview';
 import { textWidth } from '../../overlays/theme';
 import { hitInside } from '../../../engine/hit';
+import { drawPauseIcon, pauseIconLayout } from './pause-menu';
 import { Game, type BattleIO } from '../../../core/battle';
 import { seeded } from '../../../core/rng';
 import { def, enemyIntent, isRed, RANK_CH } from '../../../core/rules';
@@ -133,6 +134,8 @@ export interface BattleDeps {
   /** 当前地图节点类型（'BOSS' / 'ELITE' / …）；Boss 血条判定优先看它，没有再看敌人数据 tier（#129） */
   nodeType?(): string | undefined;
   warn?(msg: string): void;
+  /** 战斗内暂停钮（#196）：点按回调（入口接 battlePauseFlow）；不给则不画暂停钮 */
+  onPause?(): void;
   /** 局外偏好：已看过登场的首领 id（#107；不给则每次按首次播） */
   seenBosses?: SeenBosses;
 }
@@ -588,6 +591,10 @@ export class BattleScene implements Scene<BattleParams> {
       return !!hit;
     }
     this.press = null;
+    if (e.type === 'tap' && this.pauseHit() && hitInside(this.pauseHit()!, e.at)) {
+      this.deps.onPause!();
+      return true;
+    }
     if (this.introStep) {
       if (e.type === 'tap') this.skipIntro();
       return true; // 演出期间阻塞输入，只接受点击跳过
@@ -963,7 +970,9 @@ export class BattleScene implements Scene<BattleParams> {
     // 顶条
     const tb = this.topBar();
     text(ctx, tb.left, 16, L.top.y + 13, { size: 18, color: C.gold, font: FONT.brush });
-    text(ctx, tb.right, w - 16, L.top.y + 13, { size: 14, color: C.goldLo, font: FONT.num, align: 'right' });
+    const pi = this.deps.onPause ? pauseIconLayout(w, L.top.y) : null;
+    text(ctx, tb.right, pi ? pi.cx - pi.r - 10 : w - 16, L.top.y + 13, { size: 14, color: C.goldLo, font: FONT.num, align: 'right' });
+    if (pi) drawPauseIcon(ctx, w, L.top.y);
     // 敌阵：后排 → 前排 → 附件
     const back = this.g.en.filter((e) => e.row === 'back');
     const front = this.g.en.filter((e) => e.row === 'front');
@@ -1008,6 +1017,12 @@ export class BattleScene implements Scene<BattleParams> {
       }
       drawLingTutorial(s.ctx, this.lingTutorial, hi);
     }
+  }
+
+  /** 暂停钮热区（#196）：没接 onPause 或已分出胜负时为 null */
+  pauseHit(): Rect | null {
+    if (!this.deps.onPause || this.ended !== null || this.mode === 'over') return null;
+    return pauseIconLayout(this.W, this.layout().top.y).hit;
   }
 
   /** 顶条文案：模板来自 rules.battleTitle（#216），数据读 core 状态，不写死（#55） */

@@ -1215,6 +1215,18 @@
         }
       }
     },
+    "battlePause": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "战斗内暂停钮与暂停面板布局（#196）",
+      "required": ["pauseBtn", "panel", "button", "scrimAlpha"],
+      "properties": {
+        "pauseBtn": { "type": "object", "additionalProperties": false, "required": ["r", "hit", "right"], "properties": { "r": { "type": "number", "minimum": 0 }, "hit": { "type": "number", "minimum": 0 }, "right": { "type": "number", "minimum": 0 } } },
+        "panel": { "type": "object", "additionalProperties": false, "required": ["w", "padTop", "padBottom"], "properties": { "w": { "type": "number", "minimum": 0 }, "padTop": { "type": "number", "minimum": 0 }, "padBottom": { "type": "number", "minimum": 0 } } },
+        "button": { "type": "object", "additionalProperties": false, "required": ["w", "h", "gap"], "properties": { "w": { "type": "number", "minimum": 0 }, "h": { "type": "number", "minimum": 0 }, "gap": { "type": "number", "minimum": 0 } } },
+        "scrimAlpha": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
     "battleTitle": {
       "type": "object",
       "additionalProperties": false,
