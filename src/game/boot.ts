@@ -32,6 +32,7 @@ import { resultBridge } from './result/bridge';
 import { resumeFlow, resumePlan, showVersionDialog } from './result/resume';
 import { abandonRun, resumeFailure } from './result/abandon';
 import { pauseFlow } from './result/pause';
+import { BATTLE_PAUSE_ID, battlePauseFlow } from './scenes/battle/pause-menu';
 import { SettingsStore, battleSettings } from './prefs/settings';
 import type { Platform } from '../platform/types';
 import type { RenderConfig } from '../engine/settings';
@@ -197,6 +198,8 @@ export function bootGame(platform: Platform, opts: BootOptions) {
         debugDefaults: import.meta.env.MODE === 'debug',
         nodeType: () => run.inNode?.type,
         seenBosses: new SeenBossStore(platform.storage),
+        // 战斗内暂停（#196）：继续 / 设置（#108 浮层）/ 放弃本局（同地图口径）
+        onPause: () => void openPause(battlePauseFlow),
         // 仅开发构建：UI 截图验收参数（#129），生产构建整段被摇掉
         dev: import.meta.env.DEV
           ? {
@@ -354,9 +357,9 @@ export function bootGame(platform: Platform, opts: BootOptions) {
   }
 
   /** 入口 2（#108）：地图暂停钮 → 暂停/设置浮层；确定放弃 → 按失败进结算页（与战斗失败同口径） */
-  async function openPause() {
-    if (engine.overlays.ids().includes('pause')) return;
-    const r = await pauseFlow(engine.overlays, engine, settingsStore);
+  async function openPause(open: typeof pauseFlow = pauseFlow) {
+    if (engine.overlays.ids().some((id) => id === 'pause' || id === BATTLE_PAUSE_ID)) return;
+    const r = await open(engine.overlays, engine, settingsStore);
     if (r !== 'abandon' || !flow.can({ type: 'abandon' })) return;
     if (run.active) run.save(platform.storage);
     const s = slot.peek();

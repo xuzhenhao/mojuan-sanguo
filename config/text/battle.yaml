@@ -1,0 +1,11 @@
+# 战斗页 UI 文案（#196 战斗内暂停）
+id: battle
+strings:
+  pause_title: 暂停
+  pause_continue: 继续
+  pause_settings: 设置
+  pause_abandon: 放弃本局
+  abandon_confirm_title: 放弃本局
+  abandon_confirm_body: 确定放弃？本局进度将清空
+  abandon_cancel: 取消
+  abandon_ok: 放弃
