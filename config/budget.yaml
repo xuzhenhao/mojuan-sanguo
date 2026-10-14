@@ -1,0 +1,44 @@
+# 资源与性能预算（#183）：scripts/size-check.ts 读取。改阈值只改这里，不改代码。
+# 单位：字节（KB = 1024）。不在 config 加载器的目录里（build-config 只读 rules.yaml 与各内容目录），构建期脚本专用。
+package:
+  h5:
+    hardBytes: 4194304 # 4MB 硬限
+    targetBytes: 2621440 # 2.5MB 目标：超了告警
+    overTarget: warn
+  wechat:
+    hardBytes: 4194304 # 微信主包硬限
+    targetBytes: 2621440 # 工程门槛：超了失败（#206）
+    overTarget: error
+
+# 分类预算：按文件名正则归类，maxBytes = 该类合计，maxFileBytes = 单文件上限（可省）
+categories:
+  h5:
+    script: { match: '\.(js|mjs)$', maxBytes: 614400, maxFileBytes: 512000 }
+    style: { match: '\.css$', maxBytes: 65536 }
+    font: { match: '\.(woff2?|ttf|otf)$', maxBytes: 409600 }
+    image: { match: '\.(png|webp|jpe?g)$', maxBytes: 524288, maxFileBytes: 204800 }
+  wechat:
+    script: { match: '\.(js|mjs)$', maxBytes: 614400, maxFileBytes: 512000 }
+    font: { match: '\.(woff2?|ttf|otf)$', maxBytes: 614400 }
+    image: { match: '\.(png|webp|jpe?g)$', maxBytes: 524288, maxFileBytes: 204800 }
+
+# 首屏（首个可交互）需要的文件：glob（* 不跨目录），合计不超 maxBytes
+firstScreen:
+  h5:
+    files: ['index.html', 'assets/index-*.js', 'assets/index-*.css', 'assets/wenkai-core-*.woff2']
+    maxBytes: 563200 # 550KB
+  wechat:
+    files: ['game.js', 'game.json', 'assets/fonts/*.ttf']
+    maxBytes: 1048576 # 1MB
+
+# 立绘（放 OSS 不进包，scripts/build-portraits.py 产出到 art/out/）：size-check --portraits <dir> 校验
+# 规则按顺序匹配，取第一条命中的；尺寸为上限（像素）
+portraits:
+  - { name: small, match: '@s\.webp$', maxWidth: 256, maxHeight: 356, maxBytes: 40960 }
+  - { name: large, match: '\.webp$', maxWidth: 512, maxHeight: 712, maxBytes: 122880 }
+
+# 帧率预算（开发版 FPS 计数器 / 文档基准，见 docs/specs/perf-budget-183.md）
+perf:
+  targetFps: 60
+  lowEndFps: 30 # 低端机最低可接受
+  sampleMs: 1000
