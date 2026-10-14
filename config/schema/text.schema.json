@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "text.schema.json",
+  "title": "UI 文本表（#182）：一个文件一个命名空间，代码用 t('ns.key') 取",
+  "type": "object",
+  "required": ["id", "strings"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "strings": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}
