@@ -35,7 +35,8 @@ import { pauseFlow } from './result/pause';
 import { SettingsStore, battleSettings } from './prefs/settings';
 import type { Platform } from '../platform/types';
 import type { RenderConfig } from '../engine/settings';
-import { brushFont, loadGameFonts, setFontPlatform } from './fonts';
+import { brushFont, loadGameFonts, sansFont, setFontPlatform } from './fonts';
+import { C } from './overlays/theme';
 import { FONTS } from '../data/config';
 import { refitFonts } from './scenes/battle/hpview';
 import { setReducedMotionSource } from './motion';
@@ -56,7 +57,13 @@ export function bootGame(platform: Platform, opts: BootOptions) {
   setReducedMotionSource(() => platform.prefersReducedMotion());
   bindTelemetry(platform.telemetry, () => platform.now());
   platform.onHide(flushTelemetry);
-  const engine = new Engine(platform, { backdrop: opts.backdrop }, opts.renderConfig);
+  const engine = new Engine(
+    platform,
+    { backdrop: opts.backdrop, fpsStyle: { font: sansFont(12), color: C.paper, warn: C.gold, bad: C.cinnabar, bg: C.mask } },
+    opts.renderConfig,
+  );
+  // #183：开发版 FPS 窗口报告走 #208 埋点白名单（正式构建 engine.fps 为 null，不上报）
+  engine.setFpsSink((r) => trackMatch('perf_sample', { avg_fps: r.avgFps, low1_fps: r.low1Fps, verdict: r.verdict, frames: r.frames }));
   /** 场景安全区一律用设计坐标：设备安全区已在引擎缩放时扣除 */
   const designSafe = () => ({ ...DESIGN_RECT });
 

@@ -41,4 +41,7 @@ portraits:
 perf:
   targetFps: 60
   lowEndFps: 30 # 低端机最低可接受
-  sampleMs: 1000
+  sampleMs: 1000 # 统计窗口：每窗口出一份报告（屏显刷新 / 上报）
+  overlay: false # 屏显 FPS 调试开关；只在开发构建（import.meta.env.DEV）生效，预览/正式包恒不显示；开发时也可 ?fps=1 / ?fps=0 覆盖
+  report: false # 是否把窗口报告经 #208 埋点（perf_sample）上报；开发构建才采样
+  reportEveryMs: 30000 # 上报节流：两次上报最小间隔

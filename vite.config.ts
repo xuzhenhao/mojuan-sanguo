@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import { wechatViteConfig } from './scripts/vite-wechat';
+import { perfDefine } from './scripts/perf-define';
 
 /**
  * 本地立绘（仅 vite dev 且 VITE_ASSET_LOCAL=1）：在 rules.assets.localBaseUrl 下提供 art/out/ 静态目录。
@@ -48,7 +49,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: debug ? PAGES_BASE.debug : PAGES_BASE.h5,
     plugins: [localAssets()],
-    define: { __PLATFORM__: JSON.stringify('web') },
+    define: { __PLATFORM__: JSON.stringify('web'), __PERF_BUDGET__: perfDefine(import.meta.dirname) },
     // public/（mockups）不进任何构建产物，由 pages.yml 直接拷到站点根目录 /mockups/，
     // 这样 size-check 只量 Canvas 发布包本身；本地 `npm run dev:debug` 仍可访问 /mockups/
     publicDir: debug ? 'public' : false,

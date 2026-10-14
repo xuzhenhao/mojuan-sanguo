@@ -5,6 +5,7 @@
 import type { Platform } from '../platform/types';
 import { Canvas2DCompositor, WebGLOverlay, type InkFx } from './compositor';
 import { GestureRecognizer, type GestureEvent } from './input';
+import { FpsCounter, fpsOptions, type FpsSink, type FpsStyle } from './fps';
 import { MainLoop } from './loop';
 import { OverlayStack, type Scrim } from './modal';
 import { SceneManager } from './scene';
@@ -22,6 +23,8 @@ export interface EngineHooks {
   animating?(): boolean;
   /** 底纹层：用真实视口 W×H（CSS px，已乘 dpr）铺满，cover；不进场景（render-spec §4.0） */
   backdrop?(ctx: Ctx2DLike, width: number, height: number): void;
+  /** FPS 屏显样式（令牌由 game 层传入）；缺省不画 */
+  fpsStyle?: FpsStyle;
 }
 
 export class Engine {
@@ -47,6 +50,8 @@ export class Engine {
   readonly gestures: GestureRecognizer;
   readonly scenes: SceneManager;
   readonly overlays: OverlayStack;
+  /** 开发版 FPS 计数器（#183）；正式构建恒为 null */
+  readonly fps: FpsCounter | null = null;
   fx: InkFx[] = [];
   warnings: BudgetWarning[] = [];
 
@@ -136,9 +141,16 @@ export class Engine {
       cancel: () => this.gestures.cancel(),
     });
 
+    if (import.meta.env.DEV) {
+      const o = fpsOptions(__PERF_BUDGET__, true, platform.launchQuery());
+      if (o.enabled) this.fps = new FpsCounter(__PERF_BUDGET__, o.overlay);
+    }
     this.loop = new MainLoop(
       platform,
-      (dt) => this.frame(dt),
+      (dt, t) => {
+        if (import.meta.env.DEV) this.fps?.sample(dt, t);
+        this.frame(dt);
+      },
       () => this.needsFrame(),
     );
     platform.onResize?.(() => this.resize());
@@ -226,6 +238,7 @@ export class Engine {
     this.overlays.update(dt);
     // 弹层出帧：短动画整层重绘 main；倒计时只局部重绘（render-spec §12：空闲/等待时不整层重绘）
     const anim = this.overlays.animating();
+    if (import.meta.env.DEV && this.fps?.overlay && this.hooks.fpsStyle) this.surfaces.main.dirty = true;
     if (anim === 'full') this.surfaces.main.dirty = true;
     const mainFull = this.surfaces.main.dirty;
     for (const s of Object.values(this.surfaces)) {
@@ -245,6 +258,7 @@ export class Engine {
       this.hooks.draw?.(s.name, s, dt);
       if (clipped) (s.ctx as ClipCtx).restore!();
       if (s.name === 'main') this.overlays.draw(s, dt, (sf, sc) => this.paintScrim(sf, sc));
+      if (import.meta.env.DEV && s.name === 'main' && this.hooks.fpsStyle) this.fps?.draw(s.ctx, 8, DESIGN_H - 8, this.hooks.fpsStyle);
     }
     if (anim === 'tick' && !mainFull) {
       const m = this.surfaces.main;
@@ -257,8 +271,14 @@ export class Engine {
     this.overlay?.frame(tfx ? [...this.fx, tfx] : this.fx);
   }
 
+  /** FPS 报告出口（#208 埋点由外部接；引擎不依赖平台模块）。正式构建为空操作 */
+  setFpsSink(sink: FpsSink | null) {
+    if (this.fps) this.fps.sink = sink;
+  }
+
   needsFrame() {
     return (
+      (import.meta.env.DEV && !!this.fps?.overlay) ||
       this.gestures.active ||
       this.scenes.animating() ||
       !!this.overlays.animating() ||

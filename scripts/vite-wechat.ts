@@ -4,6 +4,7 @@
  * 不产出 HTML/CSS/modulepreload，不拷 public/。game.json 等由 scripts/build-wechat.ts 生成。
  */
 import { resolve } from 'node:path';
+import { perfDefine } from './perf-define';
 
 export const WECHAT_OUT_DIR = 'dist-wechat';
 export const WECHAT_ENTRY = 'src/platform/wechat/entry.ts';
@@ -12,7 +13,7 @@ export function wechatViteConfig(root: string) {
   return {
     base: './',
     publicDir: false as const,
-    define: { __PLATFORM__: JSON.stringify('wechat') },
+    define: { __PLATFORM__: JSON.stringify('wechat'), __PERF_BUDGET__: perfDefine(root) },
     build: {
       outDir: WECHAT_OUT_DIR,
       emptyOutDir: true,
