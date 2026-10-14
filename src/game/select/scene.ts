@@ -5,6 +5,7 @@
  * - 珠联璧合（PRD 7.4）：主副组合命中时在技能栏下方提示。
  * 只读 core / data；出征时通过 onStart 交给入口（RunSession + FlowMachine）。
  */
+import { t } from '../../data/text';
 import type { HeroDef } from '../../core/types';
 import type { GestureEvent } from '../../engine/input';
 import type { OverlayHandle, OverlayStack } from '../../engine/modal';
@@ -150,7 +151,7 @@ export class SelectScene implements Scene {
         return true;
       case 'swap':
         if (canSwap(this.state)) this.set(swap(this.state));
-        else this.toast('主副将都选定后才能换位');
+        else this.toast(t('select.toast_need_both_swap'));
         return true;
       case 'skill':
         return this.longpress(h); // 点技能印也看详情
@@ -158,7 +159,7 @@ export class SelectScene implements Scene {
         if (canStart(this.state)) this.opt.onStart({ main: this.state.main, sub: this.state.sub });
         else {
           this.flashMs = 480;
-          this.toast(this.state.main ? '请选择副将' : '请选择主将');
+          this.toast(this.state.main ? t('select.toast_need_sub') : t('select.toast_need_main'));
           this.ctx.invalidate('main');
         }
         return true;
@@ -210,14 +211,25 @@ export class SelectScene implements Scene {
     const w = this.ctx.width;
     const lines = detailLines(hero, focus);
     const rect: Rect = { x: 20, y: 120, w: w - 40, h: 0 };
-    rect.h = 64 + lines.reduce((n, l) => n + l.h, 0) + 16;
+    // 底部留出关闭按钮行（热区 ≥44dp）
+    rect.h = 64 + lines.reduce((n, l) => n + l.h, 0) + 16 + DETAIL_CLOSE_ROW;
+    const closeRect = detailCloseRect(rect);
     this.detail = ov.push({
       id: `detail:hero:${hero.id}`,
       kind: 'detail',
       dismissOnTapOutside: true,
       rect,
       scrim: { color: 'rgba(0,0,0,.55)' },
-      draw: (s) => drawDetail(s.ctx as unknown as Ctx, rect, hero, lines),
+      draw: (s) => drawDetail(s.ctx as unknown as Ctx, rect, hero, lines, closeRect),
+      gesture: (e, h) => {
+        if (e.type !== 'tap') return false;
+        // 显式关闭按钮（#257）；点面板其它区域不关，避免误触
+        if (inside(closeRect, e.at)) {
+          h.close();
+          return true;
+        }
+        return false;
+      },
     });
     return true;
   }
@@ -471,7 +483,16 @@ export function wrapChars(s: string, n: number): string[] {
   return out.length ? out : [''];
 }
 
-function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[]) {
+/** 详情底栏高度（含 ≥44dp 关闭热区，#257） */
+export const DETAIL_CLOSE_ROW = 52;
+/** 关闭按钮热区：面板底部居中，至少 44×44 */
+export function detailCloseRect(panel: Rect): Rect {
+  const bw = Math.max(120, Math.min(200, panel.w - 48));
+  const bh = 44;
+  return { x: panel.x + (panel.w - bw) / 2, y: panel.y + panel.h - DETAIL_CLOSE_ROW + (DETAIL_CLOSE_ROW - bh) / 2, w: bw, h: bh };
+}
+
+function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[], closeRect: Rect) {
   panel(c, r);
   c.fillStyle = C.gold;
   c.font = `28px ${BRUSH()}`;
@@ -492,10 +513,16 @@ function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[]) {
     }
     y += l.h;
   }
-  c.fillStyle = C.goldLo;
-  c.font = sansFont(11);
-  c.textAlign = 'right';
-  c.fillText('点外部关闭', r.x + r.w - 12, r.y + 18);
+  // #257：不显示「点外部关闭」提示（外部点击仍可关），只留底部关闭按钮
+  c.textBaseline = 'middle';
+  // 底部主操作：关闭按钮
+  c.fillStyle = C.lac3;
+  c.fillRect(closeRect.x, closeRect.y, closeRect.w, closeRect.h);
+  strokeRect(c, closeRect, C.gold, 1);
+  c.fillStyle = C.paper;
+  c.font = `18px ${BRUSH()}`;
+  c.textAlign = 'center';
+  c.fillText(t('select.detail_close'), closeRect.x + closeRect.w / 2, closeRect.y + closeRect.h / 2);
   resetText(c);
 }
 

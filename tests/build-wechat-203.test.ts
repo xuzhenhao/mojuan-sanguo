@@ -11,6 +11,7 @@ import {
   resolveAppId,
   wechatFontPackageUrls,
   wechatFontSource,
+  WECHAT_PROJECT_NAME,
 } from '../scripts/build-wechat';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -29,7 +30,9 @@ describe('#203 build-wechat', () => {
     expect(gameJson()).toMatchObject({ deviceOrientation: 'portrait' });
     expect(gameJson()).not.toHaveProperty('subpackages');
     const p = projectConfig('wx3dd635e3cc359d30', 'x');
-    expect(p).toMatchObject({ appid: 'wx3dd635e3cc359d30', compileType: 'game', projectname: 'x' });
+    expect(p).toMatchObject({ appid: 'wx3dd635e3cc359d30', compileType: 'game', projectname: 'x', description: 'x' });
+    expect(WECHAT_PROJECT_NAME).toBe('墨卷三国');
+    expect(WECHAT_PROJECT_NAME).not.toBe('null');
   });
 
   it('守卫命中 document./window.，不误报 wx/属性名', () => {
