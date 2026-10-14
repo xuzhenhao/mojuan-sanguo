@@ -513,12 +513,8 @@ function drawDetail(c: Ctx, r: Rect, hero: HeroDef, lines: Line[], closeRect: Re
     }
     y += l.h;
   }
-  // 右上角保留「点外部关闭」提示（#257：外部点击仍有效时保留）
-  c.fillStyle = C.goldLo;
-  c.font = sansFont(11);
-  c.textAlign = 'right';
+  // #257：不显示「点外部关闭」提示（外部点击仍可关），只留底部关闭按钮
   c.textBaseline = 'middle';
-  c.fillText(t('select.detail_close_hint'), r.x + r.w - 12, r.y + 18);
   // 底部主操作：关闭按钮
   c.fillStyle = C.lac3;
   c.fillRect(closeRect.x, closeRect.y, closeRect.w, closeRect.h);

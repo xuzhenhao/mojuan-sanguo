@@ -167,7 +167,7 @@ describe('点将：场景交互', () => {
     expect(overlays.gesture({ type: 'tap', at: { x: 2, y: 840 } })).toBe(true);
     expect(overlays.size).toBe(0);
     expect(t('select.detail_close')).toBe('关闭');
-    expect(t('select.detail_close_hint')).toBe('点外部关闭');
+    expect(t('select.detail_close_hint')).toBe('select.detail_close_hint'); // 提示已删
   });
   it('空闲时停帧；选满后「出征」呼吸光只持续 2.4s', () => {
     const { sc } = mkScene();

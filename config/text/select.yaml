@@ -2,7 +2,6 @@
 id: select
 strings:
   detail_close: 关闭
-  detail_close_hint: 点外部关闭
   toast_need_sub: 请选择副将
   toast_need_main: 请选择主将
   toast_need_both_swap: 主副将都选定后才能换位
